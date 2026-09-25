@@ -1,7 +1,7 @@
 name: RIMMA New Site Checks
 on:
   push:
-    branches: [feat/new-site-20260926]
+    branches: [feat/new-site-20260926, feat/premium-web-v3]
     paths:
       - 'new-site/**'
       - '.github/workflows/new-site-ci.yml'
@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '24'
       - name: Static site regression tests
-        run: node --test new-site/tests/site.test.mjs
+        run: node --test new-site/tests/*.test.mjs
       - name: JavaScript syntax checks
         run: |
           node --check new-site/assets/site.js

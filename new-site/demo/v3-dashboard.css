@@ -1,0 +1,48 @@
+/* RIMMA executive typography — companion styles for the public offline web preview */
+@font-face{font-family:PortalPlayfair;src:url("../assets/fonts/playfair-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:PortalPlayfair;src:url("../assets/fonts/playfair-600.woff2") format("woff2");font-weight:600;font-display:swap}
+:root{--font:ManropeNew,Manrope,"Segoe UI",sans-serif;--serif:PortalPlayfair,Georgia,serif}
+body{font:500 14px/1.7 var(--font);color:#262821;background:#F8F7F2}
+.sidebar{padding-top:31px!important}
+.sidebar-caption{font-size:8px!important;letter-spacing:1.85px}
+.workspace-chip{font-size:13px!important}
+.side-nav button{font-size:13px!important;min-height:52px!important;gap:13px!important;font-weight:600!important}
+.side-nav button.active{background:#303128!important;border-color:#A78F62!important;color:#FFFAF0!important}
+.sidebar-bottom a,.sidebar-bottom button{font-size:12px!important}
+.sidebar-bottom button{min-height:46px!important}
+.topbar{height:78px!important}
+.topbar-breadcrumb{font-size:11px!important}
+.topbar-right{font-size:11px!important}
+main{padding-top:52px}
+.page-intro h1,.list-head h1{font:600 clamp(51px,4.9vw,72px)/1.1 var(--serif)!important;letter-spacing:-1.8px!important}
+.page-intro p,.list-head p{font:500 14px/1.8 var(--font)!important}
+.eyebrow{font-size:10px!important;letter-spacing:2.25px!important}
+.primary,.intro-action,.secondary,.pagination button{font:700 13px var(--font)!important;min-height:49px!important}
+.primary{border-radius:7px!important}
+.summary-grid{gap:17px!important}
+.metric-card{padding:29px!important;min-height:222px!important}
+.metric-card>span{font-size:10px!important;letter-spacing:1.7px!important}
+.metric-card>strong{font:600 75px/1.06 var(--serif)!important;letter-spacing:-1.6px!important}
+.metric-card>small{font:500 12px var(--font)!important}
+.section-head h2,.paper-panel h2,.service-card h2{font:600 31px var(--serif)!important}
+.paper-table th{font:700 10px var(--font)!important;letter-spacing:1.5px;padding:20px!important}
+.paper-table td{font:500 13px/1.5 var(--font)!important;color:#47483E!important;padding:18px 20px!important}
+.paper-table .name{font-size:13px}
+.paper-table .sub{font-size:11px!important}
+.status{font:700 10px var(--font)!important;padding:6px 9px}
+.filters input,.filters select,.list-head select{font-size:13px!important;min-height:49px!important}
+.service-line{font-size:13px!important}
+.account-grid dd{font-size:14px}
+.account-link{font-size:13px}
+.paper-panel p{font-size:13px;line-height:1.8}
+.report-value{font:600 55px var(--serif)!important}
+.auth-card h2{font:600 clamp(49px,4.3vw,66px)/1.1 var(--serif)!important}
+.auth-side h1{font:600 clamp(65px,6vw,95px)/1.08 var(--serif)!important}
+.auth-card>p{font-size:13px}
+.auth-card label,.auth-card input{font-size:13px!important}
+.demo-ribbon{font-size:9px!important;letter-spacing:1px!important}
+@media(max-width:1200px){.sidebar{flex-basis:236px}.metric-card{padding:22px!important}.metric-card>strong{font-size:66px!important}}
+@media(max-width:930px){.sidebar{flex-basis:259px}.topbar{height:70px!important}}
+@media(max-width:630px){main{padding-top:35px}.page-intro h1,.list-head h1{font-size:52px!important}.page-intro p,.list-head p{font-size:13px!important}.metric-card{min-height:149px!important;padding:20px!important}.metric-card.dark{min-height:174px!important}.metric-card>strong{font-size:54px!important}.metric-card.dark>strong{font-size:65px!important}.paper-table td{padding:17px!important}.paper-panel h2{font-size:28px!important}.sidebar{padding-top:29px!important}}
+@media(max-width:375px){.page-intro h1,.list-head h1{font-size:46px!important}.metric-card>span{font-size:9px!important}.metric-card>strong{font-size:46px!important}.metric-card.dark>strong{font-size:57px!important}}
+

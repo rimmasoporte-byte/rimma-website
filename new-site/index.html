@@ -10,12 +10,13 @@
   <meta property="og:title" content="RIMMA — Tu oficio primero">
   <meta property="og:description" content="Cada prenda, en su lugar. Cada minuto, para ti. Descubre la gestión inteligente de tu taller.">
   <link rel="icon" href="./assets/icon.png">
-  <link rel="preload" href="./assets/fonts/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./assets/fonts/playfair-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./assets/fonts/manrope-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./assets/logo.webp" as="image" type="image/webp">
   <link rel="stylesheet" href="./assets/site.css">
+  <link rel="stylesheet" href="./assets/v3.css">
   <script src="./assets/site.js" defer></script>
-  <title>RIMMA — Tu taller, a tu manera</title>
+  <title>RIMMA — Todo tu taller, en perfecta armonía</title>
 </head>
 <body>
   <a class="skip" href="#main">Saltar al contenido</a>
@@ -41,11 +42,11 @@
     <div class="header-inner container">
       <a class="brand" href="./" aria-label="RIMMA, volver al inicio"><img src="./assets/logo.webp" alt="RIMMA — Gestión para talleres de costura" width="211" height="74"></a>
       <nav class="nav" id="nav" aria-label="Navegación principal">
-        <a href="#funciones">Funciones</a><a href="#experiencia">La experiencia</a><a href="#como-funciona">Cómo funciona</a><a href="#precio">Precio</a>
+        <a href="#top">Inicio</a><a href="#funciones">Funciones</a><a href="#experiencia">La experiencia</a><a href="#como-funciona">Cómo funciona</a><a href="#precio">Precio</a>
         <a href="./legal/support/" class="nav-support">Ayuda</a>
       </nav>
       <div class="header-actions">
-        <a class="header-login" href="./demo/">Mi espacio <svg><use href="#i-arrow-up"/></svg></a>
+        <a class="header-login" href="./demo/" aria-label="Abrir demostración del espacio"><span class="header-login-text">Vista del espacio</span> <svg><use href="#i-arrow-up"/></svg></a>
         <button type="button" class="mobile-toggle" aria-expanded="false" aria-controls="nav" aria-label="Abrir menú">
           <svg class="menu-open-icon"><use href="#i-menu"/></svg><svg class="menu-close-icon"><use href="#i-x"/></svg>
         </button>
@@ -54,53 +55,41 @@
   </header>
 
   <main id="main">
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="eyebrow"><span class="eyebrow-line"></span> EL ORDEN QUE MERECE TU OFICIO</span>
-          <h1>Todo tu taller.<br><em>En perfecta</em><br>armonía<span class="period">.</span></h1>
-          <p class="hero-lead">De la primera visita a la última puntada. Organiza clientes, pedidos y entregas en un espacio tan cuidado como tu trabajo.</p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="./demo/">Explorar RIMMA <svg><use href="#i-arrow-up"/></svg></a>
-            <a class="btn btn-quiet" href="#experiencia">Ver la experiencia <span class="quiet-arrow">↓</span></a>
-          </div>
-          <div class="hero-micro"><span class="micro-mark">✧</span> Una vista previa de lo que estamos preparando para ti.</div>
+    <section class="v3-hero" aria-labelledby="hero-title">
+      <div class="container v3-hero-grid">
+        <div class="v3-copy">
+          <span class="v3-eyebrow">MÁS QUE ORGANIZACIÓN. TRANQUILIDAD.</span>
+          <h1 id="hero-title">Todo tu taller.<br><em>En perfecta armonía.</em></h1>
+          <p>Organiza clientes, pedidos y entregas en un solo lugar. RIMMA te ayuda a llevar el control de tu taller de forma sencilla, profesional y sin complicaciones.</p>
+          <div class="v3-actions"><a class="v3-button v3-button-dark" href="./demo/">Explorar RIMMA <svg><use href="#i-arrow"/></svg></a><a class="v3-button v3-button-text" href="#experiencia"><span class="v3-play">▶</span> Ver cómo funciona</a></div>
+          <div class="v3-trust"><span><svg><use href="#i-check"/></svg> Fácil de usar</span><span><svg><use href="#i-check"/></svg> Pensada para tu taller</span><span><svg><use href="#i-check"/></svg> En español</span></div>
+          <span class="v3-honest-note">Vista ilustrativa con datos ficticios. Acceso web en preparación.</span>
         </div>
-
-        <div class="hero-art" aria-label="Representación ilustrativa de RIMMA con datos ficticios" role="img">
-          <div class="art-orbit art-orbit-one"></div><div class="art-orbit art-orbit-two"></div>
-          <span class="art-side-label">R I M M A &nbsp; / &nbsp; A T E L I E R</span>
-          <div class="desktop-ui">
-            <div class="desktop-bar"><span class="desktop-wordmark">R<span>✳</span></span><span class="desktop-brand-line"></span><span class="desktop-brand-label">Atelier Ejemplo</span><span class="desktop-avatar">M</span></div>
-            <div class="desktop-content">
-              <div class="desktop-eyebrow">VIERNES, 25 DE SEPTIEMBRE</div>
-              <div class="desktop-title">Tu taller, <em>al día.</em></div>
-              <div class="desktop-sub">Un espacio para cuidar cada detalle.</div>
-              <div class="desktop-stat"><div class="desktop-stat-label">PRENDAS PARA HOY <svg><use href="#i-calendar"/></svg></div><strong>3</strong><div class="desktop-stat-foot"><span>El ritmo de tu taller</span><span>Nuevo pedido <b>↗</b></span></div></div>
-              <div class="desktop-small-cards"><div><svg><use href="#i-check"/></svg><strong>2</strong><span>Listos para recoger</span></div><div><svg><use href="#i-bag"/></svg><strong>7</strong><span>Próximos 7 días</span></div></div>
-            </div>
+        <div class="v3-showcase" aria-label="Vista ilustrativa del espacio RIMMA, no una sesión real">
+          <div class="v3-halo"></div>
+          <div class="v3-laptop">
+            <div class="v3-bezel"><span class="v3-camera"></span><div class="v3-monitor">
+              <div class="v3-monitor-top"><img src="./assets/logo.webp" alt="" width="82" height="32"><div class="v3-monitor-search">⌕ &nbsp; Buscar clientes, pedidos o teléfono…</div><span>♧</span><b>MG</b></div>
+              <div class="v3-monitor-layout">
+                <div class="v3-monitor-menu"><div class="selected"><svg><use href="#i-bag"/></svg> Inicio</div><div><svg><use href="#i-calendar"/></svg> Pedidos</div><div><svg><use href="#i-users"/></svg> Clientes</div><div><svg><use href="#i-scissors"/></svg> Servicios</div><div><svg><use href="#i-chart"/></svg> Informes</div><small>RIMMA · TU TALLER</small></div>
+                <div class="v3-monitor-main"><span>VISTA DE EJEMPLO · TALLER DE COSTURA</span><h2>Tu taller, al día.</h2><p>Cada detalle de tu negocio, organizado.</p>
+                  <div class="v3-monitor-stats"><div class="dark"><span>Pedidos de hoy</span><b>5</b><small>Ver pedidos →</small></div><div><span>En proceso</span><b>12</b><small>Ver todos →</small></div><div><span>Listos</span><b>8</b><small>Ver todos →</small></div><div><span>Clientes activos</span><b>42</b><small>Ver clientes →</small></div></div>
+                  <div class="v3-monitor-section"><strong>Pedidos recientes</strong><span>Ver todos →</span></div>
+                  <table><thead><tr><th>CLIENTE</th><th>PRENDA</th><th>ENTREGA</th><th>ESTADO</th><th>TOTAL</th></tr></thead><tbody><tr><td>María García</td><td>Vestido</td><td>25 sep</td><td><em>En proceso</em></td><td>35,00 €</td></tr><tr><td>Carlos Ruiz</td><td>Pantalón</td><td>26 sep</td><td><em class="green">Listo</em></td><td>15,00 €</td></tr><tr><td>Sofía López</td><td>Chaqueta</td><td>27 sep</td><td><em>Recibido</em></td><td>28,00 €</td></tr></tbody></table>
+                </div>
+              </div>
+            </div></div><div class="v3-laptop-base"></div>
           </div>
-          <div class="phone-ui" aria-hidden="true">
-            <div class="phone-top"><span>9:41</span><span class="phone-pills">●●●</span></div>
-            <div class="phone-inner">
-              <div class="phone-header">RIMMA <span>✳</span></div>
-              <p class="phone-overline">PEDIDOS</p>
-              <h2>Pedidos</h2><p class="phone-subtitle">Cada prenda, en su momento.</p>
-              <div class="phone-search">⌕ <span>Buscar pedido, cliente o teléfono</span></div>
-              <div class="phone-new">＋ &nbsp; Nuevo pedido</div>
-              <div class="phone-filter"><b>Todos</b><span>Recibidos</span><span>En proceso</span></div>
-              <div class="phone-order"><div><small>PEDIDO #2</small><label>Recibido</label></div><strong>María García</strong><footer><span>▦ &nbsp; 25 sep</span><b>35,00 € →</b></footer></div>
-              <div class="phone-order"><div><small>PEDIDO #1</small><label class="phone-issued">Entregado</label></div><strong>Carlos Ruiz</strong><footer><span>▦ &nbsp; 24 sep</span><b>15,00 € →</b></footer></div>
-            </div>
-            <div class="phone-bottom"><span>⌂</span><span class="active">▣</span><span>♧</span><span>◇</span><span>▥</span></div>
+          <div class="v3-phone">
+            <span class="v3-notch"></span><div class="v3-phone-status">9:41 <span>▰ ●●</span></div><div class="v3-phone-top"><img src="./assets/logo.webp" alt="" width="76" height="28"><span>◯</span></div><div class="v3-phone-content"><span class="v3-phone-kicker">PEDIDOS</span><h3>Pedidos</h3><p>Cada prenda, en su momento.</p><div class="v3-phone-input">⌕ &nbsp; Buscar pedido o cliente</div><div class="v3-phone-new">＋ &nbsp; Nuevo pedido</div><div class="v3-phone-filters"><b>Todos</b><span>Recibidos</span><span>En proceso</span></div><div class="v3-phone-card"><div><small>PEDIDO #02</small><label>Recibido</label></div><strong>María García</strong><footer><span>▦ &nbsp; 25 sep</span><b>35,00 € →</b></footer></div><div class="v3-phone-card"><div><small>PEDIDO #01</small><label class="green">Entregado</label></div><strong>Carlos Ruiz</strong><footer><span>▦ &nbsp; 24 sep</span><b>15,00 € →</b></footer></div></div><div class="v3-phone-footer"><span>⌂</span><span class="selected">▣</span><span>♧</span><span>◇</span><span>▥</span></div>
           </div>
-          <div class="art-caption"><span class="art-caption-dot"></span> VISTA DE EJEMPLO · DATOS FICTICIOS</div>
         </div>
       </div>
-      <div class="container hero-baseline"><span>01 / 04 &nbsp; — &nbsp; TU NUEVO ESPACIO DE TRABAJO</span><span>DESCUBRE RIMMA <span aria-hidden="true">↓</span></span></div>
     </section>
 
-    <div class="benefit-band"><div class="container benefit-wrap"><div><svg><use href="#i-scissors"/></svg><span>Diseñada para talleres de costura</span></div><span class="benefit-separator"></span><div><svg><use href="#i-phone"/></svg><span>El día a día, más sencillo</span></div><span class="benefit-separator"></span><div><svg><use href="#i-shield"/></svg><span>Tus datos en tu propio espacio</span></div></div></div>
+
+    <div class="v3-benefits"><div class="container v3-benefit-grid"><div class="v3-benefit"><div class="v3-benefit-icon"><svg><use href="#i-users"/></svg></div><div><h3>Gestión de clientes</h3><p>Sus datos, siempre a mano.</p></div></div><div class="v3-benefit"><div class="v3-benefit-icon"><svg><use href="#i-scissors"/></svg></div><div><h3>Control de pedidos</h3><p>De la prenda a la entrega.</p></div></div><div class="v3-benefit"><div class="v3-benefit-icon"><svg><use href="#i-calendar"/></svg></div><div><h3>Fechas organizadas</h3><p>Cada encargo, a tiempo.</p></div></div><div class="v3-benefit"><div class="v3-benefit-icon"><svg><use href="#i-chart"/></svg></div><div><h3>Informes del taller</h3><p>Una visión más clara.</p></div></div></div></div>
+
 
     <section id="funciones" class="section features">
       <div class="container">
@@ -189,12 +178,14 @@
       </div>
     </section>
 
-    <section id="precio" class="section pricing">
-      <div class="container pricing-grid">
-        <div class="pricing-copy"><span class="eyebrow"><span class="eyebrow-line"></span> UNA INVERSIÓN EN TU TRANQUILIDAD</span><h2>Herramientas<br>para trabajar <em>mejor.</em></h2><p>La organización diaria de tu taller no debería ser complicada. Por eso preparamos un plan sencillo, sin menús interminables.</p><div class="price-rule"></div><div class="price-perks"><span><svg><use href="#i-check"/></svg> Pedidos y clientes organizados</span><span><svg><use href="#i-check"/></svg> Servicios y fechas de entrega</span><span><svg><use href="#i-check"/></svg> Información para tu día a día</span></div></div>
-        <div class="price-card"><div class="price-card-head"><span>RIMMA · PLAN MENSUAL</span><span>✧</span></div><div class="price-title">Una sola herramienta.<br><em>Todo tu taller.</em></div><div class="price-amount">5 € <span>/ mes</span></div><p>Precio orientativo previsto para España. Los precios finales y la disponibilidad se confirmarán en Google Play.</p><div class="price-divider"></div><a class="btn btn-primary price-btn" href="./demo/">Descubrir RIMMA <svg><use href="#i-arrow-up"/></svg></a><span class="price-bottom">Vista previa gratuita · No se realiza ningún cobro.</span></div>
+    <section id="precio" class="v3-pricing" aria-labelledby="v3-pricing-title"><div class="container">
+      <div class="v3-price-intro"><span class="v3-eyebrow">UN PLAN. TU TALLER, EN ORDEN.</span><h2 id="v3-pricing-title">Más tiempo para<br><em>lo que mejor haces.</em></h2><p>Una herramienta para gestionar tu taller con claridad, sin complicaciones.</p></div>
+      <div class="v3-price-layout">
+        <div class="v3-plan"><div class="v3-plan-top"><span>RIMMA · PLAN MENSUAL</span><span>✳</span></div><h3>Tu taller, en orden.</h3><div class="v3-amount">5 € <span>/ mes</span></div><p>Precio orientativo previsto para España. El importe definitivo y la disponibilidad se confirmarán en Google Play.</p><a href="./demo/" class="v3-button v3-button-dark">Explorar gratis la demo <svg><use href="#i-arrow"/></svg></a><small>Demo gratuita · No se realiza ningún cobro.</small></div>
+        <div class="v3-plan-included"><span class="v3-eyebrow">PENSADA PARA EL TRABAJO REAL</span><h3>Todo lo esencial.<br><em>Sin complicaciones.</em></h3><p>Cada función tiene un propósito: ayudarte a dedicar menos tiempo a buscar y más tiempo a crear.</p><ul><li><svg><use href="#i-check"/></svg> Clientes y pedidos organizados</li><li><svg><use href="#i-check"/></svg> Fechas de entrega y estados</li><li><svg><use href="#i-check"/></svg> Catálogo de servicios e importes</li><li><svg><use href="#i-check"/></svg> Información clara sobre tu taller</li></ul><small>La publicación de la suscripción y el acceso web real siguen en preparación.</small></div>
       </div>
-    </section>
+    </div></section>
+
 
     <section class="faq section" id="preguntas">
       <div class="container faq-grid"><div><span class="eyebrow"><span class="eyebrow-line"></span> ESTAMOS AQUÍ PARA AYUDARTE</span><h2>Lo importante,<br><em>sin dudas.</em></h2><a href="./legal/support/" class="faq-help">¿Necesitas algo más? Escríbenos <svg><use href="#i-arrow-up"/></svg></a></div><div class="faq-list">
@@ -208,6 +199,6 @@
     <section class="closing"><div class="container closing-inner"><span class="closing-ornament">✳</span><span class="eyebrow">UNA NUEVA FORMA DE ORGANIZARTE</span><h2>Que lo extraordinario<br>sea <em>tu trabajo.</em></h2><p>Del orden nos encargamos juntos.</p><a class="btn btn-gold" href="./demo/">Explorar la demostración <svg><use href="#i-arrow-up"/></svg></a><span class="closing-arc" aria-hidden="true"></span></div></section>
   </main>
 
-  <footer class="footer"><div class="container footer-grid"><div class="footer-brand"><img src="./assets/logo.webp" alt="RIMMA — Gestión para talleres de costura" width="176" height="62" loading="lazy"><p>Pensada para quienes transforman<br>cada detalle en algo especial.</p></div><div class="footer-nav"><div><strong>EXPLORA</strong><a href="#funciones">Funciones</a><a href="#experiencia">La experiencia</a><a href="#precio">Plan mensual</a></div><div><strong>RIMMA</strong><a href="./demo/">Demo del espacio web</a><a href="./legal/support/">Ayuda y soporte</a><a href="mailto:rimma.soporte@gmail.com">Contacto</a></div><div><strong>INFORMACIÓN</strong><a href="./legal/privacy/">Privacidad</a><a href="./legal/terms/">Términos</a><a href="./legal/delete-account/">Eliminar cuenta</a></div></div></div><div class="container footer-bottom"><span>© <span id="year">2026</span> RIMMA · Con cariño por tu oficio.</span><span>ES · DISEÑADA PARA TALLERES DE COSTURA</span></div></footer>
+  <footer class="footer"><div class="container footer-grid"><div class="footer-brand"><img src="./assets/logo.webp" alt="RIMMA — Gestión para talleres de costura" width="176" height="62" loading="lazy"><p>Pensada para quienes transforman<br>cada detalle en algo especial.</p></div><div class="footer-nav"><div><strong>EXPLORA</strong><a href="#funciones">Funciones</a><a href="#experiencia">La experiencia</a><a href="#precio">Plan mensual</a></div><div><strong>RIMMA</strong><a href="./demo/">Vista interactiva del espacio web</a><a href="./legal/support/">Ayuda y soporte</a><a href="mailto:rimma.soporte@gmail.com">Contacto</a></div><div><strong>INFORMACIÓN</strong><a href="./legal/privacy/">Privacidad</a><a href="./legal/terms/">Términos</a><a href="./legal/delete-account/">Eliminar cuenta</a></div></div></div><div class="container footer-bottom"><span>© <span id="year">2026</span> RIMMA · Con cariño por tu oficio.</span><span>ES · DISEÑADA PARA TALLERES DE COSTURA</span></div></footer>
 </body>
 </html>
