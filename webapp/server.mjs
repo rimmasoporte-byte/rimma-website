@@ -30,7 +30,7 @@ function securityHeaders(type) {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'x-frame-options': 'DENY',
-    'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'cross-origin-opener-policy': 'same-origin',
     'cross-origin-resource-policy': 'same-origin',
@@ -140,6 +140,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&(pathname==='/'||pathname==='/app')){res.writeHead(302,{location:'/app/','cache-control':'no-store'});return res.end();}
     if(method==='GET'&&(pathname==='/app/'||pathname==='/app/index.html'))return staticFile(res,'index.html','text/html; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
