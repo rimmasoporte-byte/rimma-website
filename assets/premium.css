@@ -1,0 +1,73 @@
+/* RIMMA Maison: refined editorial identity across public site */
+:root{--bg:#F6F5F0;--bg-alt:#F0F0E8;--paper:#FFFEFB;--ink:#24332A;--muted:#717C71;--border:#DCE1D8;--bronze:#957A52;--gold:#C3AE87;--dark:#1E2D24}
+body{background:var(--bg);color:var(--ink);font-family:"Manrope","Segoe UI",sans-serif;font-size:13px;letter-spacing:-.1px}
+h1,h2,h3,.brand-text,.footer-brand{font-family:"Bodoni Moda",Didot,"Bodoni MT",Georgia,serif}
+.announcement{height:37px;background:#1C2A21;color:#E8E9DC;font:700 9px "Manrope",sans-serif;letter-spacing:2.2px}
+.status-dot{background:#BCB17D;box-shadow:0 0 0 3px #CCBE8730}
+.site-header{background:#FCFCF8F0;border-bottom:1px solid #E4E6DF;backdrop-filter:blur(20px)}
+.nav-wrap{min-height:93px}
+.brand-mark{width:48px;height:48px;border:1px solid #B9A981;color:#60725E;font-size:29px}
+.brand-text{font-size:27px;letter-spacing:4.8px;font-weight:500}
+.brand-sub{font:700 7px "Manrope",sans-serif;letter-spacing:2.4px;color:#869286}
+.main-nav{font:600 11px "Manrope",sans-serif;gap:38px;color:#526255}
+.nav-cta,.btn-dark{background:#24392D;border-color:#536E4D;color:#FFFEF9}
+.nav-cta:hover,.btn-dark:hover{background:#364D3C}
+.hero{background:radial-gradient(ellipse at 80% 36%,#E2E7DC 0,transparent 45%),#F6F5F0;padding-block:112px 116px}
+.hero-grid{gap:62px}
+.eyebrow{font:800 9px "Manrope",sans-serif;letter-spacing:3.2px;color:#91764D}
+.eyebrow-line{width:31px}
+.hero h1{font:500 clamp(55px,5.35vw,81px)/1.11 "Bodoni Moda",Georgia,serif;letter-spacing:-2.8px;margin:37px 0 24px}
+em,.hero h1 em,.section-top h2 em,.how h2 em,.pricing h2 em{color:#977B4D}
+.hero-desc{max-width:460px;font:400 13px/2 "Manrope",sans-serif;color:#69786B}
+.btn{min-height:54px;font:700 10px "Manrope",sans-serif;letter-spacing:.5px}
+.text-link{font:700 10px "Manrope",sans-serif;color:#77694B;border-bottom-color:#B6A478}
+.hero-foot{font-size:10px;color:#899488;letter-spacing:.2px}
+.orbit{border-color:#BEC8B9}
+.preview-window{box-shadow:0 34px 90px #1C30211F,0 15px 30px #233D2210;border-color:#C9D1C3;background:#FFFFFC}
+.preview-side{background:#21372C;color:#D2D4BF}
+.preview-top{color:#536C58}
+.preview-welcome h3{font:500 29px "Bodoni Moda",Georgia,serif}
+.preview-welcome>span,.preview-list-head span{color:#8D7953}
+.preview-metrics>div{background:#FDFDF9;border-color:#E4E6DD}
+.preview-metrics strong{font:500 30px "Bodoni Moda",Georgia,serif}
+.floating-tag{box-shadow:0 22px 58px #1C30211F;border-color:#E0E2D8}
+.floating-icon{color:#A18B61}
+.trust-strip{background:#EBEEE8;border-color:#DDE2D7}
+.trust-strip p{color:#7A8979;font:800 9px "Manrope",sans-serif;letter-spacing:2.9px;padding-block:25px}
+.trust-strip span{color:#AA966E}
+.features{background:#FBFBF8}
+.section-top h2,.pricing h2,.how h2{font:500 clamp(43px,4.1vw,64px)/1.17 "Bodoni Moda",Georgia,serif;letter-spacing:-1.6px}
+.section-top>p{color:#7B8679;font:400 12px/2 "Manrope",sans-serif}
+.feature-grid{gap:20px}
+.feature-card{background:#FFFEFC;border:1px solid #E0E5DB;box-shadow:0 13px 45px #20382808;padding:39px;min-height:332px}
+.feature-card:hover{border-color:#B2BBA8;transform:translateY(-5px);box-shadow:0 20px 50px #21382A12}
+.feature-icon{background:#F1F2EA;color:#738164;border-color:#D9DFD1}
+.feature-no{color:#95805A;letter-spacing:2.5px;font:800 9px "Manrope",sans-serif}
+.feature-card h3{font:500 29px/1.18 "Bodoni Moda",Georgia,serif;letter-spacing:-.5px;max-width:330px}
+.feature-card>p{font:400 12px/1.95 "Manrope",sans-serif;color:#778375}
+.client-illus{background:#F8F9F4;border-color:#DFE5D9}
+.feature-dark,.how{background:#22382B;color:#FAFCF6;border-color:#294733}
+.feature-dark .feature-icon{background:#405547;color:#E4D3B7}
+.feature-dark>p,.how-heading>p{color:#C9D5C7}
+.feature-dark h3{font-size:41px}
+.how .eyebrow{color:#D2BE95}
+.how h2 em,.launch h2 em{color:#E1CB9E}
+.steps,.step{border-color:#67776555}
+.step h3{font:500 27px "Bodoni Moda",Georgia,serif}
+.step p{color:#CCD8C9;font:400 12px/1.9 "Manrope",sans-serif}
+.pricing{background:#F2F4EE}
+.price-card{background:#FFFEFB;border:1px solid #D5DBC9;box-shadow:0 31px 70px #1F3B2810;padding:49px}
+.price-label,.price-note{color:#8A9787}
+.price-value{font:500 73px "Bodoni Moda",Georgia,serif;letter-spacing:-1.3px}
+.price-value span{font:500 13px "Manrope",sans-serif}
+.price-includes{font-size:11px;color:#5C6B5B}
+.launch{background:#4C6350}
+.launch:before,.launch:after{border-color:#F5EBC82A}
+.launch h2{font:500 clamp(49px,5.1vw,74px)/1.14 "Bodoni Moda",Georgia,serif}
+.launch p{font:400 12px/2 "Manrope",sans-serif}
+.site-footer{background:#F7F8F3;border-color:#E3E8DD}
+.footer-brand{font:500 38px "Bodoni Moda",Georgia,serif}
+.footer-links b{color:#8C8868}.footer-links a{color:#647165}
+.inner-page h1{font:500 clamp(46px,6vw,74px)/1.16 "Bodoni Moda",Georgia,serif}
+@media(max-width:860px){.hero{padding-block:82px}.hero h1{font-size:clamp(56px,9vw,74px)}.nav-wrap{min-height:76px}.main-nav{gap:23px}.feature-card{padding:30px}}
+@media(max-width:580px){.hero{padding-block:65px 86px}.hero h1{font-size:clamp(48px,11vw,59px);letter-spacing:-1.9px}.brand-text{font-size:24px}.section-top h2,.pricing h2,.how h2{font-size:45px}.feature-card{min-height:260px;padding:28px}.price-card{padding:29px}.price-value{font-size:67px}.hero-grid{gap:40px}.demo-top h2{font-family:"Bodoni Moda",Georgia,serif;font-size:49px}.demo-tab>span:nth-child(2){font-family:"Bodoni Moda",Georgia,serif}}
