@@ -1,0 +1,26 @@
+name: RIMMA New Site Checks
+on:
+  push:
+    branches: [feat/new-site-20260926]
+    paths:
+      - 'new-site/**'
+      - '.github/workflows/new-site-ci.yml'
+  pull_request:
+    paths:
+      - 'new-site/**'
+      - '.github/workflows/new-site-ci.yml'
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static site regression tests
+        run: node --test new-site/tests/site.test.mjs
+      - name: JavaScript syntax checks
+        run: |
+          node --check new-site/assets/site.js
+          node --check new-site/demo/site.js
+          node --check new-site/demo/demo-shim.js
