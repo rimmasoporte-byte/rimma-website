@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#F6F3ED">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Mi taller — RIMMA</title>
+  <link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app/site.css">
+  <script src="/app/site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#content">Ir al contenido</a>
+  <section class="auth-shell" id="auth-screen" hidden>
+    <div class="auth-side">
+      <a class="brand-large" href="https://rimmaapp.com">RIMMA<span>✳</span></a>
+      <span class="auth-caption">TU TALLER, A TU RITMO</span>
+      <h1>Un lugar<br>para <em>crear</em><br>con calma.</h1>
+      <p>Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.</p>
+      <div class="auth-stamp">RIMMA <span>·</span> COSTURA Y ARREGLOS</div>
+    </div>
+    <div class="auth-main">
+      <div class="auth-card">
+        <div class="mini-brand">R<span>✳</span></div>
+        <span class="eyebrow">ACCEDE A TU ESPACIO</span>
+        <h2>Qué bueno<br><em>tenerte aquí.</em></h2>
+        <p>Inicia sesión con la misma cuenta que utilizas en la aplicación Android.</p>
+        <form id="login-form">
+          <label for="login-email">Correo electrónico</label>
+          <input id="login-email" type="email" name="email" autocomplete="username" placeholder="tu@correo.com" required maxlength="254">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" type="password" name="password" autocomplete="current-password" placeholder="Tu contraseña" required>
+          <button class="primary" type="submit" id="login-submit">Entrar a mi taller <span>↗</span></button>
+        </form>
+        <div class="auth-message" id="auth-error" role="alert" hidden></div>
+        <p class="small">¿Necesitas ayuda? <a href="mailto:rimma.soporte@gmail.com?subject=RIMMA%20-%20Ayuda%20para%20acceder">Escribe a soporte</a></p>
+        <p class="legal"><a href="https://rimmaapp.com/privacy/">Privacidad</a> · <a href="https://rimmaapp.com/terms/">Términos</a></p>
+      </div>
+    </div>
+  </section>
+  <div class="loading-shell" id="loading-screen"><div class="loading-star">✳</div><p>Abriendo tu taller…</p></div>
+  <div class="portal" id="portal" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top"><a href="https://rimmaapp.com" class="sidebar-brand" aria-label="RIMMA página principal">RIMMA<span>✳</span></a><span class="sidebar-caption">MI ESPACIO DE TRABAJO</span></div>
+      <div class="workspace-chip"><span class="workspace-icon">✄</span><span id="workspace-name">Mi taller</span></div>
+      <div class="nav-caption">TU TALLER</div>
+      <nav class="side-nav" aria-label="Secciones del portal">
+        <button type="button" data-view="inicio" class="active" aria-current="page"><span class="nav-icon">▦</span> Inicio</button>
+        <button type="button" data-view="pedidos"><span class="nav-icon">▤</span> Pedidos</button>
+        <button type="button" data-view="clientes"><span class="nav-icon">♧</span> Clientes</button>
+        <button type="button" data-view="servicios"><span class="nav-icon">⌘</span> Servicios</button>
+        <button type="button" data-view="informes"><span class="nav-icon">▥</span> Informes</button>
+      </nav>
+      <div class="nav-caption nav-caption-second">TU CUENTA</div>
+      <nav class="side-nav" aria-label="Cuenta y suscripción">
+        <button type="button" data-view="suscripcion"><span class="nav-icon">◇</span> Suscripción</button>
+        <button type="button" data-view="cuenta"><span class="nav-icon">♙</span> Mi cuenta</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <a href="mailto:rimma.soporte@gmail.com?subject=RIMMA%20-%20Portal%20web">¿Necesitas ayuda? ↗</a>
+        <button type="button" id="logout">Cerrar sesión <span>→</span></button>
+      </div>
+    </aside>
+    <div class="workarea">
+      <header class="topbar"><button type="button" class="menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button><div class="topbar-breadcrumb">MI TALLER <span> / </span> <strong id="breadcrumb">Inicio</strong></div><div class="topbar-right"><span class="live-indicator"></span> Tu espacio privado <button type="button" class="profile-chip" id="profile-chip" data-view="cuenta" aria-label="Ir a mi cuenta">MR</button></div></header>
+      <main id="content">
+        <div id="global-error" class="global-error" role="alert" hidden></div>
+        <section class="view active" id="view-inicio" aria-labelledby="heading-inicio">
+          <div class="page-intro"><div><span class="eyebrow">HOY EN TU TALLER</span><h1 id="heading-inicio">Tu taller,<br><em>al día.</em></h1><p>Un lugar para cuidar cada detalle y no perder de vista la siguiente entrega.</p></div><button type="button" class="primary intro-action" data-action="new-order">+ Nuevo pedido</button></div>
+          <div class="summary-grid" id="today-cards"><div class="metric-card dark"><span>PRENDAS PARA HOY</span><strong id="due-count">—</strong><small>El ritmo de tu taller</small></div><div class="metric-card"><span>LISTOS PARA RECOGER</span><strong id="ready-count">—</strong><small>Encargos que ya esperan</small></div><div class="metric-card"><span>PRÓXIMOS 7 DÍAS</span><strong id="week-count">—</strong><small>Prendas programadas</small></div></div>
+          <div class="section-head"><h2>Pedidos recientes</h2><button type="button" class="text-button" data-view="pedidos">Ver todos ↗</button></div>
+          <div class="paper-table" id="recent-orders" aria-live="polite"><p class="empty">Cargando pedidos…</p></div>
+        </section>
+        <section class="view" id="view-pedidos" aria-labelledby="heading-pedidos">
+          <div class="list-head"><div><span class="eyebrow">SEGUIMIENTO DE ENCARGOS</span><h1 id="heading-pedidos">Pedidos</h1><p>Cada prenda, en su momento.</p></div><button type="button" class="primary" data-action="new-order">+ Nuevo pedido</button></div>
+          <div class="filters"><label for="orders-search" class="sr-only">Buscar pedidos</label><input id="orders-search" type="search" placeholder="Buscar pedido o cliente"><select id="order-status" aria-label="Filtrar estado"><option value="">Todos los estados</option><option value="accepted">Recibidos</option><option value="in_progress">En proceso</option><option value="ready">Listos</option><option value="issued">Entregados</option></select></div>
+          <div class="paper-table" id="orders-list" aria-live="polite"></div>
+          <div class="pagination"><button type="button" id="orders-prev">← Anterior</button><span id="orders-page">Página 1</span><button type="button" id="orders-next">Siguiente →</button></div>
+        </section>
+        <section class="view" id="view-clientes" aria-labelledby="heading-clientes">
+          <div class="list-head"><div><span class="eyebrow">LAS PERSONAS DETRÁS DE CADA PRENDA</span><h1 id="heading-clientes">Clientes</h1><p>El detalle que hace volver.</p></div><button class="primary" type="button" data-action="new-client">+ Nuevo cliente</button></div>
+          <div class="filters"><label for="clients-search" class="sr-only">Buscar clientes</label><input id="clients-search" type="search" placeholder="Buscar nombre, teléfono o correo"></div>
+          <div class="paper-table" id="clients-list" aria-live="polite"></div>
+          <div class="pagination"><button type="button" id="clients-prev">← Anterior</button><span id="clients-page">Página 1</span><button type="button" id="clients-next">Siguiente →</button></div>
+        </section>
+        <section class="view" id="view-servicios" aria-labelledby="heading-servicios"><div class="list-head"><div><span class="eyebrow">EL OFICIO, BIEN ORGANIZADO</span><h1 id="heading-servicios">Servicios</h1><p>Tu catálogo de trabajos y precios, siempre a mano.</p></div></div><div id="services-list" class="service-grid" aria-live="polite"></div></section>
+        <section class="view" id="view-informes" aria-labelledby="heading-informes"><div class="list-head"><div><span class="eyebrow">UNA VISIÓN MÁS CLARA</span><h1 id="heading-informes">Informes</h1><p>Una mirada a los resultados de tu taller.</p></div><select aria-label="Periodo del informe" id="report-period"><option value="month">Este mes</option><option value="week">Esta semana</option><option value="day">Hoy</option><option value="year">Este año</option></select></div><div class="report-grid" id="report-data"><div class="paper-panel"><p class="empty">Selecciona un periodo.</p></div></div></section>
+        <section class="view" id="view-suscripcion" aria-labelledby="heading-suscripcion"><div class="list-head"><div><span class="eyebrow">TU PLAN RIMMA</span><h1 id="heading-suscripcion">Suscripción</h1><p>Consulta el estado de tu acceso y la próxima fecha importante.</p></div></div><div class="billing-grid" id="billing-data"><div class="paper-panel"><p class="empty">Cargando suscripción…</p></div></div><p class="helper">Las nuevas suscripciones se gestionan desde Google Play en Android. El portal web muestra el estado verificado por el servidor.</p></section>
+        <section class="view" id="view-cuenta" aria-labelledby="heading-cuenta"><div class="list-head"><div><span class="eyebrow">TU ESPACIO PERSONAL</span><h1 id="heading-cuenta">Mi cuenta</h1><p>Los datos que te acompañan, en tu taller y en el móvil.</p></div></div><div class="account-grid"><div class="paper-panel"><h2>Datos de la cuenta</h2><div id="account-info"></div></div><div class="paper-panel"><h2>Ayuda y privacidad</h2><p>Para cambiar tus datos o ejercer tus derechos puedes consultar nuestra información de soporte y privacidad.</p><a class="account-link" href="https://rimmaapp.com/support/" rel="noreferrer">Centro de ayuda ↗</a><a class="account-link" href="https://rimmaapp.com/privacy/" rel="noreferrer">Política de privacidad ↗</a><a class="account-link" href="https://rimmaapp.com/delete-account/" rel="noreferrer">Solicitar eliminación de cuenta ↗</a></div></div></section>
+      </main>
+    </div>
+  </div>
+  <div id="drawer-cover" class="drawer-cover" hidden></div>
+  <dialog id="modal"><form id="modal-form" method="dialog"><div class="modal-header"><div><span class="eyebrow" id="modal-eyebrow">RIMMA</span><h2 id="modal-title">Nuevo registro</h2></div><button type="button" class="close-modal" id="modal-close" aria-label="Cerrar">×</button></div><div id="modal-fields"></div><div class="modal-error" id="modal-error" role="alert" hidden></div><div class="modal-actions"><button class="secondary" type="button" id="modal-cancel">Cancelar</button><button class="primary" id="modal-submit" type="submit">Guardar</button></div></form></dialog>
+</body>
+</html>
