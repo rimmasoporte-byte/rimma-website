@@ -47,8 +47,8 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,201);assert.equal((await r.json()).client.name,'Sofía');
-  for(const f of ['site.js','site.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
-  r=await fetch(base+'/app/');assert.equal(r.status,200);assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
+  for(const f of ['site.js','site.css','premium.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
+  r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,200);
   r=await fetch(base+'/api/data/clients',{headers:head});assert.equal(r.status,401);
   console.log('PASS: 16 authenticated web BFF and CSRF assertions');

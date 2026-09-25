@@ -13,6 +13,11 @@ customer database and no new user identity provider.
   support and account deletion request link.
 - Desktop, tablet and mobile responsive site with keyboard-friendly navigation.
 
+## Premium design
+- Editorial Bodoni Moda headings, Manrope UI typography, alabaster canvas, forest-green sidebar and champagne-brass details.
+- The staging preview currently obtains fonts from Google Fonts. Before public production deployment, privacy-review external font delivery or self-host licensed font subsets and restore strict self-only CSP.
+- Do not confuse the public web-demo with authenticated live operation; it uses fixture data in browser memory only.
+
 ## Release gates — not yet production ready
 - BFF sessions currently run in an IN-MEMORY single-replica store and vanish
   when the process restarts. Before production: centralized encrypted session
