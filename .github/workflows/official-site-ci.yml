@@ -1,0 +1,24 @@
+name: Official RIMMA Site Preflight
+on:
+  push:
+    branches: [main, feat/official-premium-v3]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production-site-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify production domain, assets and demo safety
+        run: node --test deploy-tests/site.test.mjs
+      - name: Verify website JavaScript syntax
+        run: |
+          node --check assets-v3/site.js
+          node --check demo/site.js
+          node --check demo/demo-shim.js
