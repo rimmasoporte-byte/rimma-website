@@ -1,0 +1,37 @@
+name: RIMMA public domain diagnostics
+on:
+  push:
+    branches: [feat/official-premium-v3]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect authoritative and public DNS
+        run: |
+          set +e
+          echo '=== DNS authoritative delegation ==='
+          dig +time=3 +tries=1 rimmaapp.com NS +noall +answer
+          echo '=== Google A records ==='
+          dig +time=3 +tries=1 @8.8.8.8 rimmaapp.com A +noall +comments +answer
+          echo '=== Cloudflare A records ==='
+          dig +time=3 +tries=1 @1.1.1.1 rimmaapp.com A +noall +comments +answer
+          echo '=== Google WWW CNAME records ==='
+          dig +time=3 +tries=1 @8.8.8.8 www.rimmaapp.com CNAME +noall +comments +answer
+          echo '=== NS responses ==='
+          dig +time=3 +tries=1 @8.8.8.8 rimmaapp.com NS +noall +comments +answer
+          echo '=== Google resolver RDAP ==='
+          curl -LsS --max-time 8 'https://dns.google/resolve?name=rimmaapp.com&type=A' | head -c 1500 || true
+          printf '\n'
+      - name: Check live endpoints and TLS
+        run: |
+          set +e
+          for url in https://rimmaapp.com/ https://www.rimmaapp.com/ http://rimmaapp.com/ https://rimmasoporte-byte.github.io/rimma-website/ https://rimmasoporte-byte.github.io/rimma-preview/v3/; do
+            echo "=== $url ==="
+            curl -sSL --connect-timeout 4 --max-time 12 -o /tmp/rimma-response.txt -w 'STATUS:%{http_code} REMOTE_IP:%{remote_ip} EFFECTIVE_URL:%{url_effective} TLS:%{ssl_verify_result}\n' "$url"
+            echo "CURL EXIT:$?"
+            head -c 130 /tmp/rimma-response.txt | tr '\n' ' ' || true
+            printf '\n'
+          done
