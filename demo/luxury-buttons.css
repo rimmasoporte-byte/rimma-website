@@ -1,0 +1,221 @@
+/* RIMMA · Atelier Collection: button-only luxury refinement.
+   Existing layout, branding, fonts, sections and site features are untouched. */
+:root {
+  --lux-ink:#23342A;
+  --lux-deep:#16251D;
+  --lux-gold:#C3A875;
+  --lux-glow:#EDDFC1;
+  --lux-ivory:#FFFDF8;
+  --lux-shadow:0 5px 11px rgba(24,40,29,.13),0 13px 28px rgba(24,40,29,.085);
+}
+:where(.btn,.nav-cta,.primary,.secondary,.text-button,.text-link,.price-action,
+       .demo-tour,.demo-previous,.demo-next,.demo-tab,.menu-button,
+       .pagination button,.side-nav button,.sidebar-bottom button,
+       .close-modal,.profile-chip,.step-arrow) {
+  -webkit-tap-highlight-color:transparent;
+  transition: background .28s ease,background-color .28s ease,color .28s ease,
+              border-color .28s ease,box-shadow .28s ease,transform .28s cubic-bezier(.2,.75,.25,1);
+}
+:where(a,button):focus-visible{
+  outline:2px solid #B59152;
+  outline-offset:4px;
+}
+:where(button,.btn,.nav-cta,.text-link):disabled,
+:where(button,.btn,.nav-cta,.text-link)[aria-disabled="true"]{
+  opacity:.46;
+  cursor:not-allowed;
+  transform:none!important;
+  box-shadow:none!important;
+}
+/* Main CTAs, including hero, pricing, newsletter and login/save actions */
+:where(.btn-dark,.nav-cta,.primary,.price-action){
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:linear-gradient(115deg,#304538 0%,#1D3025 53%,#15241C 100%)!important;
+  color:#FFFAEE!important;
+  border:1px solid rgba(206,177,120,.67)!important;
+  box-shadow:inset 0 1px 0 rgba(255,245,223,.20),
+             inset 0 -1px 0 rgba(14,25,16,.3),
+             var(--lux-shadow)!important;
+  border-radius:3px!important;
+  font-weight:700;
+  letter-spacing:.065em;
+  text-decoration:none;
+}
+:where(.btn-dark,.nav-cta,.primary,.price-action)::before{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  z-index:0;
+  top:-65%;
+  left:-115%;
+  height:220%;
+  width:55%;
+  transform:rotate(23deg);
+  background:linear-gradient(90deg,transparent,rgba(255,252,241,.16),transparent);
+  transition:left .75s cubic-bezier(.2,.75,.3,1);
+}
+:where(.btn-dark,.nav-cta,.primary,.price-action)>*{position:relative;z-index:1}
+@media(hover:hover){
+  :where(.btn-dark,.nav-cta,.primary,.price-action):hover:not(:disabled){
+    background:linear-gradient(115deg,#415A48,#263D30 55%,#1D3025)!important;
+    border-color:#E7CE9C!important;
+    box-shadow:inset 0 1px 0 rgba(255,245,223,.24),
+               inset 0 0 0 1px rgba(234,209,161,.10),
+               0 12px 29px rgba(22,39,28,.22),0 3px 7px rgba(20,32,24,.13)!important;
+    transform:translateY(-2px);
+  }
+  :where(.btn-dark,.nav-cta,.primary,.price-action):hover:not(:disabled)::before{left:160%}
+}
+:where(.btn-dark,.nav-cta,.primary,.price-action):active:not(:disabled){
+  transform:translateY(0)!important;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.18),0 3px 9px rgba(20,32,24,.12)!important;
+}
+/* Ivory and champagne outlined controls */
+:where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour){
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border:1px solid #C9B183!important;
+  border-radius:3px!important;
+  color:#384737!important;
+  background:linear-gradient(155deg,#FFFEFA,#F5F0E5)!important;
+  box-shadow:inset 0 1px 0 #FFF,inset 0 -1px 0 #EDE2D0,
+             0 4px 11px rgba(51,55,39,.065)!important;
+  font-weight:700;
+  letter-spacing:.035em;
+}
+:where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour)::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(112deg,transparent 22%,rgba(255,255,255,.7) 42%,transparent 63%);
+  opacity:0;transform:translateX(-60%);transition:opacity .35s,transform .5s;
+}
+@media(hover:hover){
+  :where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour):hover:not(:disabled){
+    border-color:#AA8950!important;
+    background:linear-gradient(140deg,#FFFFFC,#EEE6D6)!important;
+    box-shadow:inset 0 1px 0 #FFF,0 10px 20px rgba(44,49,35,.11)!important;
+    transform:translateY(-2px);
+  }
+  :where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour):hover:not(:disabled)::before{
+    opacity:1;transform:translateX(95%);
+  }
+}
+:where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour):active:not(:disabled){
+  transform:translateY(0)!important;
+  box-shadow:inset 0 2px 5px rgba(51,55,39,.10)!important;
+}
+/* Transparent links: no generic rectangles; precision underlines */
+:where(.text-button,.text-link){
+  position:relative;
+  border:0!important;
+  border-bottom:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#846A3C!important;
+  padding-bottom:10px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-decoration:none;
+}
+:where(.text-button,.text-link)::after{
+  content:"";position:absolute;left:0;bottom:1px;height:1px;width:100%;
+  background:linear-gradient(90deg,#9E8151,#DCC79F);
+  transform:scaleX(.78);transform-origin:left center;
+  transition:transform .3s ease,background .3s ease;
+}
+@media(hover:hover){
+  :where(.text-button,.text-link):hover{color:#4E593F!important;transform:translateY(-1px)}
+  :where(.text-button,.text-link):hover::after{transform:scaleX(1)}
+}
+/* Sidebar selected states: inset metallic thread, calm translucent finish */
+.side-nav button{
+  border:1px solid transparent;
+  border-radius:3px;
+  box-shadow:none;
+  position:relative;
+}
+.side-nav button.active{
+  background:linear-gradient(105deg,rgba(214,188,138,.20),rgba(238,220,183,.045))!important;
+  border-color:rgba(212,189,143,.31)!important;
+  box-shadow:inset 2px 0 #DCC394,inset 0 1px 0 rgba(255,255,255,.075)!important;
+  color:#FFFAEF!important;
+}
+@media(hover:hover){
+  .side-nav button:hover:not(.active){
+    background:linear-gradient(105deg,rgba(242,225,194,.11),rgba(242,225,194,.025));
+    border-color:rgba(213,191,149,.14);
+    transform:translateX(2px);
+  }
+}
+/* Dark sidebar logout remains readable, never turns ivory against dark sidebar */
+.sidebar-bottom button{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(218,188,137,.49)!important;
+  border-radius:3px;
+  color:#F2E5CD!important;
+  background:linear-gradient(130deg,rgba(211,183,129,.09),rgba(211,183,129,.025))!important;
+  box-shadow:inset 0 1px rgba(255,243,219,.08);
+}
+@media(hover:hover){
+  .sidebar-bottom button:hover{
+    border-color:#D9BD86!important;
+    background:linear-gradient(130deg,rgba(211,183,129,.20),rgba(211,183,129,.07))!important;
+    transform:translateY(-1px);
+  }
+}
+/* Round icon navigation, gallery arrows, modal close and mobile menu */
+:where(.demo-previous,.demo-next){
+  border:1px solid rgba(218,184,126,.6)!important;
+  border-radius:50%!important;
+  background:linear-gradient(145deg,#365042,#1E3026)!important;
+  color:#FFF8EA!important;
+  box-shadow:0 4px 11px rgba(29,47,32,.18)!important;
+}
+@media(hover:hover){
+  :where(.demo-previous,.demo-next):hover:not(:disabled){
+    transform:translateY(-2px);
+    border-color:#E7CFA0!important;
+    box-shadow:0 8px 19px rgba(29,47,32,.25)!important;
+  }
+}
+:where(.menu-button,.close-modal,.profile-chip){
+  border:1px solid #C7B48E!important;
+  color:#3B503E!important;
+  border-radius:4px;
+  background:linear-gradient(145deg,#FFFFFC,#F0EADF)!important;
+  box-shadow:inset 0 1px 0 #FFF,0 2px 7px rgba(42,51,39,.08)!important;
+}
+.profile-chip{border-radius:50%!important}
+@media(hover:hover){
+  :where(.menu-button,.close-modal,.profile-chip):hover{
+    border-color:#AE8E57!important;
+    box-shadow:inset 0 1px 0 #FFF,0 6px 12px rgba(42,51,39,.13)!important;
+    transform:translateY(-1px);
+  }
+}
+/* A product-tour selection can look luxurious without changing panel layout */
+.demo-tab.active{
+  box-shadow:inset 2px 0 #BDA06D;
+  background:linear-gradient(90deg,#FAF6ED,#FDFBF6)!important;
+}
+@media(hover:hover){
+  .demo-tab:hover{background:#F9F4EA!important}
+}
+/* Secondary controls that are text-only retain their purpose */
+:where(.pagination button,.demo-previous,.demo-next):disabled{
+  opacity:.39;
+  transform:none!important;
+  box-shadow:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+  :where(.btn,.nav-cta,.primary,.secondary,.text-button,.text-link,.demo-tour,
+         .demo-previous,.demo-next,.demo-tab,.menu-button,.pagination button,
+         .side-nav button,.sidebar-bottom button,.close-modal,.profile-chip),
+  :where(.btn-dark,.nav-cta,.primary,.price-action)::before,
+  :where(.btn-outline,.btn-cream,.secondary,.pagination button,.demo-tour)::before{
+    transition:none!important;
+  }
+}
