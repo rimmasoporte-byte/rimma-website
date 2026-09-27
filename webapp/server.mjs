@@ -156,6 +156,11 @@ export const server=http.createServer(async(req,res)=>{
       }catch{return send(res,503,{error:'No ha sido posible comprobar la sesión. Vuelve a intentarlo.'});}
     }
     if(method==='POST'&&pathname==='/api/auth/login'){
+      // Fail closed until persistent sessions, backend throttling and live QA are approved.
+      // This prevents a staging deployment from accidentally opening production login.
+      if (process.env.WEB_PUBLIC_LOGIN_ENABLED !== 'true') {
+        return send(res,503,{error:'El acceso web todavía no está disponible.'});
+      }
       if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
       const input=await body(req);
       if(typeof input.email!=='string'||typeof input.password!=='string'||input.email.length>254||input.password.length>256) return send(res,400,{error:'Revisa los datos de acceso.'});
