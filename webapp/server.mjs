@@ -138,7 +138,13 @@ export const server=http.createServer(async(req,res)=>{
     const method=(req.method||'GET').toUpperCase();
     if(method==='GET'&&pathname==='/health')return send(res,200,{ok:true});
     if(method==='GET'&&(pathname==='/'||pathname==='/app')){res.writeHead(302,{location:'/app/','cache-control':'no-store'});return res.end();}
-    if(method==='GET'&&(pathname==='/app/'||pathname==='/app/index.html'))return staticFile(res,'index.html','text/html; charset=utf-8');
+    if(method==='GET'&&(pathname==='/app/'||pathname==='/app/index.html')) {
+      // Public staging never displays a form asking for production credentials.
+      return process.env.WEB_PUBLIC_LOGIN_ENABLED === 'true'
+        ? staticFile(res,'index.html','text/html; charset=utf-8')
+        : staticFile(res,'staging.html','text/html; charset=utf-8');
+    }
+    if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/luxury-buttons.css')return staticFile(res,'luxury-buttons.css','text/css; charset=utf-8');
