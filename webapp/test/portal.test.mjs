@@ -22,6 +22,7 @@ const mock=http.createServer(async(req,res)=>{
  return json(200,{success:true});
 });
 await new Promise(resolve=>mock.listen(0,'127.0.0.1',resolve));
+process.env.WEB_PUBLIC_LOGIN_ENABLED='true';
 process.env.RIMMA_API_BASE_URL='http://127.0.0.1:'+mock.address().port;
 process.env.ALLOW_HTTP_UPSTREAM='1';
 process.env.WEB_ORIGIN='http://127.0.0.1:19436';
