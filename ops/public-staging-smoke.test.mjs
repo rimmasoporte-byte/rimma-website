@@ -35,3 +35,20 @@ test('official website remains available over verified HTTPS',async()=>{
   const html=await response.text();
   assert.match(html,/RIMMA/);
 });
+
+test('production API is reachable and rejects unauthenticated access',async()=>{
+  const base='https://rimma-server-production.up.railway.app';
+  const health=await fetch(base+'/health',{signal:AbortSignal.timeout(20000)});
+  assert.equal(health.status,200);
+  assert.equal((await health.json()).ok,true);
+  const secure=await fetch(base+'/billing',{signal:AbortSignal.timeout(20000)});
+  assert.equal(secure.status,401);
+});
+test('existing Google Play legal pages and official demo stay online',async()=>{
+  for(const path of ['/privacy/','/delete-account/','/demo/','/assets-v3/fonts/manrope-400.woff2']){
+    const response=await fetch('https://rimmaapp.com'+path,{signal:AbortSignal.timeout(20000)});
+    assert.equal(response.status,200,path);
+  }
+  const www=await fetch('https://www.rimmaapp.com/',{signal:AbortSignal.timeout(20000)});
+  assert.equal(www.status,200);
+});
