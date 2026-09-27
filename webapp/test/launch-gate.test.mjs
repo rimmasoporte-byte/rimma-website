@@ -23,6 +23,11 @@ test('a fresh production instance serves health but keeps login locked', async (
     });
     assert.equal(res.status, 503);
     assert.match((await res.json()).error, /todav[ií]a no est[aá] disponible/);
+    res = await fetch(base + '/app/');
+    assert.equal(res.status, 200);
+    const page = await res.text();
+    assert.match(page, /entorno de pruebas/i);
+    assert.doesNotMatch(page, /type=["']password|<form/i);
     res = await fetch(base + '/api/data/clients');
     assert.equal(res.status, 401);
   } finally {
