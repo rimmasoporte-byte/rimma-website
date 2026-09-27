@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { prepareWebCheckout } from './web-billing.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 const port = Number(process.env.PORT || 19333);
@@ -186,6 +187,22 @@ export const server=http.createServer(async(req,res)=>{
       // Logging out locally must succeed even if the upstream request fails.
       void fromBackend('POST','/logout',{refreshToken:s.tokens.refreshToken},s.tokens.accessToken).catch(()=>{});
       return send(res,200,{success:true},{'set-cookie':cookie(null)});
+    }
+    if(method==='GET'&&pathname==='/api/billing/web-checkout'){
+      const s=requireSession(req,res);if(!s)return;
+      const enabled=process.env.WEB_BILLING_CHECKOUT_ENABLED==='true' &&
+        process.env.WEB_PUBLIC_LOGIN_ENABLED==='true';
+      if(!enabled)return send(res,200,{available:false});
+      const result=await callWithSession(s,'GET','/billing');
+      if(result.status!==200 || !result.data?.billing){
+        return send(res,503,{error:'No se ha podido verificar el estado de la suscripción.'});
+      }
+      const checkout=prepareWebCheckout({
+        enabled,
+        template:process.env.REVENUECAT_WEB_PURCHASE_LINK,
+        billing:result.data.billing
+      });
+      return send(res,200,checkout?{available:true,url:checkout}:{available:false});
     }
     if(pathname.startsWith('/api/data/')){
       const s=requireSession(req,res);if(!s)return;
