@@ -18,6 +18,13 @@ customer database and no new user identity provider.
 - The staging preview currently obtains fonts from Google Fonts. Before public production deployment, privacy-review external font delivery or self-host licensed font subsets and restore strict self-only CSP.
 - Do not confuse the public web-demo with authenticated live operation; it uses fixture data in browser memory only.
 
+## Launch gate
+The web BFF has a fail-closed production login gate. By default POST /api/auth/login
+returns HTTP 503 until WEB_PUBLIC_LOGIN_ENABLED=true is deliberately set after
+external security and user-data separation checks. Internal /health and public
+static assets can deploy to an isolated staging service without opening login.
+NEVER set this flag on an internet-facing service during initial deployment.
+
 ## Release gates — not yet production ready
 - BFF sessions currently run in an IN-MEMORY single-replica store and vanish
   when the process restarts. Before production: centralized encrypted session
