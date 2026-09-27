@@ -1,0 +1,24 @@
+name: RIMMA Web Portal CI
+on:
+  push:
+    branches: [feat/webapp-prod-prep-20260927]
+    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+  pull_request:
+    branches: [main]
+    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-bff-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm run check
+      - run: npm test
