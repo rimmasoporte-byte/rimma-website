@@ -46,3 +46,37 @@ main{padding-top:52px}
 @media(max-width:630px){main{padding-top:35px}.page-intro h1,.list-head h1{font-size:52px!important}.page-intro p,.list-head p{font-size:13px!important}.metric-card{min-height:149px!important;padding:20px!important}.metric-card.dark{min-height:174px!important}.metric-card>strong{font-size:54px!important}.metric-card.dark>strong{font-size:65px!important}.paper-table td{padding:17px!important}.paper-panel h2{font-size:28px!important}.sidebar{padding-top:29px!important}}
 @media(max-width:375px){.page-intro h1,.list-head h1{font-size:46px!important}.metric-card>span{font-size:9px!important}.metric-card>strong{font-size:46px!important}.metric-card.dark>strong{font-size:57px!important}}
 
+
+/* Compact Informes: consistent Manrope sizes for period, dates and EUR totals. */
+#report-data .report-value-label {
+  font: 700 10px/1.5 var(--font) !important;
+  letter-spacing: 1px !important;
+}
+#report-data .report-value {
+  font: 700 30px/1.3 var(--font) !important;
+  letter-spacing: -.35px !important;
+  margin: 9px 0 0 !important;
+}
+#report-data > .paper-panel:nth-child(3) .report-value {
+  font: 600 17px/1.5 var(--font) !important;
+  letter-spacing: 0 !important;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+#report-data .paper-panel h2 {
+  font: 700 20px/1.4 var(--font) !important;
+  letter-spacing: -.2px !important;
+  margin: 0 0 17px !important;
+}
+#report-data .service-line,
+#report-data .service-line > span {
+  font: 500 13px/1.5 var(--font) !important;
+}
+#report-data .service-line > strong {
+  font: 700 14px/1.5 var(--font) !important;
+}
+@media (max-width: 630px) {
+  #report-data .report-value { font-size: 26px !important; }
+  #report-data > .paper-panel:nth-child(3) .report-value { font-size: 15px !important; }
+  #report-data .paper-panel h2 { font-size: 18px !important; }
+}
