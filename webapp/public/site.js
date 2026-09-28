@@ -111,8 +111,19 @@ async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
  try{
   const b=(await api("/billing")).billing||{};
+  let checkout='';
+  // The BFF only returns a hosted link after backend verification and an
+  // explicit launch approval. Never build a checkout link in browser JS.
+  if(b.status==="expired" && b.owner===true){
+    try{
+      const web=await request("/api/billing/web-checkout");
+      if(web.available===true && typeof web.url==="string" && web.url.startsWith("https://pay.rev.cat/")){
+        checkout='<a class="account-link" href="'+esc(web.url)+'" target="_blank" rel="noopener noreferrer">Suscribirme en la web ↗</a>';
+      }
+    }catch{/* Keep the existing read-only subscription display. */}
+  }
   const state=b.status==="trial"?"Periodo de prueba":b.status==="active"?"Activa":b.active?"Con acceso":"Sin suscripción activa";
-  $("#billing-data").innerHTML='<div class="paper-panel billing-card"><span class="report-value-label">TU PLAN</span><div class="report-value">'+esc(state)+'</div><p>'+(b.active?"Acceso habilitado.":"Consulta Google Play para gestionar tu acceso.")+'</p></div><div class="paper-panel"><h2>Tu suscripción</h2><p>Fecha: '+esc(date(b.expiresAt||b.trialEndsAt))+'</p><p>Renovación: '+(b.willRenew?"Activada":"Consulta Google Play")+'</p><a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noopener noreferrer" class="account-link">Gestionar en Google Play ↗</a></div>';
+  $("#billing-data").innerHTML='<div class="paper-panel billing-card"><span class="report-value-label">TU PLAN</span><div class="report-value">'+esc(state)+'</div><p>'+(b.active?"Acceso habilitado.":"Consulta Google Play para gestionar tu acceso.")+'</p></div><div class="paper-panel"><h2>Tu suscripción</h2><p>Fecha: '+esc(date(b.expiresAt||b.trialEndsAt))+'</p><p>Renovación: '+(b.willRenew?"Activada":"Consulta Google Play")+'</p>'+checkout+'<a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noopener noreferrer" class="account-link">Gestionar en Google Play ↗</a></div>';
  }catch(e){$("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar el plan.</p></div>';globalError(e.message);}
 }
 async function loadAccount(){

@@ -43,6 +43,9 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   let login=await r.json();assert.ok(login.csrf);
   const head={cookie:cookie.split(';')[0]};
   r=await fetch(base+'/api/auth/session',{headers:head});assert.equal(r.status,200);const session=await r.json();assert.equal(session.authenticated,true);assert.equal(session.me.workspace.name,'Taller de Prueba');assert.ok(!JSON.stringify(session).includes('testaccess'));
+  r=await fetch(base+'/api/billing/web-checkout');assert.equal(r.status,401);
+  r=await fetch(base+'/api/billing/web-checkout',{headers:head});assert.equal(r.status,200);
+  assert.equal((await r.json()).available,false);
   r=await fetch(base+'/api/data/clients',{headers:head});assert.equal(r.status,200);assert.equal((await r.json()).clients[0].name,'María');
   r=await fetch(base+'/api/data/billing/webhook/revenuecat',{headers:head});assert.equal(r.status,405);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);

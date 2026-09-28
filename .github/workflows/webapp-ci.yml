@@ -1,10 +1,10 @@
 name: RIMMA Web Portal CI
 on:
   push:
-    branches: [feat/webapp-prod-prep-20260927]
+    branches: [feat/webapp-prod-prep-20260927, feat/web-billing-checkout-gated-20260927]
     paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
   pull_request:
-    branches: [main]
+    branches: [main, feat/webapp-prod-prep-20260927]
     paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
   workflow_dispatch:
 permissions:

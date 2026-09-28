@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test test/portal.test.mjs test/launch-gate.test.mjs",
-    "check": "node --check server.mjs && node --check public/site.js"
+    "test": "node --test test/portal.test.mjs test/launch-gate.test.mjs test/web-billing.test.mjs",
+    "check": "node --check server.mjs && node --check public/site.js && node --check web-billing.mjs"
   }
 }
