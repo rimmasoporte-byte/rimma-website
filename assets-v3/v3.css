@@ -256,6 +256,11 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
  .v3-benefit h3{font-size:13px}
  .v3-plan-included ul{grid-template-columns:1fr}
 }
+.v3-early-access{font:600 12px/1.7 var(--sans);color:#726750;margin:14px 0 0}
+.v3-early-access a,.v3-plan-request a{color:#876A3F;text-decoration:underline;text-underline-offset:4px;font-weight:800}
+.v3-early-access a:hover,.v3-plan-request a:hover{color:#3C4437}
+.v3-plan>p.v3-plan-request{border-top:1px solid #DED3C2;padding-top:17px;margin:17px 0 0;min-height:0;font:600 12px/1.7 var(--sans);color:#766C58}
+.v3-plan-request span{display:block;font-size:11px;color:#79736A;margin-top:5px}
 @media(prefers-reduced-motion:reduce){
  .v3-button,.header-login{transition:none!important}
 }
