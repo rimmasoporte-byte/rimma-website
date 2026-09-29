@@ -158,6 +158,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/luxury-buttons.css')return staticFile(res,'luxury-buttons.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/billing-view.mjs')return staticFile(res,'billing-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
 
@@ -197,6 +198,15 @@ export const server=http.createServer(async(req,res)=>{
       // Logging out locally must succeed even if the upstream request fails.
       void fromBackend('POST','/logout',{refreshToken:s.tokens.refreshToken},s.tokens.accessToken).catch(()=>{});
       return send(res,200,{success:true},{'set-cookie':cookie(null)});
+    }
+    if(method==='POST'&&pathname==='/api/billing/sync'){
+      if(process.env.WEB_PUBLIC_LOGIN_ENABLED!=='true')return send(res,503,{error:'La verificación de pagos no está disponible.'});
+      const s=await requireSession(req,res);if(!s)return;
+      if(!requireCsrf(req,res,s))return;
+      // Separate hashed quota, shared by all web replicas: max five syncs per 15 minutes.
+      if(!await loginThrottle.reserve('billing-sync:'+s.sid))return send(res,429,{error:'Demasiadas comprobaciones. Espera 15 minutos.'});
+      const result=await callWithSession(s,'POST','/billing/sync',{});
+      return send(res,result.status,result.data);
     }
     if(method==='GET'&&pathname==='/api/billing/web-checkout'){
       const s=await requireSession(req,res);if(!s)return;
