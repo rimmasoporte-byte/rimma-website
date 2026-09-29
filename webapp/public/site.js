@@ -284,7 +284,7 @@ function openModal(type,record=null){
     (order.items||[]).map(item=>'<div class="item-edit-line"><span>'+esc(item.name)+' · '+esc(status[item.status]||item.status)+'</span>'+
       (item.status!=="issued"?'<button type="button" class="record-action" data-action="edit-item" data-id="'+esc(order.id)+'" data-item="'+esc(item.id)+'">Cambiar estado</button>':'<small>Entregada</small>')+
        '<div class="feature-inline item-feature-actions"><button type="button" class="record-action" data-feature="item-photos" data-order="'+esc(order.id)+'" data-id="'+esc(item.id)+'">Fotografías</button></div></div>').join("")+'</div>'+
-       '<div class="feature-bottom"><button type="button" class="record-action" data-feature="order-payments" data-id="'+esc(order.id)+'">Cobros y pagos</button></div>';
+       '<div class="feature-bottom"><button type="button" class="record-action" data-feature="order-payments" data-id="'+esc(order.id)+'">Cobros y pagos</button><button type="button" class="record-action" data-feature="order-whatsapp" data-id="'+esc(order.id)+'">WhatsApp</button></div>';
    $("#f-due").value=order.dueDate?String(order.dueDate).slice(0,10):"";
    $("#f-reply").value=order.needsReply?"true":"false";
    $("#f-notes").value=order.notes||"";
