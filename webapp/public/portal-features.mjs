@@ -46,7 +46,7 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
  async function safe(action){
   if(busy)return;busy=true;errorEl().hidden=true;
   submit().disabled=true;
-  try{await action()}catch(e){alertError(e.message||"La operación no se pudo completar.");}
+  try{await action()}catch(e){const message=e.message||"La operación no se pudo completar.";if(dlg.open)alertError(message);else globalError(message);}
   finally{busy=false;submit().disabled=false;}
  }
  const findCat=id=>catalog.find(c=>c.id===id);
@@ -159,9 +159,8 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
  async function newPayment(){
   if(!uuid(selected?.orderId))return;
   const orderId=selected.orderId;
-  const [orderData,paymentData]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)),api("/orders/"+encodeURIComponent(orderId)+"/payments")]);
-  const order=orderData.order||{},s=paymentData.summary||{};
+  const paymentData=await api("/orders/"+encodeURIComponent(orderId)+"/payments");
+  const s=paymentData.summary||{};
   const items=(s.items||[]).filter(x=>Number(x.remainingMinor)>0);
   if(!items.length){globalError("No queda saldo pendiente para registrar.");return;}
   layout("payment-new","Registrar cobro manual",
@@ -172,16 +171,40 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
    textarea("notes","Notas",5000)+'</div>');
   selected={orderId,summary:s,items};
  }
+ async function openWhatsApp(orderId){
+  if(!uuid(orderId)){globalError("Pedido inválido.");return;}
+  const data=(await api("/orders/"+encodeURIComponent(orderId)+"/whatsapp")).whatsapp||{};
+  selected={orderId};
+  const actions=Array.isArray(data.actions)?data.actions:[];
+  layout("whatsapp-list","Mensajes de WhatsApp",
+   '<p class="feature-muted">Selecciona un mensaje para abrir WhatsApp y enviarlo manualmente. RIMMA no envía nada automáticamente.</p>'+
+   (actions.length?actions.map(a=>{
+    let href=null;
+    try{const url=new URL(String(a.url||""));if(url.protocol==="https:"&&url.hostname==="wa.me")href=url.href;}catch{}
+    const allowed=a.enabled===true&&href!==null;
+    return '<div class="feature-ledger"><strong>'+esc(a.label)+'</strong>'+
+     '<p class="feature-message">'+esc(a.text||"")+'</p>'+
+     (allowed?'<a class="feature-button feature-action-link" rel="noopener noreferrer" target="_blank" href="'+esc(href)+'">Preparar en WhatsApp ↗</a>':
+      '<small>'+esc(a.disabledReason||"No disponible para el estado actual del pedido")+'</small>')+'</div>';
+   }).join(""):'<p>No hay mensajes disponibles para este pedido.</p>'),null);
+ }
+ const safePhotoUrl=value=>{
+  try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null;}catch{return null;}
+ };
  async function openPhotos(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
   const photos=(await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos")).photos||[];
   selected={orderId,itemId};
   layout("photos-list","Fotografías de la prenda",
-   '<p class="feature-muted">Se muestra el registro de fotografías del pedido. El servidor todavía no ofrece una URL de descarga de imágenes en este portal.</p>'+
-   (photos.length?photos.filter(p=>p.status!=="deleted").map(p=>'<div class="feature-ledger"><strong>'+
-      esc(p.fileName)+'</strong><small>'+esc(p.caption||"")+" · "+
+   '<p class="feature-muted">Abre las fotografías protegidas mediante enlaces temporales del servidor. No se compartirán automáticamente.</p>'+
+   (photos.length?photos.filter(p=>p.status!=="deleted").map(p=>{
+      const url=safePhotoUrl(p.viewUrl);
+      return '<div class="feature-ledger"><strong>'+esc(p.fileName)+'</strong><small>'+esc(p.caption||"")+" · "+
       esc((photoTypes.find(x=>x[0]===p.photoType)||["",p.photoType])[1])+'</small>'+
-      b("Archivar","photo-archive",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"')+'</div>').join(""):'<p>Esta prenda todavía no tiene fotografías.</p>')+
+      (url?'<a class="feature-button feature-action-link" href="'+esc(url)+'" rel="noopener noreferrer" target="_blank">Ver foto ↗</a>':
+       '<small>Enlace temporal no disponible; actualiza las fotografías.</small>')+
+      b("Archivar","photo-archive",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"')+'</div>';
+    }).join(""):'<p>Esta prenda todavía no tiene fotografías.</p>')+
    '<div class="feature-bottom">'+b("+ Subir fotografía","photo-new")+'</div>',null);
  }
  function newPhoto(){
@@ -310,6 +333,7 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
    });
   }
   if(action==="order-payments")return void safe(async()=>openPayments(id));
+  if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
   if(action==="payment-new")return void safe(newPayment);
   if(action==="payment-confirm"||action==="payment-cancel"){
    const next=action==="payment-confirm"?"confirmed":"cancelled",orderId=selected.orderId;
@@ -334,5 +358,5 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp};
 }
