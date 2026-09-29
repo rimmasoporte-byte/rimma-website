@@ -24,7 +24,7 @@ try{
     WHERE n.nspname='public' AND c.conrelid='public.auth_rate_limits'::regclass
     GROUP BY c.contype`);
   const found=cols.rows.map(x=>x.column_name);
-  const pk=constraints.rows.some(x=>x.contype==='p' && x.columns.join(',')==='bucket_key');
+  const pk=constraints.rows.some(x=>x.contype==='p' && (Array.isArray(x.columns) ? x.columns.join(',') : String(x.columns).replace(/[{}\"\s]/g,''))==='bucket_key');
   if(!table.rows[0].present || !['bucket_key','hits','expires_at'].every(x=>found.includes(x)) || !pk)
     throw Error('AUTH_RATE_SCHEMA_NOT_COMPATIBLE');
   console.log('PASS: live production auth_rate_limits table, required columns and bucket_key primary key present');
