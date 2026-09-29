@@ -120,21 +120,41 @@ async function loadReport(){
 async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
  try{
-  const b=(await api("/billing")).billing||{};
-  let checkout='';
-  // The BFF only returns a hosted link after backend verification and an
-  // explicit launch approval. Never build a checkout link in browser JS.
-  if(b.status==="expired" && b.owner===true){
-    try{
-      const web=await request("/api/billing/web-checkout");
-      if(web.available===true && typeof web.url==="string" && web.url.startsWith("https://pay.rev.cat/")){
-        checkout='<a class="account-link" href="'+esc(web.url)+'" target="_blank" rel="noopener noreferrer">Suscribirme en la web ↗</a>';
-      }
-    }catch{/* Keep the existing read-only subscription display. */}
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs")]);
+  const b=data.billing||{};
+  let webCheckoutUrl=null;
+  // The backend alone decides whether this user is eligible for hosted checkout.
+  // Without Stripe + RevenueCat verification the endpoint returns unavailable.
+  if(b.status==="expired" && b.owner===true && b.configured===true){
+   try{
+    const purchase=await request("/api/billing/web-checkout");
+    if(purchase.available===true)webCheckoutUrl=purchase.url;
+   }catch{/* Do not synthesize unverified payment links. */}
   }
-  const state=b.status==="trial"?"Periodo de prueba":b.status==="active"?"Activa":b.active?"Con acceso":"Sin suscripción activa";
-  $("#billing-data").innerHTML='<div class="paper-panel billing-card"><span class="report-value-label">TU PLAN</span><div class="report-value">'+esc(state)+'</div><p>'+(b.active?"Acceso habilitado.":"Consulta Google Play para gestionar tu acceso.")+'</p></div><div class="paper-panel"><h2>Tu suscripción</h2><p>Fecha: '+esc(date(b.expiresAt||b.trialEndsAt))+'</p><p>Renovación: '+(b.willRenew?"Activada":"Consulta Google Play")+'</p>'+checkout+'<a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noopener noreferrer" class="account-link">Gestionar en Google Play ↗</a></div>';
- }catch(e){$("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar el plan.</p></div>';globalError(e.message);}
+  $("#billing-data").innerHTML=view.renderBilling(b,{webCheckoutUrl});
+ }catch(e){
+  $("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar tu suscripción. Inténtalo de nuevo.</p>'+
+   '<button type="button" class="secondary" data-action="refresh-billing">Reintentar</button></div>';
+  globalError(e.message);
+ }
+}
+let billingVerifyPending=false;
+async function verifyBilling(button){
+ if(billingVerifyPending)return;
+ billingVerifyPending=true;globalError("");success("");
+ const previous=button?.textContent;
+ if(button){button.disabled=true;button.textContent="Comprobando…";}
+ try{
+  await request("/api/billing/sync",{method:"POST",body:"{}"});
+  await loadBilling();
+  success("Suscripción comprobada. Tu acceso se muestra según la información verificada del servidor.");
+ }catch(e){
+  const unavailable=e.status===503?"La verificación está temporalmente indisponible. Prueba más tarde o consulta soporte.":e.message;
+  globalError(unavailable);
+ }finally{
+  billingVerifyPending=false;
+  if(button?.isConnected){button.disabled=false;button.textContent=previous||"Comprobar compra";}
+ }
 }
 async function loadAccount(){
  $("#account-info").innerHTML='<p>Cargando cuenta…</p>';
@@ -310,6 +330,8 @@ document.addEventListener("click",event=>{
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
   case "delete-client":void deleteRecord("client",b.dataset.id);break;
   case "delete-order":void deleteRecord("order",b.dataset.id);break;
+  case "refresh-billing":void loadBilling();break;
+  case "verify-billing":void verifyBilling(b);break;
  }
 });
 $("#orders-prev").addEventListener("click",()=>{ordersPage=Math.max(0,ordersPage-1);loadOrders();});
