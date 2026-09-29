@@ -24,7 +24,7 @@ const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
 const responseLimit = 2 * 1024 * 1024;
 const available = Object.freeze({
-  GET: [/^\/me$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/],
+  GET: [/^\/me$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_photos|price_services|payments|payment_allocations|payment_events)$/],
   POST: [/^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
   PATCH: [/^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
   DELETE: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
@@ -235,6 +235,46 @@ export const server=http.createServer(async(req,res)=>{
         billing:result.data.billing
       });
       return send(res,200,checkout?{available:true,url:checkout}:{available:false});
+    }
+    if(method==='GET'&&pathname==='/api/account/export/archive'){
+      const s=await requireSession(req,res);if(!s)return;
+      // Require the per-session nonce even on this highly sensitive read.
+      const supplied=String(req.headers['x-rimma-csrf']||'');
+      if(supplied.length!==s.csrf.length ||
+         !crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(s.csrf)) ||
+         (req.headers['sec-fetch-site']&&!['same-origin','none'].includes(req.headers['sec-fetch-site']))) {
+        return send(res,403,{error:'Descarga no autorizada.'});
+      }
+      const fetchZip=()=>timeoutFetch(upstream+'/account/export/archive',{
+        method:'GET',headers:{accept:'application/zip',authorization:'Bearer '+s.tokens.accessToken},
+        redirect:'error'
+      });
+      let result=await fetchZip();
+      if(result.status===401){await refresh(s);result=await fetchZip();}
+      if(result.status!==200){
+        result.body?.cancel?.().catch(()=>{});
+        return send(res,result.status===413?413:result.status===403?403:503,{
+          error:result.status===413
+            ?'Tu taller supera el límite de descarga directa. Solicita una exportación completa a soporte@rimmaapp.com.'
+            :'No se ha podido preparar el archivo. Inténtalo de nuevo.'
+        });
+      }
+      if(String(result.headers.get('content-type')||'').split(';')[0]!=='application/zip' ||
+         Number(result.headers.get('content-length')||0)>12*1024*1024){
+        result.body?.cancel?.().catch(()=>{});
+        return send(res,503,{error:'Archivo de exportación no válido.'});
+      }
+      let total=0;const parts=[];
+      for await(const chunk of result.body){
+        total+=chunk.length;
+        if(total>12*1024*1024) return send(res,413,{error:'El archivo es demasiado grande.'});
+        parts.push(Buffer.from(chunk));
+      }
+      // Bytes are sent only once the complete, size-checked ZIP is available.
+      res.writeHead(200,{...securityHeaders('application/zip'),
+        'cache-control':'private, no-store',
+        'content-disposition':'attachment; filename="rimma-datos-taller.zip"'});
+      return res.end(Buffer.concat(parts,total));
     }
     if(pathname.startsWith('/api/data/')){
       const s=await requireSession(req,res);if(!s)return;
