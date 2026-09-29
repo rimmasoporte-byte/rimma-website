@@ -81,6 +81,13 @@ async function body(req,limit=maxBody) {
 function timeoutFetch(url, options) {return fetch(url,{...options,signal:AbortSignal.timeout(25000)});}
 async function fromBackend(verb,route,payload,authToken) {
   const headers={'accept':'application/json'};
+  // Backend v1 would otherwise hand an asynchronous status token to
+  // old Android clients that expect a synchronous deleted:boolean response.
+  // Only this reviewed web BFF opts into the new response contract.
+  if((verb==='GET'&&route==='/account/deletion-info')||
+     (verb==='POST'&&route==='/account/delete')){
+    headers['x-rimma-deletion-client']='web-v1';
+  }
   if (payload!==undefined) headers['content-type']='application/json; charset=utf-8';
   if (authToken) headers.authorization='Bearer '+authToken;
   const result=await timeoutFetch(upstream+route,{method:verb,headers,body:payload===undefined?undefined:JSON.stringify(payload),redirect:'error'});
