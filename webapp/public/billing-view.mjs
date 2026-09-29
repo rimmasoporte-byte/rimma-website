@@ -24,6 +24,20 @@ function trustedCheckout(url){
   return u.href;
  }catch{return null;}
 }
+export function describeBillingSyncOutcome(billing){
+ const b=billing&&typeof billing==="object"?billing:{};
+ if(b.status==="trial" && b.active===true){
+  const ends=displayDate(b.trialEndsAt);
+  return "Comprobación completada: aún no hay una suscripción de pago activa. Tu prueba gratuita sigue vigente"+
+    (ends?" hasta el "+ends:"")+". Si quieres contratar, abre RIMMA en Android.";
+ }
+ if(b.status==="active" && b.active===true){
+  const ends=displayDate(b.expiresAt);
+  return "Comprobación completada: tu suscripción pagada está activa"+
+    (ends?" hasta el "+ends:"")+".";
+ }
+ return "Comprobación completada: no se ha confirmado ninguna suscripción de pago activa. Consulta Google Play o soporte si ya pagaste.";
+}
 export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const b=billing&&typeof billing==="object"?billing:{};
  const isTrial=b.status==="trial"&&b.active===true;
@@ -69,7 +83,7 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
   '<dt>Estado</dt><dd>'+esc(isTrial?"Prueba gratuita":isPaid?"Activa":"Sin acceso")+'</dd>'+
   (isPaid?'<dt>Renovación</dt><dd>'+esc(b.willRenew===true?"Automática":"No activada")+'</dd>':"")+
   (verified?'<dt>Verificado el</dt><dd>'+esc(verified)+'</dd>':"")+'</dl>'+renewal+sandbox+
-  '<div class="billing-actions"><button type="button" class="secondary billing-action" data-action="refresh-billing">Actualizar estado</button>'+verify+'</div>'+playManage+
+  '<div class="billing-actions"><button type="button" class="secondary billing-action" data-action="refresh-billing">Actualizar estado</button>'+verify+'</div>'+  '<p id="billing-feedback" class="billing-feedback" role="status" aria-live="polite" hidden></p>'+playManage+
   '</div><div class="paper-panel billing-help"><h2>Continuar con RIMMA</h2>'+ownerInfo+renewNotice+
   webLink+(owner&&ready?testLink:"")+
   '<a href="'+supportUrl+'" target="_blank" rel="noopener noreferrer" class="account-link">Ayuda de RIMMA ↗</a></div>';
