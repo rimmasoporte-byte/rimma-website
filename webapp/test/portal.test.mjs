@@ -78,7 +78,7 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   assert.equal(r.status,409);
   r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
   assert.equal(r.status,405);
-  for(const f of ['site.js','billing-view.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
+  for(const f of ['site.js','billing-view.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','atelier-mannequin.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);
