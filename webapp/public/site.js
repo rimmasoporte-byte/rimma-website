@@ -20,7 +20,18 @@ const featureUI=import("/app/portal-features.mjs").then(module=>module.createFea
 // position from hiding its title behind the sticky header after navigation.
 if("scrollRestoration" in history)history.scrollRestoration="manual";
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
-function success(msg){const el=$("#global-success");el.textContent=msg||"";el.hidden=!msg;}
+let successDismissTimer=null;
+function success(msg){
+ const el=$("#global-success");
+ clearTimeout(successDismissTimer);
+ el.replaceChildren();
+ if(!msg){el.hidden=true;return;}
+ const message=document.createElement("span");message.textContent=msg;
+ const close=document.createElement("button");close.type="button";close.textContent="×";close.setAttribute("aria-label","Cerrar aviso");close.style.cssText="float:right;margin-left:16px;border:0;background:transparent;color:inherit;font:inherit;font-size:22px;line-height:1;cursor:pointer";
+ close.addEventListener("click",()=>success(""));
+ el.append(message,close);el.hidden=false;
+ successDismissTimer=setTimeout(()=>success(""),5000);
+}
 function modalError(msg){const el=$("#modal-error");el.textContent=msg||"";el.hidden=!msg;}
 async function request(url,options={}){
  const headers={accept:"application/json",...options.headers};
