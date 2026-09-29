@@ -78,7 +78,54 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   assert.equal(r.status,409);
   r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
   assert.equal(r.status,405);
-  for(const f of ['site.js','billing-view.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
+
+  const item='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+  // The new business features have explicit workspace-scoped routes.
+  const reads=[
+   '/api/data/clients/'+id+'/measurements?limit=30',
+   '/api/data/orders/'+id+'/payments',
+   '/api/data/orders/'+id+'/whatsapp',
+   '/api/data/orders/'+id+'/items/'+item+'/photos'
+  ];
+  for(const url of reads){
+   r=await fetch(base+url);assert.equal(r.status,401);
+   r=await fetch(base+url,{headers:head});assert.equal(r.status,200);
+  }
+  const writes=[
+   ['POST','/api/data/categories'],['PATCH','/api/data/categories/'+id],
+   ['DELETE','/api/data/categories/'+id],
+   ['POST','/api/data/price-list/services'],
+   ['PATCH','/api/data/price-list/services/'+id],
+   ['DELETE','/api/data/price-list/services/'+id],
+   ['POST','/api/data/clients/'+id+'/measurements'],
+   ['PATCH','/api/data/clients/'+id+'/measurements/'+item],
+   ['POST','/api/data/orders/'+id+'/payments'],
+   ['PATCH','/api/data/orders/'+id+'/payments/'+item],
+   ['PATCH','/api/data/orders/'+id+'/items/'+item+'/photos/'+id],
+   ['POST','/api/data/account/password']
+  ];
+  for(const [verb,url] of writes){
+   r=await fetch(base+url,{method:verb,headers:{...head,...headers},body:'{}'});
+   assert.equal(r.status,403,"each business mutation requires CSRF");
+   r=await fetch(base+url,{method:verb,headers:authorized,body:'{}'});
+   assert.equal(r.status,200,"authorized scope stays explicit");
+  }
+  r=await fetch(base+'/api/data/account/delete',{method:'POST',headers:authorized,body:'{}'});
+  assert.equal(r.status,405,"account deletion remains disabled while upstream returns 503");
+  const photoRoute='/api/data/orders/'+id+'/items/'+item+'/photos/upload';
+  r=await fetch(base+photoRoute,{method:'POST',headers:{...head,...headers},
+   body:JSON.stringify({base64:'A'.repeat(90_000)})});
+  assert.equal(r.status,403,"photo upload requires CSRF");
+  r=await fetch(base+photoRoute,{method:'POST',headers:authorized,
+   body:JSON.stringify({base64:'A'.repeat(90_000)})});
+  assert.equal(r.status,200,"photo body is allowed above ordinary 32KB limit");
+  r=await fetch(base+photoRoute,{method:'POST',headers:authorized,
+   body:JSON.stringify({base64:'A'.repeat(250_000)})});
+  assert.equal(r.status,413);
+  r=await fetch(base+'/api/data/categories',{method:'POST',headers:authorized,
+   body:JSON.stringify({name:'X'.repeat(34_000)})});
+  assert.equal(r.status,413,"non-photo writes retain 32KB max");
+  for(const f of ['site.js','billing-view.mjs','portal-features.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);

@@ -10,6 +10,11 @@ const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
+// Same-origin, CSRF-protected business features; import failures remain visible to users.
+const featureUI=import("/app/portal-features.mjs").then(module=>module.createFeatureUI({
+ api,success,globalError,refreshOrders:async()=>{await loadOrders();await loadToday();},
+ logoutAfterPassword:async()=>{await logout();}
+}));
 // The reports screen uses the shared document scroll; prevent a saved scroll
 // position from hiding its title behind the sticky header after navigation.
 if("scrollRestoration" in history)history.scrollRestoration="manual";
@@ -99,7 +104,8 @@ async function loadOrders(){
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
 }
 function clientRow(c){
- return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td>'+recordActions("client",c.id)+'</td></tr>';
+ return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td><div class="client-extended-actions">'+
+ '<button type="button" class="record-action" data-feature="client-measurements" data-id="'+esc(c.id)+'">Medidas</button>'+recordActions("client",c.id)+'</div></td></tr>';
 }
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
@@ -111,11 +117,9 @@ async function loadClients(){
  }catch(e){$("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);}
 }
 async function loadServices(){
- $("#services-list").innerHTML='<div class="paper-panel"><p>Cargando catálogo…</p></div>';
- try{
-  const response=await api("/price-list");lastCatalog=response.priceList?.categories||[];
-  $("#services-list").innerHTML=lastCatalog.length?lastCatalog.map(cat=>'<article class="service-card"><h2>'+esc(cat.name)+'</h2>'+((cat.services||[]).filter(s=>s.status!=="inactive").map(s=>'<div class="service-line"><span>'+esc(s.name)+'</span><strong>'+esc(s.pricingMode==="quote"?"A presupuestar":(s.pricingMode==="from"?"Desde ":"")+money(s.priceMinor,s.currencyCode))+'</strong></div>').join("")||'<p>No hay servicios activos.</p>')+'</article>').join(""):'<div class="paper-panel"><p>Aún no hay servicios en el catálogo.</p></div>';
- }catch(e){$("#services-list").innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
+ $("#services-list").innerHTML='<p class="empty">Cargando catálogo…</p>';
+ try{await (await featureUI).loadServices();}
+ catch(e){$("#services-list").innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
 }
 let reportRequestSequence=0;
 async function loadReport(){
@@ -240,7 +244,7 @@ function openModal(type,record=null){
    if(activeModal!=="order")return;
    lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="EUR"')+field("Fecha de entrega","due","date")+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="EUR"')+field("Fecha de entrega","due","date")+'<div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
@@ -278,7 +282,9 @@ function openModal(type,record=null){
     '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="10000"></textarea></div></div>'+
     '<div class="item-edit-list"><strong>Estado de las prendas</strong>'+
     (order.items||[]).map(item=>'<div class="item-edit-line"><span>'+esc(item.name)+' · '+esc(status[item.status]||item.status)+'</span>'+
-      (item.status!=="issued"?'<button type="button" class="record-action" data-action="edit-item" data-id="'+esc(order.id)+'" data-item="'+esc(item.id)+'">Cambiar estado</button>':'<small>Entregada</small>')+'</div>').join("")+'</div>';
+      (item.status!=="issued"?'<button type="button" class="record-action" data-action="edit-item" data-id="'+esc(order.id)+'" data-item="'+esc(item.id)+'">Cambiar estado</button>':'<small>Entregada</small>')+
+       '<div class="feature-inline item-feature-actions"><button type="button" class="record-action" data-feature="item-photos" data-order="'+esc(order.id)+'" data-id="'+esc(item.id)+'">Fotografías</button></div></div>').join("")+'</div>'+
+       '<div class="feature-bottom"><button type="button" class="record-action" data-feature="order-payments" data-id="'+esc(order.id)+'">Cobros y pagos</button><button type="button" class="record-action" data-feature="order-whatsapp" data-id="'+esc(order.id)+'">WhatsApp</button></div>';
    $("#f-due").value=order.dueDate?String(order.dueDate).slice(0,10):"";
    $("#f-reply").value=order.needsReply?"true":"false";
    $("#f-notes").value=order.notes||"";
@@ -315,7 +321,16 @@ async function saveModal(event){
    if(!Number.isSafeInteger(minor)||minor<0)throw new Error("El precio no es válido.");
    const options=JSON.parse($("#modal-fields").dataset.catalog||"[]");
    const pick=get("service")===""?null:options[Number(get("service"))];
-   const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})}]};
+   const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})},
+    ...[...$("#modal-fields").querySelectorAll(".extra-order-item")].map(row=>{
+     const name=row.querySelector('[name="extraName"]').value.trim();
+     const unit=Number(row.querySelector('[name="extraPrice"]').value);
+     const quantity=Number(row.querySelector('[name="extraQuantity"]').value);
+     const amount=Math.round(unit*100);
+     if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))
+      throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
+     return {name,unitPriceMinor:amount,quantity};
+    })]};
    await api("/orders",{method:"POST",body:JSON.stringify(payload)});
    $("#modal").close();activeModal=null;go("pedidos");
   }else if(activeModal==="edit-client"){
@@ -384,6 +399,11 @@ document.addEventListener("click",event=>{
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
   case "new-order":openModal("order");break;
+  case "add-order-item":{
+   const list=$("#extra-order-items .extra-order-list");if(!list||list.children.length>=30)break;
+   list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
+  }
+  case "remove-order-item":b.closest(".extra-order-item")?.remove();break;
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
