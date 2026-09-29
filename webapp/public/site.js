@@ -10,9 +10,10 @@ const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
+const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
 const featureUI=import("/app/portal-features.mjs").then(module=>module.createFeatureUI({
- api,success,globalError,refreshOrders:async()=>{await loadOrders();await loadToday();},
+ api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
 // The reports screen uses the shared document scroll; prevent a saved scroll
@@ -366,9 +367,10 @@ async function deleteRecord(type,id){
  const prompt=type==="client"
   ?"¿Eliminar este cliente? Dejará de aparecer en la lista. Sus pedidos históricos se conservarán."
   :"¿Eliminar este pedido? Los pedidos entregados o con pagos registrados deben conservarse en el historial.";
- if(!window.confirm(prompt))return;
- pendingDeletes.add(type+id);globalError("");success("");
+ pendingDeletes.add(type+id);
  try{
+  if(!await confirmAction({title:type==="client"?"Eliminar cliente":"Eliminar pedido",message:prompt}))return;
+  globalError("");success("");
   await api(route+encodeURIComponent(id),{method:"DELETE",body:"{}"});
   if(type==="client"){await loadClients();success("Cliente retirado de la lista.");}
   else{await loadOrders();await loadToday();success("Pedido retirado de la lista.");}

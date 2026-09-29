@@ -13,6 +13,7 @@ function harness(){
  const dialog={
   innerHTML:"",open:false,events:new Map(),
   querySelector:el,addEventListener(kind,fn){this.events.set(kind,fn);},
+  setAttribute(){},
   showModal(){this.open=true;},close(){this.open=false;}
  };
  const doc={
@@ -133,6 +134,70 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
  assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(css,/body:has\(#modal\[open\]/);
- assert.match(css,/scrollbar-width:none/);
- assert.doesNotMatch(css,/@import|url\(["']?http:/);
+  assert.match(css,/scrollbar-width:none/);
+  assert.doesNotMatch(css,/@import|url\(["']?http:/);
+  assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
+});
+
+test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
+ const oldDoc=globalThis.document;
+ const scenarios=[
+  {action:"service-delete",prepare:"loadServices",path:"/price-list/services/"+ITEM,method:"DELETE",version:2},
+  {action:"category-delete",prepare:"loadServices",path:"/categories/"+UUID,method:"DELETE",version:1,id:UUID},
+  {action:"measurement-archive",prepare:"openMeasurements",path:"/clients/"+UUID+"/measurements/"+ITEM,method:"PATCH",version:3,status:"deleted"},
+  {action:"payment-confirm",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"confirmed"},
+  {action:"payment-cancel",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"cancelled"},
+  {action:"photo-archive",prepare:"openPhotos",path:"/orders/"+UUID+"/items/"+ITEM+"/photos/"+ITEM,method:"PATCH",version:3,status:"deleted"}
+ ];
+ const settle=()=>new Promise(resolve=>setImmediate(resolve));
+ try{
+  for(const scenario of scenarios){
+   for(const outcome of ["cancel","accept","api-error","dialog-error"]){
+    const h=harness(),writes=[],errors=[],notices=[];
+    globalThis.document=h.doc;
+    let resolvePrompt,rejectPrompt,prompts=0;
+    const confirmation=new Promise((resolve,reject)=>{resolvePrompt=resolve;rejectPrompt=reject;});
+    const api=async(path,opts={})=>{
+     if(opts.method){
+      writes.push({path,method:opts.method,body:JSON.parse(opts.body)});
+      if(outcome==="api-error")throw Error("Conflicto de prueba");
+      return {success:true};
+     }
+     if(path==="/price-list")return {priceList:{categories:[{id:UUID,name:"Categoría",status:"active",version:1,
+      services:[{id:ITEM,categoryId:UUID,name:"Servicio",pricingMode:"quote",status:"active",version:2}]}]}};
+     if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3}],summary:{currencyCode:"EUR",remainingMinor:1000}};
+     if(path.endsWith("/photos"))return {photos:[{id:ITEM,fileName:"Prueba",status:"active",version:3}]};
+     if(path.includes("/measurements"))return {measurements:[{id:ITEM,status:"active",version:3}]};
+     throw Error("Unexpected GET "+path);
+    };
+    const ui=createFeatureUI({api,success:message=>notices.push(message),globalError:message=>errors.push(message),
+     confirmAction:()=>{prompts++;return confirmation;},refreshOrders:async()=>{},logoutAfterPassword:async()=>{}});
+    await ui[scenario.prepare](UUID,ITEM);
+    const wasOpen=h.dialog.open;
+    const button={dataset:{feature:scenario.action,id:scenario.id||ITEM,version:"3"}};
+    const click=()=>h.listeners.get("click")({target:{closest:()=>button}});
+    click();click();
+    assert.equal(prompts,1,"duplicate gesture cannot replace the pending action");
+    assert.equal(writes.length,0,"opening confirmation must not mutate");
+    if(outcome==="dialog-error")rejectPrompt(Error("No se pudo abrir la confirmación"));
+    else resolvePrompt(outcome!=="cancel");
+    await settle();
+    if(outcome==="cancel"||outcome==="dialog-error"){
+     assert.equal(writes.length,0,scenario.action+" must fail closed");
+     assert.equal(h.dialog.open,wasOpen,"cancel retains the underlying dialog");
+     assert.equal(notices.length,0);
+    }else{
+     assert.equal(writes.length,1);
+     assert.equal(writes[0].path,scenario.path);
+     assert.equal(writes[0].method,scenario.method);
+     assert.equal(writes[0].body.expectedVersion,scenario.version);
+     assert.equal(writes[0].body.status,scenario.status);
+    }
+    if(outcome.endsWith("error")){
+     assert.equal(notices.length,0);
+     assert.ok(errors.length||!h.elements("#feature-error").hidden,"error remains visible");
+    }
+   }
+  }
+ }finally{globalThis.document=oldDoc;}
 });
