@@ -371,6 +371,11 @@ async function logout(){
 }
 $("#login-form").addEventListener("submit",login);
 $("#logout").addEventListener("click",logout);
+// The photographic poster is an optional visual; this dialog never reads or writes user data.
+const brandArtwork=$("#brand-art-dialog");
+$("#brand-art-open").addEventListener("click",()=>brandArtwork.showModal());
+$("#brand-art-close").addEventListener("click",()=>brandArtwork.close());
+brandArtwork.addEventListener("click",event=>{if(event.target===brandArtwork)brandArtwork.close();});
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
 document.addEventListener("click",event=>{
