@@ -59,14 +59,23 @@ function recordActions(type,id,canDelete=true) {
   '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
  '</div>';
 }
+function customerInitials(name) {
+ const words=String(name||"").trim().split(/\\s+/).filter(Boolean);
+ return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
+}
 function orderRow(o,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
  const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
  const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+(actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
+ return '<tr><td class="order-number"><span class="name">#'+esc(o.orderNumber)+'</span></td>'+
+ '<td><div class="customer-cell"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span><span class="customer-name">'+esc(customer)+'</span></div></td>'+
+ '<td class="order-work">'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td>'+
+ '<td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td>'+
+ '<td class="order-amount">'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+
+ (actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
 }
 function orderTable(rows,actions=false){
- return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+ return rows.length?'<table><thead><tr><th scope="col">#</th><th scope="col">Cliente</th><th scope="col">Trabajo</th><th scope="col">Entrega</th><th scope="col">Estado</th><th scope="col">Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
