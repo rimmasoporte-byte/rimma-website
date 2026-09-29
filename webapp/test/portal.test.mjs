@@ -89,6 +89,6 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:authorized,body:'{}'});assert.equal(r.status,429);
   r=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,200);
   r=await fetch(base+'/api/data/clients',{headers:head});assert.equal(r.status,401);
-  console.log('PASS: 16 authenticated web BFF and CSRF assertions');
+  console.log('PASS: authenticated web BFF, CRUD and billing sync assertions');
  }finally{await cleanup();}
 });

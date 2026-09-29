@@ -40,4 +40,3 @@ test('sandbox is never presented as production access; absent date handled',()=>
  assert.doesNotMatch(html,/solo probadores invitados/);
  assert.equal(trialDaysRemaining('bad-date',clock),null);
 });
-

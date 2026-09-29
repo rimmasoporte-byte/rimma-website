@@ -74,4 +74,3 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
   webLink+(owner&&ready?testLink:"")+
   '<a href="'+supportUrl+'" target="_blank" rel="noopener noreferrer" class="account-link">Ayuda de RIMMA ↗</a></div>';
 }
-
