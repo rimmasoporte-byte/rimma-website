@@ -10,6 +10,9 @@ const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
+// The reports screen uses the shared document scroll; prevent a saved scroll
+// position from hiding its title behind the sticky header after navigation.
+if("scrollRestoration" in history)history.scrollRestoration="manual";
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
 function success(msg){const el=$("#global-success");el.textContent=msg||"";el.hidden=!msg;}
 function modalError(msg){const el=$("#modal-error");el.textContent=msg||"";el.hidden=!msg;}
@@ -47,6 +50,7 @@ function go(view){
  globalError("");$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+view));
  $$("[data-view]").forEach(x=>{const selected=x.dataset.view===view;x.classList.toggle("active",selected);if(x.closest(".side-nav"))selected?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current");});
  $("#breadcrumb").textContent=views[view];closeDrawer();window.scrollTo(0,0);
+ requestAnimationFrame(()=>{if($("#view-"+view)?.classList.contains("active"))window.scrollTo(0,0);});
  const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
@@ -113,18 +117,29 @@ async function loadServices(){
   $("#services-list").innerHTML=lastCatalog.length?lastCatalog.map(cat=>'<article class="service-card"><h2>'+esc(cat.name)+'</h2>'+((cat.services||[]).filter(s=>s.status!=="inactive").map(s=>'<div class="service-line"><span>'+esc(s.name)+'</span><strong>'+esc(s.pricingMode==="quote"?"A presupuestar":(s.pricingMode==="from"?"Desde ":"")+money(s.priceMinor,s.currencyCode))+'</strong></div>').join("")||'<p>No hay servicios activos.</p>')+'</article>').join(""):'<div class="paper-panel"><p>Aún no hay servicios en el catálogo.</p></div>';
  }catch(e){$("#services-list").innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
 }
+let reportRequestSequence=0;
 async function loadReport(){
- $("#report-data").innerHTML='<div class="paper-panel"><p>Cargando informe…</p></div>';
+ const sequence=++reportRequestSequence;
+ const period=$("#report-period").value;
+ $("#report-data").innerHTML='<div class="report-panel"><p class="empty">Cargando datos reales…</p></div>';
  try{
-  const r=(await api("/reports/summary?period="+encodeURIComponent($("#report-period").value))).report||{};
-  const metrics=[
-    ["PEDIDOS DEL PERIODO",n(r.orders?.created??r.orders?.total??r.orders?.count??"—")],
-    ["NUEVOS CLIENTES",n(r.clients?.new)],
-    ["PERIODO",esc(r.startDate||"")+" – "+esc(r.endDate||"")]
-  ];
-  const amount=(r.orderMoneyByCurrency||[]).map(m=>'<div class="service-line"><span>'+esc(m.currencyCode||m.currency_code||"")+'</span><strong>'+esc(money(m.totalMinor||m.total_minor,m.currencyCode||m.currency_code))+'</strong></div>').join("");
-  $("#report-data").innerHTML=metrics.map(m=>'<div class="paper-panel"><span class="report-value-label">'+m[0]+'</span><div class="report-value">'+m[1]+'</div></div>').join("")+'<div class="paper-panel"><h2>Importes de los pedidos</h2>'+(amount||'<p>Consulta el detalle de las operaciones en la aplicación.</p>')+'</div>';
- }catch(e){$("#report-data").innerHTML='<div class="paper-panel"><p>El informe no está disponible.</p></div>';globalError(e.message);}
+  const view=await import("/app/report-view.mjs");
+  const result=(await api("/reports/summary?period="+encodeURIComponent(period))).report||{};
+  if(sequence!==reportRequestSequence||$("#report-period").value!==period)return;
+  $("#report-data").innerHTML=view.renderReportSummary(result);
+  const previousDate=view.previousPeriodAnchor(period,result.startDate);
+  if(!previousDate)return;
+  try{
+   const previous=(await api("/reports/summary?period="+encodeURIComponent(period)+
+      "&date="+encodeURIComponent(previousDate))).report||{};
+   if(sequence!==reportRequestSequence||$("#report-period").value!==period)return;
+   $("#report-data").innerHTML=view.renderReportSummary(result,previous);
+  }catch{/* The current period must remain available if comparison fails. */}
+ }catch(e){
+  if(sequence!==reportRequestSequence)return;
+  $("#report-data").innerHTML='<div class="report-panel"><p class="empty">El informe no está disponible.</p></div>';
+  globalError(e.message);
+ }
 }
 async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
