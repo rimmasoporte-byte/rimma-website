@@ -8,8 +8,8 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test test/maison-luxe.test.mjs test/maison-reference.test.mjs test/atelier-polish.test.mjs test/portal-parity.test.mjs test/sidebar-finish.test.mjs test/sidebar-photo.test.mjs test/portal.test.mjs test/launch-gate.test.mjs test/web-billing.test.mjs test/billing-view.test.mjs test/session-store.test.mjs test/login-throttle.test.mjs test/confirm-dialog.test.mjs test/account-export.test.mjs",
-    "check": "node --check server.mjs && node --check public/site.js && node --check public/billing-view.mjs && node --check public/report-view.mjs && node --check public/portal-features.mjs && node --check web-billing.mjs && node --check public/confirm-dialog.mjs",
+    "test": "node --test test/maison-luxe.test.mjs test/maison-reference.test.mjs test/atelier-polish.test.mjs test/portal-parity.test.mjs test/sidebar-finish.test.mjs test/sidebar-photo.test.mjs test/portal.test.mjs test/launch-gate.test.mjs test/web-billing.test.mjs test/billing-view.test.mjs test/session-store.test.mjs test/login-throttle.test.mjs test/confirm-dialog.test.mjs test/account-export.test.mjs test/signup.test.mjs",
+    "check": "node --check server.mjs && node --check public/site.js && node --check public/billing-view.mjs && node --check public/report-view.mjs && node --check public/portal-features.mjs && node --check web-billing.mjs && node --check public/confirm-dialog.mjs && node --check signup.mjs && node --check public/signup-client.mjs",
     "dev": "node test/ui-preview-server.mjs"
   },
   "dependencies": {
