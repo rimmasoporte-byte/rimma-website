@@ -4,6 +4,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { prepareWebCheckout } from './web-billing.mjs';
+import { createSessionStore } from './session-store.mjs';
+import { createLoginThrottle } from './login-throttle.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 const port = Number(process.env.PORT || 19333);
@@ -15,8 +17,8 @@ if (!upstream || !(upstream.startsWith('https://') || (allowHttp && /^http:\/\/(
   throw new Error('Configure RIMMA_API_BASE_URL with an HTTPS origin (localhost HTTP allowed only during tests)');
 }
 if (live && !origin.startsWith('https://')) throw new Error('Production WEB_ORIGIN must use HTTPS');
-const sessions = new Map();
-const maxSessions = 1000;
+const sessions = createSessionStore({production:live, loginEnabled:process.env.WEB_PUBLIC_LOGIN_ENABLED === 'true'});
+const loginThrottle = createLoginThrottle(sessions);
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
 const responseLimit = 2 * 1024 * 1024;
@@ -35,6 +37,7 @@ function securityHeaders(type) {
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'cross-origin-opener-policy': 'same-origin',
     'cross-origin-resource-policy': 'same-origin',
+    ...(live ? {'strict-transport-security':'max-age=31536000'} : {}),
   };
   return headers;
 }
@@ -51,12 +54,11 @@ function sidFrom(req) {
   const match=raw.match(/(?:^|;\s*)rimma_web=([A-Za-z0-9_-]{30,90})(?:;|$)/);
   return match?.[1] ?? null;
 }
-function getSession(req) {
+async function getSession(req) {
   const id=sidFrom(req);
-  const s=id&&sessions.get(id);
+  const s=id && await sessions.get(id);
   if (!s) return null;
-  if (s.validUntil < Date.now()) {sessions.delete(id);return null;}
-  s.lastSeen=Date.now();
+  if (s.validUntil <= Date.now()) {await sessions.delete(id);return null;}
   return s;
 }
 function mutationAllowed(req) {
@@ -88,13 +90,20 @@ async function fromBackend(verb,route,payload,authToken) {
   return {status:result.status,data:parsed};
 }
 async function refresh(s) {
-  if (!s.pendingRefresh) s.pendingRefresh=(async()=>{
-    const result=await fromBackend('POST','/refresh',{refreshToken:s.tokens.refreshToken});
-    if(result.status!==200||!result.data?.tokens?.accessToken)throw new Error('Session refresh rejected');
-    s.tokens=result.data.tokens;
-    return true;
-  })().finally(()=>{s.pendingRefresh=null;});
-  return s.pendingRefresh;
+  const updated = await sessions.refresh(s.sid, async current => {
+    // If another replica rotated the refresh token while we waited, reuse its tokens.
+    if (current.tokens.refreshToken !== s.tokens.refreshToken) return current;
+    const result=await fromBackend('POST','/refresh',{refreshToken:current.tokens.refreshToken});
+    if (result.status!==200 || !result.data?.tokens?.accessToken || !result.data.tokens.refreshToken) {
+      throw new Error('Session refresh rejected');
+    }
+    const nextExpiry=Date.parse(result.data.tokens.refreshExpiresAt || '');
+    return {...current, tokens:result.data.tokens,
+      validUntil:Number.isFinite(nextExpiry)?Math.min(current.validUntil,nextExpiry):current.validUntil};
+  });
+  s.tokens=updated.tokens;
+  s.validUntil=updated.validUntil;
+  return true;
 }
 async function callWithSession(s,method,route,payload) {
   let result=await fromBackend(method,route,payload,s.tokens.accessToken);
@@ -104,11 +113,11 @@ async function callWithSession(s,method,route,payload) {
   }
   return result;
 }
-function forget(s) {
-  for(const [key,value] of sessions)if(value===s)sessions.delete(key);
+async function forget(s) {
+  await sessions.delete(s.sid);
 }
-function requireSession(req,res) {
-  const session=getSession(req);
+async function requireSession(req,res) {
+  const session=await getSession(req);
   if(!session){send(res,401,{error:'Inicia sesión para continuar.'});return null;}
   return session;
 }
@@ -127,10 +136,8 @@ async function staticFile(res,filename,type) {
     res.end(content);
   } catch {send(res,404,{error:'Página no encontrada.'});}
 }
-function prune() {
-  const now=Date.now();
-  for(const [key,val] of sessions)if(val.validUntil<now)sessions.delete(key);
-  if(sessions.size>=maxSessions) {const first=sessions.keys().next().value;if(first)sessions.delete(first);}
+async function prune() {
+  await sessions.prune();
 }
 export const server=http.createServer(async(req,res)=>{
   try {
@@ -154,11 +161,11 @@ export const server=http.createServer(async(req,res)=>{
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
 
     if(method==='GET'&&pathname==='/api/auth/session'){
-      const s=getSession(req);
+      const s=await getSession(req);
       if(!s)return send(res,200,{authenticated:false});
       try {
         const me=await callWithSession(s,'GET','/me');
-        if(me.status!==200){if(me.status===401)forget(s);return send(res,200,{authenticated:false},{'set-cookie':cookie(null)});}
+        if(me.status!==200){if(me.status===401)await forget(s);return send(res,200,{authenticated:false},{'set-cookie':cookie(null)});}
         return send(res,200,{authenticated:true,csrf:s.csrf,me:me.data.me});
       }catch{return send(res,503,{error:'No ha sido posible comprobar la sesión. Vuelve a intentarlo.'});}
     }
@@ -171,25 +178,27 @@ export const server=http.createServer(async(req,res)=>{
       if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
       const input=await body(req);
       if(typeof input.email!=='string'||typeof input.password!=='string'||input.email.length>254||input.password.length>256) return send(res,400,{error:'Revisa los datos de acceso.'});
+      if(!await loginThrottle.reserve(input.email))return send(res,429,{error:'Demasiados intentos. Espera antes de volver a intentarlo.'});
       const result=await fromBackend('POST','/login',{email:input.email.trim(),password:input.password});
       if(result.status!==200||!result.data?.login?.tokens?.accessToken) {
         const unavailable=result.status>=500;
         return send(res,unavailable?503:result.status===429?429:401,{error:unavailable?'El servicio de acceso está temporalmente no disponible.':result.status===429?'Demasiados intentos. Espera antes de volver a intentarlo.':'Correo o contraseña incorrectos.'});
       }
-      const sid=random();const s={tokens:result.data.login.tokens,csrf:random(),validUntil:Math.min(Date.now()+sessionMaxMs,Date.parse(result.data.login.tokens.refreshExpiresAt||'')||Infinity),lastSeen:Date.now(),pendingRefresh:null};
-      prune();sessions.set(sid,s);
+      await loginThrottle.clear(input.email);
+      const sid=random();const s={sid,tokens:result.data.login.tokens,csrf:random(),validUntil:Math.min(Date.now()+sessionMaxMs,Date.parse(result.data.login.tokens.refreshExpiresAt||'')||Infinity)};
+      await prune();await sessions.set(sid,s);
       return send(res,200,{authenticated:true,csrf:s.csrf,me:{user:result.data.login.user,workspace:result.data.login.workspace,subscription:result.data.login.subscription}},{'set-cookie':cookie(sid)});
     }
     if(method==='POST'&&pathname==='/api/auth/logout'){
-      const s=requireSession(req,res);if(!s)return;
+      const s=await requireSession(req,res);if(!s)return;
       if(!requireCsrf(req,res,s))return;
-      forget(s);
+      await forget(s);
       // Logging out locally must succeed even if the upstream request fails.
       void fromBackend('POST','/logout',{refreshToken:s.tokens.refreshToken},s.tokens.accessToken).catch(()=>{});
       return send(res,200,{success:true},{'set-cookie':cookie(null)});
     }
     if(method==='GET'&&pathname==='/api/billing/web-checkout'){
-      const s=requireSession(req,res);if(!s)return;
+      const s=await requireSession(req,res);if(!s)return;
       const enabled=process.env.WEB_BILLING_CHECKOUT_ENABLED==='true' &&
         process.env.WEB_PUBLIC_LOGIN_ENABLED==='true';
       if(!enabled)return send(res,200,{available:false});
@@ -205,7 +214,7 @@ export const server=http.createServer(async(req,res)=>{
       return send(res,200,checkout?{available:true,url:checkout}:{available:false});
     }
     if(pathname.startsWith('/api/data/')){
-      const s=requireSession(req,res);if(!s)return;
+      const s=await requireSession(req,res);if(!s)return;
       const route=pathname.slice('/api/data'.length);
       if(!available[method]?.some(reg=>reg.test(route)))return send(res,405,{error:'Operación no habilitada en el portal web.'});
       const query=(method==='GET' ? url.search : '');
@@ -215,7 +224,7 @@ export const server=http.createServer(async(req,res)=>{
       let result;
       try {result=await callWithSession(s,method,route+query,payload)}
       catch (e) {
-        if(String(e?.message).includes('refresh')){forget(s);return send(res,401,{error:'La sesión ha caducado.'},{'set-cookie':cookie(null)});}
+        if(String(e?.message).includes('refresh')){await forget(s);return send(res,401,{error:'La sesión ha caducado.'},{'set-cookie':cookie(null)});}
         throw e;
       }
       return send(res,result.status,result.data);
