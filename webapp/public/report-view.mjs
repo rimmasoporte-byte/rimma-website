@@ -58,14 +58,14 @@ export function renderReportSummary(report,previous=null){
   {label:"Cancelados",key:"cancelled",className:"cancelled"}
  ];
  const statusTotal=statuses.reduce((sum,s)=>sum+count(o[s.key]),0);
- const breakdown=statusTotal?
- statuses.map(s=>{
-  const value=count(o[s.key]),percent=Math.round(1000*value/statusTotal)/10;
-  return '<div class="report-status-row"><span>'+s.label+'</span>'+
-  '<div class="report-track" role="meter" aria-label="'+s.label+'" aria-valuemin="0" aria-valuemax="'+statusTotal+
-  '" aria-valuenow="'+value+'"><span class="report-fill status-'+s.className+
-  '" style="--status-width:'+percent+'%"></span></div><strong>'+value.toLocaleString("es-ES")+'</strong></div>';
- }).join(""):'<p class="report-empty">Todavía no hay pedidos en este período.</p>';
+ const breakdown=statusTotal?'<div class="feature-status-grid" role="list">'+
+ statuses.map(st=>{
+  const value=count(o[st.key]),percent=Math.round(100*value/statusTotal);
+  return '<div class="feature-status-tile feature-status-'+st.className+'" role="listitem">'+
+  '<span class="feature-status-label">'+st.label+'</span>'+
+  '<strong class="feature-status-count">'+value.toLocaleString("es-ES")+'</strong>'+
+  '<span class="feature-status-share">'+percent+'% del período</span></div>';
+ }).join("")+'</div>':'<p class="report-empty">Todavía no hay pedidos en este período.</p>';
  const period=dateLabel(r.startDate)+' — '+dateLabel(r.endDate);
  return kpi("PEDIDOS DEL PERÍODO",o.created,p?p.orders?.created:undefined,true)+
  kpi("NUEVOS CLIENTES",clients.new,p?p.clients?.new:undefined)+
