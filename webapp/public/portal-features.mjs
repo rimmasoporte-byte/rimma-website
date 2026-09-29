@@ -193,8 +193,23 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
    select("photoType","Tipo",choice("intake",photoTypes))+textarea("caption","Comentario",500)+'</div>');
   selected={orderId,itemId};
  }
+ function passwordForm(){
+  selected=null;
+  layout("password-change","Cambiar contraseña",'<p class="feature-muted">Al guardar, se cerrará la sesión en todos los dispositivos. Tendrás que volver a iniciar sesión.</p>'+\
+   '<div class="feature-fields">'+field("currentPassword","Contraseña actual *","password",'required minlength="1" maxlength="200" autocomplete="current-password"')+\
+   field("newPassword","Nueva contraseña *","password",'required minlength="8" maxlength="200" autocomplete="new-password"')+\
+   field("confirmPassword","Repetir contraseña *","password",'required minlength="8" maxlength="200" autocomplete="new-password"')+'</div>');
+ }
  async function save(){
   const get=name=>form().elements.namedItem(name)?.value??"";
+  if(mode==="password-change"){
+   const currentPassword=get("currentPassword"),newPassword=get("newPassword");
+   if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
+   if(newPassword.length<8||newPassword.length>200||currentPassword===newPassword)throw Error("Introduce una contraseña nueva de 8 a 200 caracteres, diferente de la actual.");
+   await api("/account/password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})});
+   form().reset();body().replaceChildren();close();
+   await logoutAfterPassword();return;
+  }
   if(mode==="service-new"||mode==="service-edit"){
    const pricingMode=get("pricingMode");
    const payload={
@@ -272,6 +287,7 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
   const action=el.dataset.feature;
   if(action==="close"){close();return;}
   const id=el.dataset.id||"",version=Number(el.dataset.version);
+  if(action==="password-change")return passwordForm();
   if(action==="category-new")return categoryForm();
   if(action==="category-edit"){const c=findCat(id);if(c)categoryForm(c);return;}
   if(action==="service-new")return serviceForm(null,el.dataset.category);
