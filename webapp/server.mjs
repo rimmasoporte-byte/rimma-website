@@ -155,6 +155,12 @@ export const server=http.createServer(async(req,res)=>{
         ? staticFile(res,'index.html','text/html; charset=utf-8')
         : staticFile(res,'staging.html','text/html; charset=utf-8');
     }
+    if(method==='GET'&&pathname==='/app/register.html'){
+      if(!signupEnabled(process.env))return send(res,404,{error:'Registro no disponible.'});
+      return staticFile(res,'register.html','text/html; charset=utf-8');
+    }
+    if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
