@@ -1,0 +1,15 @@
+.auth-shell .auth-card{max-width:560px}
+#signup-form{display:grid;gap:9px}
+#signup-form label{margin-top:8px;font-size:13px;color:#4f483e}
+#signup-form input:not([type=checkbox]),#signup-form select{
+ width:100%;min-height:42px;border:1px solid #c6bda9;background:#fff;
+ border-radius:5px;padding:10px;font:inherit;color:#33312c
+}
+#signup-form button{margin-top:10px;min-height:44px;cursor:pointer}
+#signup-form button.secondary{background:#f1ede4;border:1px solid #c6bda9;color:#41362e}
+#signup-form button[disabled]{opacity:.55;cursor:not-allowed}
+#signup-form .signup-consent{display:flex;gap:10px;align-items:flex-start;line-height:1.5}
+#signup-form .signup-consent input{margin-top:3px}
+#signup-status{font-size:13px;line-height:1.5;color:#6d503e;min-height:20px}
+#signup-invite[hidden]{display:none}
+@media(max-width:660px){#signup-main .auth-main{padding:14px 8px}}

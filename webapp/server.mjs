@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { prepareWebCheckout } from './web-billing.mjs';
 import { createSessionStore } from './session-store.mjs';
 import { createLoginThrottle } from './login-throttle.mjs';
+import { signupEnabled, validateSignupStep, publicSignupReply, SignupInputError } from './signup.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 const port = Number(process.env.PORT || 19333);
@@ -154,6 +155,12 @@ export const server=http.createServer(async(req,res)=>{
         ? staticFile(res,'index.html','text/html; charset=utf-8')
         : staticFile(res,'staging.html','text/html; charset=utf-8');
     }
+    if(method==='GET'&&pathname==='/app/register.html'){
+      if(!signupEnabled(process.env))return send(res,404,{error:'Registro no disponible.'});
+      return staticFile(res,'register.html','text/html; charset=utf-8');
+    }
+    if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
@@ -174,6 +181,31 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
 
+    if(method==='GET'&&pathname==='/api/auth/signup-config'){
+      return send(res,200,{enabled:signupEnabled(process.env)});
+    }
+    if(method==='POST'&&/^\/api\/auth\/signup\/(send|verify|register)$/.test(pathname)){
+      if(!signupEnabled(process.env))return send(res,503,{error:'Las nuevas cuentas web todavía no están disponibles.'});
+      if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
+      const step=pathname.split('/').at(-1);
+      let input;
+      try{input=validateSignupStep(step,await body(req,4096));}
+      catch(error){
+        if(error instanceof SignupInputError)return send(res,400,{error:error.message});
+        throw error;
+      }
+      if(!await loginThrottle.reserve('web-signup-'+step+':'+input.email)){
+        return send(res,429,{error:'Demasiados intentos. Inténtalo más tarde.'});
+      }
+      const upstreamPath={
+        send:'/email-verification/send',
+        verify:'/email-verification/verify',
+        register:'/register'
+      }[step];
+      const result=await fromBackend('POST',upstreamPath,input);
+      const reply=publicSignupReply(step,result);
+      return send(res,reply.status,reply.data);
+    }
     if(method==='GET'&&pathname==='/api/auth/session'){
       const s=await getSession(req);
       if(!s)return send(res,200,{authenticated:false});

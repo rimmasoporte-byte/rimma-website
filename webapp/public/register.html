@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Crea tu taller — RIMMA</title>
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/app/site.css">
+<link rel="stylesheet" href="/app/premium.css">
+<link rel="stylesheet" href="/app/signup.css">
+<script src="/app/signup-client.mjs" type="module"></script>
+</head><body>
+<a class="skip" href="#signup-main">Ir al contenido</a>
+<section class="auth-shell" id="signup-main">
+ <div class="auth-side">
+  <a class="brand-large" href="https://rimmaapp.com">RIMMA<span>✳</span></a>
+  <span class="auth-caption">15 DÍAS PARA DESCUBRIR RIMMA</span>
+  <h1>Tu taller,<br>tu <em>espacio.</em></h1>
+  <p>Empieza gratis durante 15 días. No necesitas introducir una tarjeta.</p>
+ </div>
+ <div class="auth-main"><div class="auth-card">
+  <div class="mini-brand">R<span>✳</span></div>
+  <span class="eyebrow">VERIFICA TU CORREO</span>
+  <h2>Bienvenido<br><em>a RIMMA.</em></h2>
+  <form id="signup-form">
+   <label for="signup-name">Nombre y apellidos</label>
+   <input id="signup-name" name="displayName" type="text" required maxlength="120" autocomplete="name">
+   <label for="signup-workspace">Nombre del taller</label>
+   <input id="signup-workspace" name="workspaceName" type="text" required maxlength="120">
+   <label for="signup-email">Correo electrónico</label>
+   <input id="signup-email" name="email" type="email" required maxlength="254" autocomplete="email">
+   <label for="signup-password">Contraseña (8 caracteres como mínimo)</label>
+   <input id="signup-password" name="password" type="password" required minlength="8" maxlength="200" autocomplete="new-password">
+   <label for="signup-country">País</label>
+   <select id="signup-country" name="countryCode" required></select>
+   <button id="signup-send" class="secondary" type="button">Enviarme un código por correo</button>
+   <label for="signup-code">Código de seis cifras</label>
+   <input id="signup-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+   <button id="signup-verify" class="secondary" type="button">Verificar código</button>
+   <label class="signup-consent">
+    <input id="signup-consent" name="consent" type="checkbox" required>
+    Acepto los <a href="https://rimmaapp.com/terms/" target="_blank" rel="noopener noreferrer">Términos</a>
+    y he leído la <a href="https://rimmaapp.com/privacy/" target="_blank" rel="noopener noreferrer">Política de privacidad</a>.
+   </label>
+   <button id="signup-submit" class="primary" type="submit" disabled>Crear mi taller gratis</button>
+  </form>
+  <p id="signup-status" role="status" aria-live="polite"></p>
+  <p class="small">¿Ya tienes cuenta? <a href="/app/">Iniciar sesión</a></p>
+ </div></div>
+</section>
+</body></html>
