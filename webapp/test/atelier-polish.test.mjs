@@ -44,8 +44,10 @@ test("reports show only backend-provided counts, currencies and actual status di
  assert.match(view,/Cobros confirmados/);
  assert.match(view,/760,00/);
  assert.match(view,/350,00/);
- assert.match(view,/style="--status-width:33\.3%"/);
- assert.match(view,/aria-valuemax="6" aria-valuenow="2"/);
+ assert.match(view,/feature-status-grid/);
+ assert.match(view,/feature-status-count">2<\/strong>/);
+ assert.match(view,/33% del período/);
+ assert.doesNotMatch(view,/style="--status-width/);
  assert.match(view,/no equivale al dinero cobrado/);
  assert.doesNotMatch(view,/proyección|estimado|ingresos proyectados/i);
  const previous={orders:{created:4},clients:{new:3}};
