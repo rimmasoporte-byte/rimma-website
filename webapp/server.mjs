@@ -21,12 +21,13 @@ const sessions = createSessionStore({production:live, loginEnabled:process.env.W
 const loginThrottle = createLoginThrottle(sessions);
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
+const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
 const responseLimit = 2 * 1024 * 1024;
 const available = Object.freeze({
-  GET: [/^\/me$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/],
-  POST: [/^\/clients$/, /^\/orders$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
-  PATCH: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/],
-  DELETE: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/],
+  GET: [/^\/me$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/],
+  POST: [/^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
+  PATCH: [/^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
+  DELETE: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
 });
 function securityHeaders(type) {
   const headers = {
@@ -67,12 +68,12 @@ function mutationAllowed(req) {
   const requestOrigin=req.headers.origin;
   return typeof requestOrigin==='string' && requestOrigin===origin && (!req.headers['sec-fetch-site'] || ['same-origin','none'].includes(req.headers['sec-fetch-site']));
 }
-async function body(req) {
+async function body(req,limit=maxBody) {
   if (!String(req.headers['content-type']||'').toLowerCase().startsWith('application/json')) {
     const e=new Error('Expected application/json');e.status=415;throw e;
   }
   let total=0;const chunks=[];
-  for await(const chunk of req) {total+=chunk.length;if(total>maxBody){const e=new Error('Body too large');e.status=413;throw e;}chunks.push(chunk);}
+  for await(const chunk of req) {total+=chunk.length;if(total>limit){const e=new Error('Body too large');e.status=413;throw e;}chunks.push(chunk);}
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}');}
   catch {const e=new Error('Invalid JSON');e.status=400;throw e;}
 }
@@ -239,7 +240,8 @@ export const server=http.createServer(async(req,res)=>{
       const query=(method==='GET' ? url.search : '');
       if(query.length>400)return send(res,400,{error:'Consulta demasiado larga.'});
       if(method!=='GET'&&!requireCsrf(req,res,s))return;
-      const payload=method==='GET'?undefined:await body(req);
+      const photoUpload=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/.test(route);
+      const payload=method==='GET'?undefined:await body(req,photoUpload?maxPhotoBody:maxBody);
       let result;
       try {result=await callWithSession(s,method,route+query,payload)}
       catch (e) {
