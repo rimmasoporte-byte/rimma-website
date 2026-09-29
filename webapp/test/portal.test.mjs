@@ -28,6 +28,7 @@ const mock=http.createServer(async(req,res)=>{
  if(p==='/clients')return json(200,{success:true,clients:[{id:'c1',name:'María'}]});
  if(p==='/orders')return json(200,{success:true,orders:[{id:'o1',orderNumber:1}]});
  if(p==='/billing')return json(200,{success:true,billing:{active:true,status:'active'}});
+ if(p==='/billing/sync'&&req.method==='POST')return json(200,{success:true,billing:{active:true,status:'active'},sync:{status:'verified'}});
  if(p==='/logout')return json(200,{success:true,logout:{revoked:true}});
  return json(200,{success:true});
 });
@@ -77,8 +78,15 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   assert.equal(r.status,409);
   r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
   assert.equal(r.status,405);
-  for(const f of ['site.js','site.css','premium.css','luxury-buttons.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
+  for(const f of ['site.js','billing-view.mjs','site.css','premium.css','luxury-buttons.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
+  r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
+  r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);
+  for(let i=0;i<5;i++){
+   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:authorized,body:'{}'});
+   assert.equal(r.status,200);assert.equal((await r.json()).sync.status,'verified');
+  }
+  r=await fetch(base+'/api/billing/sync',{method:'POST',headers:authorized,body:'{}'});assert.equal(r.status,429);
   r=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,200);
   r=await fetch(base+'/api/data/clients',{headers:head});assert.equal(r.status,401);
   console.log('PASS: 16 authenticated web BFF and CSRF assertions');
