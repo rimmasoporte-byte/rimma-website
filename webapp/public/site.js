@@ -240,6 +240,21 @@ async function loadAccount(){
   const info=[["Nombre",a.user?.displayName||"No indicado"],["Correo electrónico",a.user?.email||"—"],["Taller",a.workspace?.name||"—"],["Rol",a.workspace?.role==="owner"?"Propietario":a.workspace?.role||"Miembro"]];
   $("#account-info").innerHTML='<dl>'+info.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>').join("")+'</dl>';
  }catch(e){$("#account-info").innerHTML='<p>La información de tu cuenta no está disponible.</p>';globalError(e.message);}
+ try{
+  const module=await import("/app/account-deletion.mjs");
+  await module.renderAccountDeletionPanel({
+   api,request,target:$("#account-deletion-content"),
+   onClosed:()=>{
+    me=null;csrf="";
+    $("#logout").disabled=true;
+    $("#menu-toggle").disabled=true;
+    $("#sidebar").hidden=true;
+   }
+  });
+ }catch{
+  const panel=$("#account-deletion-content");
+  if(panel)panel.textContent="Consulta la eliminación de tu cuenta con soporte RIMMA.";
+ }
 }
 function field(label,name,type="text",attributes=""){
  return '<div><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" name="'+name+'" type="'+type+'" '+attributes+'></div>';
