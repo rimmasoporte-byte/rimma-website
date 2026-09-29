@@ -26,6 +26,7 @@ const available = Object.freeze({
   GET: [/^\/me$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/],
   POST: [/^\/clients$/, /^\/orders$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
   PATCH: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/],
+  DELETE: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/],
 });
 function securityHeaders(type) {
   const headers = {
