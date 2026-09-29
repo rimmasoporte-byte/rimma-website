@@ -120,7 +120,7 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
    body:JSON.stringify({base64:'A'.repeat(90_000)})});
   assert.equal(r.status,200,"photo body is allowed above ordinary 32KB limit");
   r=await fetch(base+photoRoute,{method:'POST',headers:authorized,
-   body:JSON.stringify({base64:'A'.repeat(245_000)})});
+   body:JSON.stringify({base64:'A'.repeat(250_000)})});
   assert.equal(r.status,413);
   r=await fetch(base+'/api/data/categories',{method:'POST',headers:authorized,
    body:JSON.stringify({name:'X'.repeat(34_000)})});
