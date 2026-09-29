@@ -74,7 +74,7 @@ test("mobile API parity features render real catalog/measurements/payments/photo
   await ui.openMeasurements(UUID);
   assert.match(h.elements("#feature-body").innerHTML,/Cintura: 80/);
   await ui.openPayments(UUID);
-  assert.match(h.elements("#feature-body").innerHTML,/Cobro/);
+  assert.match(h.elements("#feature-body").innerHTML,/[Cc]obro/);
   assert.match(h.elements("#feature-body").innerHTML,/Confirmar/);
   await ui.openPhotos(UUID,ITEM);
   const photos=h.elements("#feature-body").innerHTML;
