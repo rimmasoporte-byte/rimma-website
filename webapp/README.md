@@ -80,6 +80,15 @@ NEVER set this flag on an internet-facing service during initial deployment.
   a disposable Postgres container. No production customer records are used.
 
 ## Local smoke test
+
+For responsive UI and confirmation testing without any account or database,
+run `npm run dev`, then open `http://127.0.0.1:19342/preview?width=390&height=844`.
+The test server serves the real frontend with disposable in-memory fixtures;
+`/__qa` shows mutation counts and can simulate a conflict or slow response.
+Change `width` and `height` to check desktop, tablet and landscape layouts.
+This development command must never replace the production `npm start` command.
+The production BFF does not serve these test routes.
+
 ```
 npm test
 node --check public/site.js

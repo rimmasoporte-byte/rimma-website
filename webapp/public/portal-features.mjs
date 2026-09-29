@@ -20,9 +20,10 @@ const b=(label,action,data="",extra="")=>'<button type="button" class="feature-b
 const select=(id,label,options)=>'<label for="fx-'+id+'">'+label+'</label><select id="fx-'+id+'" name="'+id+'">'+options+'</select>';
 const field=(id,label,type="text",extra="")=>'<label for="fx-'+id+'">'+label+'</label><input id="fx-'+id+'" name="'+id+'" type="'+type+'" '+extra+'>';
 const textarea=(id,label,limit)=>'<label for="fx-'+id+'">'+label+'</label><textarea id="fx-'+id+'" name="'+id+'" maxlength="'+limit+'"></textarea>';
-export function createFeatureUI({api,success,globalError,refreshOrders,logoutAfterPassword}){
+export function createFeatureUI({api,success,globalError,confirmAction,refreshOrders,logoutAfterPassword}){
  const dlg=document.createElement("dialog");
  dlg.id="feature-dialog";dlg.className="feature-dialog";
+ dlg.setAttribute("aria-labelledby","feature-title");
  dlg.innerHTML='<form id="feature-form" class="feature-form"><header class="feature-head"><div><span class="eyebrow" id="feature-eyebrow">RIMMA</span><h2 id="feature-title"></h2></div>'+
  '<button class="feature-close" type="button" data-feature="close" aria-label="Cerrar ventana">×</button></header>'+
  '<div id="feature-body"></div><p role="alert" class="feature-error" id="feature-error" hidden></p>'+
@@ -104,8 +105,8 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
   const phrase=kind==="service"
    ?"¿Eliminar este servicio del catálogo? No se borrarán los pedidos históricos."
    :"¿Eliminar esta categoría? El servidor impedirá borrarla si conserva servicios.";
-  if(!window.confirm(phrase))return;
   void safe(async()=>{
+   if(!await confirmAction({title:kind==="service"?"Eliminar servicio":"Eliminar categoría",message:phrase}))return;
    await api(kind==="service"?"/price-list/services/"+encodeURIComponent(id):"/categories/"+encodeURIComponent(id),
     {method:"DELETE",body:JSON.stringify({expectedVersion:rec.version})});
    close();await loadServices();success(kind==="service"?"Servicio retirado del catálogo.":"Categoría retirada del catálogo.");
@@ -304,9 +305,11 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
    const i=selected.items.find(x=>x.orderItemId===e.target.value);
    if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
   }});
- dlg.addEventListener("click",e=>{if(e.target===dlg)close()});
+ dlg.addEventListener("cancel",e=>{e.preventDefault();if(!busy)close();});
+ dlg.addEventListener("click",e=>{if(e.target===dlg&&!busy)close()});
  document.addEventListener("click",event=>{
   const el=event.target.closest("[data-feature]");if(!el)return;
+  if(busy)return;
   const action=el.dataset.feature;
   if(action==="close"){close();return;}
   const id=el.dataset.id||"",version=Number(el.dataset.version);
@@ -324,9 +327,9 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
   }
   if(action==="measure-remove"){const holder=dlg.querySelector("#measure-fields");if(holder.children.length>1)el.closest(".measure-line")?.remove();return;}
   if(action==="measurement-archive"){
-   if(!window.confirm("¿Archivar esta ficha? El historial del cliente seguirá conservado."))return;
    const clientId=selected.clientId;
    return void safe(async()=>{
+    if(!await confirmAction({title:"Archivar ficha de medidas",message:"¿Archivar esta ficha? El historial del cliente seguirá conservado.",confirmLabel:"Archivar"}))return;
     await api("/clients/"+encodeURIComponent(clientId)+"/measurements/"+encodeURIComponent(id),{
      method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"deleted"})});
     close();await openMeasurements(clientId);success("Ficha archivada.");
@@ -337,10 +340,10 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
   if(action==="payment-new")return void safe(newPayment);
   if(action==="payment-confirm"||action==="payment-cancel"){
    const next=action==="payment-confirm"?"confirmed":"cancelled",orderId=selected.orderId;
-   if(!window.confirm(next==="confirmed"?
-    "¿Has recibido realmente este cobro? La confirmación modificará el saldo del pedido.":
-    "¿Cancelar este registro de cobro pendiente?"))return;
    return void safe(async()=>{
+    if(!await confirmAction({title:next==="confirmed"?"Confirmar cobro":"Cancelar cobro pendiente",
+     message:next==="confirmed"?"¿Has recibido realmente este cobro? La confirmación modificará el saldo del pedido.":"¿Cancelar este registro de cobro pendiente?",
+     confirmLabel:next==="confirmed"?"Confirmar cobro":"Cancelar cobro",danger:next!=="confirmed"}))return;
     await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(id),{
      method:"PATCH",body:JSON.stringify({expectedVersion:version,status:next})});
     close();await openPayments(orderId);await refreshOrders();success(next==="confirmed"?"Cobro confirmado.":"Cobro pendiente cancelado.");
@@ -350,8 +353,8 @@ export function createFeatureUI({api,success,globalError,refreshOrders,logoutAft
   if(action==="photo-new")return newPhoto();
   if(action==="photo-archive"){
    const {orderId,itemId}=selected;
-   if(!window.confirm("¿Archivar esta fotografía?"))return;
    return void safe(async()=>{
+    if(!await confirmAction({title:"Archivar fotografía",message:"¿Archivar esta fotografía?",confirmLabel:"Archivar"}))return;
     await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos/"+encodeURIComponent(id),{
       method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"deleted"})});
     close();await openPhotos(orderId,itemId);success("Fotografía archivada.");

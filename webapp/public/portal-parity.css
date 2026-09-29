@@ -12,8 +12,42 @@ html{scrollbar-gutter:auto}
  overscroll-behavior-y:contain
 }
 .sidebar::-webkit-scrollbar{display:none;width:0;height:0}
-body:has(#modal[open],#feature-dialog[open],#brand-art-dialog[open]){
+body:has(#modal[open],#feature-dialog[open],#brand-art-dialog[open],#confirm-dialog[open]){
  overflow:hidden
+}
+/* Each KPI has a reserved icon, content and action column. Auto rows grow
+   with translated labels, zoom and large counts instead of clipping text. */
+#view-inicio .summary-grid{
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+ gap:16px;align-items:stretch
+}
+#view-inicio .summary-grid .metric-card,
+#view-inicio .summary-grid .metric-card.dark{
+ grid-column:auto;min-width:0;height:auto;min-height:155px;
+ padding:20px;
+ grid-template-columns:56px minmax(0,1fr) 44px;
+ grid-template-rows:auto auto auto;
+ gap:7px 14px;align-content:center
+}
+#view-inicio .summary-grid .metric-card>.metric-icon{
+ grid-column:1;grid-row:1/4;width:56px;height:56px;align-self:center
+}
+#view-inicio .summary-grid .metric-card>span:not(.metric-icon),
+#view-inicio .summary-grid .metric-card>strong,
+#view-inicio .summary-grid .metric-card>small{
+ min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere
+}
+#view-inicio .summary-grid .metric-card>span:not(.metric-icon){
+ font-size:10px;line-height:1.4;letter-spacing:1.2px
+}
+#view-inicio .summary-grid .metric-card>strong{
+ font-size:clamp(42px,4vw,62px);line-height:1;letter-spacing:-1px
+}
+#view-inicio .summary-grid .metric-card>small{font-size:12px;line-height:1.35}
+#view-inicio .metric-jump{
+ position:static;grid-column:3;grid-row:1/4;
+ justify-self:end;align-self:center;
+ display:grid;place-items:center;width:44px;height:44px
 }
 input,select,textarea{
  min-width:0;max-width:100%;box-sizing:border-box;
@@ -130,29 +164,48 @@ button:disabled,.feature-button[disabled]{
 }
 .feature-head-actions{display:flex;gap:10px;flex-wrap:wrap;align-self:end}
 #view-servicios .list-head{display:flex;align-items:end;justify-content:space-between;gap:18px}
-#view-servicios .service-grid{align-items:start}
-#view-servicios .service-card{padding:22px 24px;min-width:0}
+#view-servicios .service-grid{
+ align-items:start;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))
+}
+#view-servicios .service-card{
+ padding:22px 24px;min-width:0;container:service-card / inline-size
+}
 #view-servicios .service-card-header{
  display:flex;justify-content:space-between;align-items:start;gap:12px;
+ flex-wrap:wrap;
  padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--parity-rule)
 }
 #view-servicios .service-card-header h2{
  margin:0;font:600 clamp(25px,2.2vw,33px)/1.1 var(--serif);
- color:var(--parity-forest)
+ color:var(--parity-forest);min-width:0;overflow-wrap:anywhere;flex:1 1 180px
 }
 #view-servicios .feature-service-row{
- display:grid;grid-template-columns:minmax(0,1.4fr) minmax(105px,.85fr) auto;
- gap:10px;align-items:center;min-height:58px;
- padding:9px 0;border-bottom:1px solid #efe7d9
+ display:grid;grid-template-columns:minmax(0,1fr) 140px auto;
+ gap:12px;align-items:center;min-height:58px;
+ padding:12px 0;border-top:0;border-bottom:1px solid #efe7d9
 }
+#view-servicios .feature-service-row>*,
+#view-servicios .service-card-header>.feature-inline{min-width:0;max-width:100%}
 #view-servicios .feature-service-row .service-name strong{
- display:block;font:600 13px/1.35 var(--font);color:#2a3d30
+ display:block;font:600 13px/1.35 var(--font);color:#2a3d30;
+ white-space:normal;overflow-wrap:anywhere
 }
 #view-servicios .feature-service-row .service-name small{
- display:block;margin-top:2px;color:#7f7568;font-size:11px
+ display:block;margin-top:3px;color:#7f7568;font-size:11px;line-height:1.5;
+ white-space:normal;overflow-wrap:anywhere
 }
 #view-servicios .feature-service-row .service-price{
- color:#866132;white-space:normal;font:650 12px/1.35 var(--font)
+ color:#866132;white-space:normal;overflow-wrap:anywhere;
+ text-align:right;font:650 12px/1.35 var(--font)
+}
+#view-servicios .feature-service-row .feature-inline{
+ display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap
+}
+/* Card width matters even on wide screens with multiple categories. */
+@container service-card (max-width:540px){
+ #view-servicios .feature-service-row{grid-template-columns:minmax(0,1fr);gap:8px;align-items:start}
+ #view-servicios .feature-service-row .service-price{text-align:left}
+ #view-servicios .feature-service-row .feature-inline{justify-content:flex-start}
 }
 /* Isolated RIMMA feature modal: fixed title/actions, only feature-body scrolls. */
 #feature-dialog{
@@ -180,7 +233,7 @@ button:disabled,.feature-button[disabled]{
  font:600 clamp(31px,3.8vw,46px)/1.1 var(--serif);
  color:var(--parity-forest)
 }
-.feature-close,.brand-art-close{
+.feature-close{
  flex:none;display:grid;place-items:center;
  height:36px;width:36px;border-radius:5px;border:1px solid var(--parity-gold);
  background:#fff8ef;color:var(--parity-forest);font-size:24px;cursor:pointer
@@ -197,6 +250,54 @@ button:disabled,.feature-button[disabled]{
  border-top:1px solid var(--parity-rule)
 }
 .feature-actions button{min-height:44px;min-width:118px;padding:10px 22px}
+/* Shared modal geometry keeps long titles and action labels inside the panel. */
+.modal-header>div,.feature-head>div{min-width:0}
+.modal-header h2,.feature-head h2,.feature-ledger,.feature-message,
+.feature-error,.modal-error{overflow-wrap:anywhere}
+.close-modal{flex:none}
+.modal-actions,.feature-actions{flex-wrap:wrap}
+.modal-actions button,.feature-actions button{max-width:100%;white-space:normal}
+#modal .form-grid>*,.extra-order-item>*{min-width:0}
+.brand-dialog{
+ width:min(92vw,560px);max-height:calc(100dvh - 24px);
+ padding:0;overflow:hidden;
+ border:1px solid var(--parity-gold);border-radius:12px;
+ background:var(--parity-white);color:var(--parity-forest);
+ box-shadow:0 24px 70px rgba(21,35,25,.35)
+}
+.brand-dialog::backdrop{background:rgba(21,35,25,.58);backdrop-filter:blur(4px)}
+.brand-dialog-card{
+ padding:24px;max-height:calc(100dvh - 28px);overflow-y:auto;
+ overscroll-behavior:contain;scrollbar-width:thin;
+ scrollbar-color:var(--parity-gold) transparent
+}
+.brand-dialog-head{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.brand-dialog-head>div{min-width:0}
+.brand-dialog-head h2{
+ margin:10px 0 0;font:600 clamp(28px,4vw,36px)/1.1 var(--serif);
+ color:var(--parity-forest);overflow-wrap:anywhere
+}
+.brand-dialog-close{
+ display:grid;place-items:center;flex:none;width:40px;height:40px;
+ padding:0;border:1px solid var(--parity-gold);border-radius:6px;
+ background:transparent;color:var(--parity-forest);font:400 26px/1 var(--font)
+}
+.brand-dialog-body p{
+ margin:20px 0 0;font:400 14px/1.6 var(--font);color:#5f574b;
+ white-space:pre-line;overflow-wrap:anywhere
+}
+.brand-dialog-actions{
+ display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+ margin-top:24px;padding-top:18px;border-top:1px solid var(--parity-rule)
+}
+.brand-dialog-actions button{
+ min-height:44px;max-width:100%;padding:12px 20px;
+ justify-content:center;white-space:normal
+}
+/* The legacy luxury button sheet uses important backgrounds. Keep destructive
+   confirmation visibly distinct without changing other primary buttons. */
+.brand-dialog .primary.danger{background:#813d35!important;border-color:#b17d61!important;color:#fffdfa}
+.brand-dialog .primary.danger:hover{background:#6c302a!important}
 .feature-fields{
  display:grid;
  grid-template-columns:minmax(110px,30%) minmax(0,1fr);
@@ -288,11 +389,12 @@ button:disabled,.feature-button[disabled]{
 }
 .feature-status-cancelled{border-color:#e3c8bd;background:#fcf7f3}
 @media(max-width:1250px){
- #view-servicios .feature-service-row{
-   grid-template-columns:minmax(0,1fr) minmax(80px,.7fr)
- }
- #view-servicios .feature-service-row .feature-inline{grid-column:1/-1}
  .feature-status-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:1180px){
+ #view-servicios .feature-service-row{grid-template-columns:minmax(0,1fr);align-items:start;gap:8px}
+ #view-servicios .feature-service-row .service-price{text-align:left}
+ #view-servicios .feature-service-row .feature-inline{justify-content:flex-start}
 }
 @media(max-width:720px){
  #view-servicios .list-head{align-items:stretch;flex-direction:column}
@@ -308,6 +410,11 @@ button:disabled,.feature-button[disabled]{
  .feature-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:460px){
+ #view-inicio .summary-grid .metric-card,
+ #view-inicio .summary-grid .metric-card.dark{padding:16px;grid-template-columns:44px minmax(0,1fr) 44px;gap:7px 12px}
+ #view-inicio .summary-grid .metric-card>.metric-icon{width:44px;height:44px}
+ .brand-dialog-card{padding:18px}
+ .brand-dialog-actions button{flex:1 1 120px}
  #feature-form,#modal-form{padding:14px}
  .feature-head h2{font-size:32px}
  .feature-head-actions button{font-size:11px}
@@ -315,6 +422,11 @@ button:disabled,.feature-button[disabled]{
  .feature-status-tile{padding:10px 9px;min-height:92px}
  .feature-status-count{font-size:33px}
  #view-servicios .service-card{padding:17px}
+}
+@media(max-height:480px){
+ #feature-form,#modal-form{overflow-y:auto;max-height:calc(100dvh - 28px)}
+ #feature-body,#modal-fields{overflow:visible;flex:none}
+ .feature-head h2,#modal-title{font-size:30px}
 }
 @media(prefers-reduced-motion:reduce){
  .primary,.secondary,.record-action,.feature-button{transition:none}
