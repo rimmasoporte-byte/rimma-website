@@ -8,7 +8,7 @@ const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
 const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
-let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null;
+let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
 function success(msg){const el=$("#global-success");el.textContent=msg||"";el.hidden=!msg;}
@@ -244,9 +244,50 @@ async function saveModal(event){
    const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})}]};
    await api("/orders",{method:"POST",body:JSON.stringify(payload)});
    $("#modal").close();activeModal=null;go("pedidos");
+  }else if(activeModal==="edit-client"){
+   if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
+   const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
+   await api("/clients/"+encodeURIComponent(activeRecord.id),{method:"PATCH",body:JSON.stringify(data)});
+   $("#modal").close();go("clientes");success("Cliente actualizado correctamente.");
+  }else if(activeModal==="edit-order"){
+   if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el pedido.");
+   const payload={expectedVersion:Number(activeRecord.version)};
+   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true";
+   if(due!==(activeRecord.dueDate?String(activeRecord.dueDate).slice(0,10):null))payload.dueDate=due;
+   if(notes!==(activeRecord.notes||null))payload.notes=notes;
+   if(needsReply!==Boolean(activeRecord.needsReply))payload.needsReply=needsReply;
+   if(Object.keys(payload).length===1)throw new Error("No hay cambios por guardar.");
+   await api("/orders/"+encodeURIComponent(activeRecord.id),{method:"PATCH",body:JSON.stringify(payload)});
+   $("#modal").close();go("pedidos");success("Pedido actualizado correctamente.");
+  }else if(activeModal==="edit-item"){
+   if(!activeRecord?.id || !activeRecord?.itemId || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar la prenda.");
+   const next=get("status");
+   if(next===activeRecord.status)throw new Error("Selecciona un estado diferente.");
+   await api("/orders/"+encodeURIComponent(activeRecord.id)+"/items/"+encodeURIComponent(activeRecord.itemId),
+     {method:"PATCH",body:JSON.stringify({status:next,expectedVersion:Number(activeRecord.version)})});
+   $("#modal").close();go("pedidos");success("Estado actualizado correctamente.");
   }
  }catch(e){modalError(e.message||"No se pudo guardar. Comprueba si el registro existe antes de volver a intentarlo.");}
  finally{submit.disabled=false;submit.textContent="Guardar";}
+}
+async function deleteRecord(type,id){
+ if(!/^[a-f0-9-]{36}$/i.test(id||"")){globalError("El registro seleccionado no es válido.");return;}
+ const route=type==="client"?"/clients/":"/orders/";
+ if(pendingDeletes.has(type+id))return;
+ const prompt=type==="client"
+  ?"¿Eliminar este cliente? Dejará de aparecer en la lista. Sus pedidos históricos se conservarán."
+  :"¿Eliminar este pedido? Los pedidos entregados o con pagos registrados deben conservarse en el historial.";
+ if(!window.confirm(prompt))return;
+ pendingDeletes.add(type+id);globalError("");success("");
+ try{
+  await api(route+encodeURIComponent(id),{method:"DELETE",body:"{}"});
+  if(type==="client"){await loadClients();success("Cliente retirado de la lista.");}
+  else{await loadOrders();await loadToday();success("Pedido retirado de la lista.");}
+ }catch(e){
+  globalError((e.status===409?"No se ha eliminado: ":"No se ha podido eliminar: ")+e.message+
+    (e.status===409?" Actualiza la lista y revisa si tiene pagos registrados.":""));
+  if(type==="client")void loadClients();else void loadOrders();
+ }finally{pendingDeletes.delete(type+id);}
 }
 async function logout(){
  const btn=$("#logout");btn.disabled=true;
@@ -258,7 +299,19 @@ $("#login-form").addEventListener("submit",login);
 $("#logout").addEventListener("click",logout);
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
-document.addEventListener("click",event=>{const b=event.target.closest("[data-view],[data-action]");if(!b)return;if(b.dataset.view)go(b.dataset.view);if(b.dataset.action==="new-client")openModal("client");if(b.dataset.action==="new-order")openModal("order");});
+document.addEventListener("click",event=>{
+ const b=event.target.closest("[data-view],[data-action]");if(!b)return;
+ if(b.dataset.view){go(b.dataset.view);return;}
+ switch(b.dataset.action){
+  case "new-client":openModal("client");break;
+  case "new-order":openModal("order");break;
+  case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
+  case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
+  case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
+  case "delete-client":void deleteRecord("client",b.dataset.id);break;
+  case "delete-order":void deleteRecord("order",b.dataset.id);break;
+ }
+});
 $("#orders-prev").addEventListener("click",()=>{ordersPage=Math.max(0,ordersPage-1);loadOrders();});
 $("#orders-next").addEventListener("click",()=>{ordersPage++;loadOrders();});
 $("#clients-prev").addEventListener("click",()=>{clientsPage=Math.max(0,clientsPage-1);loadClients();});
@@ -270,5 +323,6 @@ $("#report-period").addEventListener("change",loadReport);
 $("#modal-form").addEventListener("submit",saveModal);
 $("#modal-close").addEventListener("click",()=>$("#modal").close());
 $("#modal-cancel").addEventListener("click",()=>$("#modal").close());
+$("#modal").addEventListener("close",()=>{activeModal=null;activeRecord=null;});
 void session();
 })();
