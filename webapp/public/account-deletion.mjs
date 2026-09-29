@@ -38,7 +38,9 @@ export async function renderAccountDeletionPanel({api,request,onClosed,target}){
   note(target,'La eliminación automática todavía no está disponible para este taller. Puedes solicitar una eliminación verificada al equipo RIMMA.');
   support(target);return;
  }
- note(target,'Disponible solo para talleres de prueba sin historial de pagos ni fotografías. El acceso se bloqueará inmediatamente; la limpieza de datos se realizará más tarde.');
+ note(target,info.deletionMode==='TRIAL_WITH_OPERATIONAL_DATA'
+  ? 'Se eliminarán los datos de tu taller de prueba, incluidas las fotografías y los registros de cobros. Guarda tu archivo ZIP antes de continuar. El acceso se bloqueará inmediatamente; la limpieza comenzará como mínimo 20 minutos después y puede requerir revisión manual.'
+  : 'Disponible solo para talleres de prueba sin historial de pagos ni fotografías. El acceso se bloqueará inmediatamente; la limpieza de datos se realizará más tarde.');
  const exportLink=make('button','Preparar mi archivo ZIP antes de eliminar',{type:'button',className:'secondary'});
  exportLink.addEventListener('click',()=>{
   const button=document.getElementById('download-owner-archive');
