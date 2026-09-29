@@ -26,11 +26,15 @@ const mock=http.createServer(async(req,res)=>{
  if(req.headers.authorization!=='Bearer synthetic-access')
   return reply(401,{error:'Unauthorized'});
  if(route==='/me')return reply(200,{me:{user:{id:uid},workspace:{id:wid,role:'owner'}}});
+ if(route==='/account/deletion-info'&&req.headers['x-rimma-deletion-client']!=='web-v1')
+  return reply(412,{error:'CLIENT_PROTOCOL_UPGRADE_REQUIRED'});
  if(route==='/account/deletion-info')return reply(200,{info:{
   deletionAvailable:true,workspaces:[{id:wid,name:'Synthetic Atelier',
    role:'owner',deleteWorkspace:true,otherMembers:0}],backupPolicyDays:27
  }});
  if(route==='/account/delete'){
+  if(req.headers['x-rimma-deletion-client']!=='web-v1')
+   return reply(412,{error:'CLIENT_PROTOCOL_UPGRADE_REQUIRED'});
   deletionCalls++;
   if(input.password!=='correct'||input.confirmation!=='ELIMINAR')
    return reply(400,{error:'Invalid request'});
