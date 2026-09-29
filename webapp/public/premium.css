@@ -129,3 +129,19 @@ dialog::backdrop{background:#101A14AA;backdrop-filter:blur(4px)}
  .auth-main{padding:60px 27px}.auth-card h2{font-size:58px}.auth-card .mini-brand{margin-bottom:45px}
  #modal-form{padding:24px}
 }
+
+/* Subscription overview: status, verified details and available purchase path. */
+.billing-help{grid-column:1/-1}
+.billing-detail .billing-facts{display:grid;grid-template-columns:minmax(115px,1fr) minmax(150px,1.4fr);gap:13px 20px;margin:25px 0;padding:19px 0;border-top:1px solid #E5E6DE;border-bottom:1px solid #E5E6DE}
+.billing-facts dt{font-size:12px;color:#81745F}
+.billing-facts dd{margin:0;font-weight:650;font-size:12px;color:#27372D;text-align:right;word-break:break-word}
+.billing-trial-end{display:inline-block;margin-top:16px;padding:11px 16px;border:1px solid #D3BA91;color:#F2D9B1;background:#FFFFFF0D;font-size:12px}
+.billing-detail p,.billing-help p{font-size:13px;line-height:1.75;color:#655D50}
+.billing-detail .billing-warning,.billing-help .billing-warning{color:#8B402C;background:#FFF0E9;border:1px solid #D8A18D;padding:10px 14px}
+.billing-muted{color:#81745F!important;font-size:12px!important}
+.billing-actions{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0}
+.billing-actions button{cursor:pointer;border-radius:4px}
+.billing-actions button:disabled{opacity:.65;cursor:wait}
+.billing-help .account-link,.billing-detail .account-link{display:block;width:fit-content;max-width:100%;margin-top:14px;line-height:1.55}
+.billing-help .subscription-checkout{display:inline-flex;margin-top:20px;border-radius:4px;text-decoration:none}
+@media(max-width:630px){.billing-detail .billing-facts{grid-template-columns:1fr;gap:7px}.billing-facts dd{text-align:left;margin-bottom:9px}.billing-help{grid-column:auto}}
