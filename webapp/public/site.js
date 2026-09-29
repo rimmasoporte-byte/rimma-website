@@ -80,7 +80,7 @@ function orderTable(rows,actions=false){
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
  const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
- if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);}
+ if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);const ready=Number(today.value.dashboard?.summary?.readyForPickup);$("#topbar-alert-dot").hidden=!(Number.isFinite(ready)&&ready>0);}
  if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
  $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[],true):'<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
