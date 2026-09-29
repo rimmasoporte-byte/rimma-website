@@ -61,6 +61,22 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,201);assert.equal((await r.json()).client.name,'Sofía');
+  const id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  r=await fetch(base+'/api/data/clients/'+id,{headers:head});assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'DELETE',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
+  const authorized={...head,...headers,'x-rimma-csrf':login.csrf};
+  r=await fetch(base+'/api/data/clients/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({name:'María editada',expectedVersion:3})});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({name:'Antiguo',expectedVersion:2})});
+  assert.equal(r.status,409);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/orders/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({dueDate:'2026-10-01',expectedVersion:2})});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/orders/'+id,{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,409);
+  r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,405);
   for(const f of ['site.js','site.css','premium.css','luxury-buttons.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,200);
