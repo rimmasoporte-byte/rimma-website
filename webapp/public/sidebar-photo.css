@@ -1,0 +1,154 @@
+/* Final RIMMA photograph: no background-size: cover, masking or figure cropping. */
+/* Photo sits below navigation and above logout, never over menu controls. */
+.sidebar>.sidebar-luxe-art{
+  box-sizing:border-box;
+  position:relative;z-index:2;
+  display:block;
+  flex:0 0 auto;
+  width:calc(100% + 48px);
+  height:auto;
+  min-height:0;
+  max-height:none;
+  aspect-ratio:420 / 236;
+  padding:0;
+  margin:8px -24px 0;
+  appearance:none;-webkit-appearance:none;
+  background:#0f2017;
+  border:1px solid rgba(222,189,126,.46);
+  border-left:0;border-right:0;
+  overflow:hidden;
+  border-radius:0;
+  cursor:zoom-in;
+  isolation:isolate
+}
+.sidebar>.sidebar-luxe-art::before,
+.sidebar>.sidebar-luxe-art::after{
+  display:none!important;
+  content:none!important;
+  background:none!important
+}
+.sidebar>.sidebar-luxe-art img{
+  display:block;
+  box-sizing:border-box;
+  width:100%;
+  height:100%;
+  min-height:0;
+  aspect-ratio:420 / 236;
+  object-fit:contain;
+  object-position:center center;
+  background:#0f2017
+}
+.sidebar>.sidebar-luxe-art:hover{
+  border-top-color:#f0d6a4;
+  border-bottom-color:#f0d6a4;
+  box-shadow:0 0 0 2px rgba(216,179,112,.15) inset
+}
+.sidebar>.sidebar-luxe-art:focus-visible{
+  outline:2px solid #efcd8d;
+  outline-offset:-3px
+}
+.sidebar .sidebar-luxe-mark,
+.sidebar .sidebar-luxe-caption{display:none!important}
+.sidebar-bottom{
+  flex:0 0 auto;
+  margin-top:auto;
+  z-index:5;
+  box-sizing:border-box
+}
+/* An ordinary image is deliberately used instead of a CSS cover background
+   so the mannequin and RIMMA title remain visible at every screen size. */
+.brand-art-dialog{
+  position:fixed;
+  inset:0;
+  width:min(92vw,700px);
+  max-width:min(92vw,700px);
+  max-height:94dvh;
+  box-sizing:border-box;
+  margin:auto;
+  padding:42px 14px 14px;
+  background:#13271c;
+  border:1px solid #d8b77a;
+  border-radius:12px;
+  box-shadow:0 24px 75px rgba(0,0,0,.55);
+  overflow:auto
+}
+.brand-art-dialog::backdrop{
+  background:rgba(9,19,14,.83);
+  backdrop-filter:blur(4px)
+}
+.brand-art-dialog>img{
+  display:block;
+  width:100%;
+  max-height:calc(94dvh - 66px);
+  height:auto;
+  object-fit:contain;
+  aspect-ratio:420 / 236;
+  border:1px solid rgba(226,189,118,.34);
+  border-radius:5px;
+  background:#0d1a13
+}
+.brand-art-close{
+  position:absolute;z-index:2;top:7px;right:14px;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:28px;
+  padding:4px 11px;
+  font:600 12px/1.4 var(--font);
+  color:#f1debb;background:#233b2a;
+  border:1px solid #be9d61;
+  border-radius:5px;
+  cursor:pointer
+}
+.brand-art-close:focus-visible{
+  outline:2px solid #f1dba8;
+  outline-offset:2px
+}
+@media (min-width:931px) and (max-height:820px){
+  .sidebar>.sidebar-luxe-art{
+    width:calc(100% + 40px);
+    margin:6px -20px 0;
+    min-height:0;
+    max-height:none;
+    height:auto;
+    aspect-ratio:420 / 236
+  }
+}
+@media (min-width:931px) and (max-height:650px){
+  .sidebar{overflow-y:auto}
+  .sidebar>.sidebar-luxe-art{
+    display:block;
+    flex:0 0 auto;
+    min-height:0;
+    max-height:none;
+    height:auto
+  }
+}
+@media (max-width:1250px) and (min-width:931px){
+  .sidebar>.sidebar-luxe-art{
+    width:calc(100% + 38px);
+    margin-inline:-19px
+  }
+}
+@media (max-width:930px){
+  .sidebar>.sidebar-luxe-art{
+    display:block;
+    flex:0 0 auto;
+    width:calc(100% + 48px);
+    margin:10px -24px 0;
+    height:auto;
+    min-height:0;
+    max-height:none;
+    aspect-ratio:420 / 236
+  }
+}
+@media(max-width:930px) and (max-height:650px){
+  .sidebar>.sidebar-luxe-art{
+    flex:0 0 auto;
+    min-height:0;
+    max-height:none;
+    height:auto
+  }
+}
+@media print{
+  .sidebar>.sidebar-luxe-art,
+  .brand-art-dialog{display:none!important}
+}
