@@ -41,3 +41,10 @@ test('table retains customer identity and accessible edit/delete actions',async(
  assert.match(js,/data-action="delete-/);
  assert.match(js,/o\.status!=="issued"/);
 });
+
+test('whitelisted luxury CSS is served with a safe CSS media type',async()=>{
+ const server=await fs.readFile(new URL('../server.mjs',import.meta.url),'utf8');
+ assert.match(server,/pathname==='\/app\/maison-luxe\.css'/);
+ assert.match(server,/staticFile\(res,'maison-luxe\.css','text\/css; charset=utf-8'\)/);
+ assert.match(server,/img-src 'self' data:/);
+});
