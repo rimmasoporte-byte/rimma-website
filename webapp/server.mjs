@@ -174,6 +174,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/report-view.mjs')return staticFile(res,'report-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-features.mjs')return staticFile(res,'portal-features.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-parity.css')return staticFile(res,'portal-parity.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/luxury-buttons.css')return staticFile(res,'luxury-buttons.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
@@ -307,6 +308,39 @@ export const server=http.createServer(async(req,res)=>{
         'cache-control':'private, no-store',
         'content-disposition':'attachment; filename="rimma-datos-taller.zip"'});
       return res.end(Buffer.concat(parts,total));
+    }
+    if(method==='POST'&&pathname==='/api/account/delete'){
+      const s=await requireSession(req,res);if(!s)return;
+      if(!requireCsrf(req,res,s))return;
+      const input=await body(req,4096);
+      if(typeof input?.password!=='string'||input.password.length>256||
+         input.confirmation!=='ELIMINAR'||input.understandsStoreCancellation!==true||
+         !Array.isArray(input.workspaceIds)||input.workspaceIds.length<1||
+         input.workspaceIds.length>20||
+         !Array.isArray(input.staffLossAcknowledgements)){
+        return send(res,400,{error:'Completa las confirmaciones requeridas.'});
+      }
+      const response=await callWithSession(s,'POST','/account/delete',input);
+      if(response.status!==202)return send(res,response.status,response.data);
+      if(response.data?.result?.accepted!==true||
+         response.data?.result?.accessBlocked!==true||
+         !/^[A-Za-z0-9_-]{43}$/.test(response.data?.result?.statusToken||'')){
+        await forget(s);
+        return send(res,503,{error:'Confirma el estado con soporte. Tu sesión se ha cerrado.'},
+          {'set-cookie':cookie(null)});
+      }
+      await forget(s);
+      return send(res,202,response.data,{'set-cookie':cookie(null)});
+    }
+    if(method==='POST'&&pathname==='/api/account/deletion-status'){
+      if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
+      const input=await body(req,1024);
+      if(!/^[0-9a-f-]{36}$/.test(input?.jobId||'')||
+         !/^[A-Za-z0-9_-]{43}$/.test(input?.statusToken||'')){
+        return send(res,400,{error:'Código de seguimiento inválido.'});
+      }
+      const status=await fromBackend('POST','/public/account-deletion-status',input);
+      return send(res,status.status,status.data);
     }
     if(pathname.startsWith('/api/data/')){
       const s=await requireSession(req,res);if(!s)return;
