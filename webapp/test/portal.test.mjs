@@ -14,6 +14,16 @@ const mock=http.createServer(async(req,res)=>{
  if(p==='/refresh')return json(200,{success:true,tokens:{accessToken:'testaccess2',refreshToken:'testrefresh2'}});
  if(p==='/me'&&req.headers.authorization?.startsWith('Bearer testaccess'))return json(200,{success:true,me:{user:{id:'u1',email:'test@example.invalid'},workspace:{id:'w1',name:'Taller de Prueba',role:'owner'},subscription:{status:'active'}}});
  if(req.headers.authorization!=='Bearer testaccess'&&req.headers.authorization!=='Bearer testaccess2')return json(401,{error:'Unauthorized'});
+ if(/^\/clients\/[a-f0-9-]{36}$/.test(p)){
+   if(req.method==='GET')return json(200,{success:true,client:{id:p.slice(-36),name:'María',version:3}});
+   if(req.method==='PATCH')return payload.expectedVersion===3?json(200,{success:true,client:{version:4}}):json(409,{error:'Version mismatch'});
+   if(req.method==='DELETE')return json(200,{success:true,client:{deletedAt:'2026-09-29'}});
+ }
+ if(/^\/orders\/[a-f0-9-]{36}$/.test(p)){
+   if(req.method==='GET')return json(200,{success:true,order:{id:p.slice(-36),version:2,items:[]}});
+   if(req.method==='PATCH')return json(200,{success:true,order:{version:3}});
+   if(req.method==='DELETE')return json(409,{error:'Preserve paid orders'});
+ }
  if(p==='/clients'&&req.method==='POST')return json(201,{success:true,client:{id:'new',...payload}});
  if(p==='/clients')return json(200,{success:true,clients:[{id:'c1',name:'María'}]});
  if(p==='/orders')return json(200,{success:true,orders:[{id:'o1',orderNumber:1}]});
