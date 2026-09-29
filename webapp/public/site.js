@@ -60,7 +60,7 @@ function recordActions(type,id,canDelete=true) {
  '</div>';
 }
 function customerInitials(name) {
- const words=String(name||"").trim().split(/\\s+/).filter(Boolean);
+ const words=String(name||"").trim().split(/\s+/).filter(Boolean);
  return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
 }
 function orderRow(o,actions=false){
