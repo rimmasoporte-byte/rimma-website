@@ -147,8 +147,14 @@ async function loadAccount(){
 function field(label,name,type="text",attributes=""){
  return '<div><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" name="'+name+'" type="'+type+'" '+attributes+'></div>';
 }
-function openModal(type){
- activeModal=type;modalError("");const box=$("#modal-fields");
+function openModal(type,record=null){
+ if(type.startsWith("edit-") && (!record || !/^[a-f0-9-]{36}$/i.test(record.id||""))) {
+  globalError("Selecciona un registro válido e inténtalo de nuevo.");return;
+ }
+ activeModal=type;activeRecord=record?{...record}:null;modalError("");
+ $("#modal-submit").disabled=false;$("#modal-submit").textContent="Guardar";
+ const box=$("#modal-fields");
+ box.dataset.catalog="";
  if(type==="client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Nuevo cliente";
   box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
@@ -169,7 +175,59 @@ function openModal(type){
    });
   }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});
  }
- $("#modal").showModal();
+
+ if(type==="edit-client"){
+  $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Editar cliente";
+  box.textContent="Cargando cliente…";
+  void api("/clients/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id)return;
+   const client=result.client; if(!client || client.id!==record.id)throw Error("Registro incorrecto");
+   activeRecord=client;
+   box.innerHTML='<div class="form-grid">'+
+    field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+
+    field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+
+    field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+
+    '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   for(const key of ["name","phone","email","notes"])$("#f-"+key).value=client[key]||"";
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar el cliente: "+e.message);});
+ }
+ if(type==="edit-order"){
+  $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Editar pedido";
+  box.textContent="Cargando pedido…";
+  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id)return;
+   const order=result.order; if(!order || order.id!==record.id)throw Error("Registro incorrecto");
+   activeRecord=order;
+   box.innerHTML='<p class="edit-hint">Puedes actualizar la fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón. Los importes y trabajos ya registrados permanecen intactos.</p>'+
+    '<div class="form-grid">'+field("Fecha de entrega","due","date")+
+    '<div><label for="f-reply">Seguimiento pendiente</label><select id="f-reply" name="reply"><option value="false">No</option><option value="true">Sí</option></select></div>'+
+    '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="10000"></textarea></div></div>'+
+    '<div class="item-edit-list"><strong>Estado de las prendas</strong>'+
+    (order.items||[]).map(item=>'<div class="item-edit-line"><span>'+esc(item.name)+' · '+esc(status[item.status]||item.status)+'</span>'+
+      (item.status!=="issued"?'<button type="button" class="record-action" data-action="edit-item" data-id="'+esc(order.id)+'" data-item="'+esc(item.id)+'">Cambiar estado</button>':'<small>Entregada</small>')+'</div>').join("")+'</div>';
+   $("#f-due").value=order.dueDate?String(order.dueDate).slice(0,10):"";
+   $("#f-reply").value=order.needsReply?"true":"false";
+   $("#f-notes").value=order.notes||"";
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar el pedido: "+e.message);});
+ }
+ if(type==="edit-item"){
+  $("#modal-eyebrow").textContent="ESTADO DEL ENCARGO";$("#modal-title").textContent="Cambiar estado";
+  box.textContent="Cargando prenda…";
+  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id || activeRecord?.itemId!==record.itemId)return;
+   const item=result.order?.items?.find(i=>i.id===record.itemId);
+   if(!item)throw Error("Prenda no encontrada");
+   activeRecord={id:record.id,itemId:item.id,version:item.version,status:item.status};
+   const possible={accepted:["accepted","in_progress","ready","cancelled"],
+     in_progress:["in_progress","accepted","ready","cancelled"],
+     ready:["ready","in_progress","issued","cancelled"],cancelled:["cancelled","accepted"],issued:["issued"]};
+   box.innerHTML='<p class="edit-hint">'+esc(item.name)+'. El sistema verificará los cambios permitidos; para entregar una prenda debe estar completamente pagada.</p>'+
+    '<label for="f-status">Nuevo estado</label><select name="status" id="f-status">'+
+    (possible[item.status]||[item.status]).map(value=>'<option value="'+esc(value)+'">'+esc(status[value]||value)+'</option>').join("")+'</select>';
+   $("#f-status").value=item.status;
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar la prenda: "+e.message);});
+ }
+ if(!$("#modal").open)$("#modal").showModal();
 }
 async function saveModal(event){
  event.preventDefault();modalError("");const form=event.currentTarget;const submit=$("#modal-submit");submit.disabled=true;submit.textContent="Guardando…";
