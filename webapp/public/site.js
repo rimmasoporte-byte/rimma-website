@@ -8,9 +8,10 @@ const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
 const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
-let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastCatalog=[],activeModal=null,searchClock=null;
+let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null;
 const PAGE=8;
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
+function success(msg){const el=$("#global-success");el.textContent=msg||"";el.hidden=!msg;}
 function modalError(msg){const el=$("#modal-error");el.textContent=msg||"";el.hidden=!msg;}
 async function request(url,options={}){
  const headers={accept:"application/json",...options.headers};
@@ -49,41 +50,50 @@ function go(view){
  const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
-function orderRow(o){
+function recordActions(type,id,canDelete=true) {
+ const safe=esc(id);
+ const label=type==="client"?"cliente":"pedido";
+ return '<div class="record-actions">'+
+  '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
+  (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
+  '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
+ '</div>';
+}
+function orderRow(o,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
  const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
  const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td></tr>';
+ return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+(actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
 }
-function orderTable(rows){
- return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th></tr></thead><tbody>'+rows.map(orderRow).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+function orderTable(rows,actions=false){
+ return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
  const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
  if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);}
  if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
- $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[]):'<p class="empty">No se pudieron consultar los pedidos.</p>';
+ $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[],true):'<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
 }
 async function loadOrders(){
  $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);
-  const result=await api("/orders?"+q);const rows=result.orders||[];
-  $("#orders-list").innerHTML=orderTable(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
+  const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
+  $("#orders-list").innerHTML=orderTable(rows,true);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
 }
 function clientRow(c){
- return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td></tr>';
+ return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td>'+recordActions("client",c.id)+'</td></tr>';
 }
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(clientsPage*PAGE)});if(clientsSearch.trim())q.set("q",clientsSearch.trim());
   const result=await api("/clients?"+q);const rows=result.clients||[];lastClients=rows;
-  $("#clients-list").innerHTML=rows.length?'<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Estado</th></tr></thead><tbody>'+rows.map(clientRow).join("")+'</tbody></table>':'<p class="empty">No hay clientes con esos filtros.</p>';
+  $("#clients-list").innerHTML=rows.length?'<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Estado</th><th scope="col">Acciones</th></tr></thead><tbody>'+rows.map(clientRow).join("")+'</tbody></table>':'<p class="empty">No hay clientes con esos filtros.</p>';
   $("#clients-page").textContent="Página "+(clientsPage+1);$("#clients-prev").disabled=clientsPage===0;$("#clients-next").disabled=rows.length<PAGE;
  }catch(e){$("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);}
 }
