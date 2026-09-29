@@ -1,0 +1,109 @@
+/* RIMMA luxury finishing pass: photographic artwork is an intentional framed
+   feature, never a cropped full-width decorative strip under the menu. */
+:root{--luxe-panel:#15251b;--luxe-gold:#dfbf81;--luxe-ivory:#fffdf7}
+.sidebar{
+  background:linear-gradient(160deg,#1e3123 0%,#16251b 64%,#101b15 100%);
+  border-right:1px solid rgba(211,181,118,.25)
+}
+/* The image occupies its OWN flex slot. Navigation and logout never overlay it. */
+.sidebar>.sidebar-luxe-art{
+  isolation:isolate;position:relative;z-index:1;flex:1 1 0;
+  box-sizing:border-box;width:calc(100% + 48px);min-height:135px;
+  margin:9px -24px 0;overflow:hidden;background:#17271c;
+  border-top:1px solid rgba(221,186,119,.26)
+}
+.sidebar>.sidebar-luxe-art::before{
+  content:"";position:absolute;z-index:-1;inset:0;display:block;opacity:1;
+  background-image:
+    linear-gradient(90deg,rgba(20,35,25,0) 15%,rgba(20,35,25,.08) 48%,rgba(17,30,21,.75) 71%,#14251b 98%),
+    linear-gradient(0deg,rgba(11,23,15,.37),transparent 27%),
+    url("/app/atelier-mannequin.webp");
+  background-position:center,left bottom,12% 52%;
+  background-repeat:no-repeat;
+  background-size:100% 100%,100% 100%,auto 100%;
+  -webkit-mask-image:none;mask-image:none;
+}
+.sidebar>.sidebar-luxe-art::after{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  border-bottom:1px solid rgba(231,196,135,.18);
+  background:linear-gradient(0deg,rgba(13,25,17,.22),transparent 24%);
+}
+.sidebar-luxe-mark{
+  top:auto;right:15px;bottom:49%;
+  transform:translateY(50%);font:500 22px/1.1 "Bodoni Moda",Georgia,serif;
+  letter-spacing:2.8px;color:#f3deba;text-shadow:0 2px 10px #071409
+}
+.sidebar-luxe-caption{
+  bottom:calc(49% - 43px);right:18px;
+  color:#edd4a0;font:700 8px/1.65 var(--font);
+  text-shadow:0 1px 5px #071409;letter-spacing:1.9px
+}
+.sidebar-bottom{
+  position:relative;z-index:4;flex:0 0 auto;min-height:54px;
+  margin:0;padding:9px 0 5px;border-top:1px solid #b4945b;
+  background:linear-gradient(90deg,#17281d,#102016)
+}
+.sidebar-bottom button{
+  width:100%;min-height:36px;max-height:40px;
+  display:flex;align-items:center;justify-content:space-between;
+  border:1px solid rgba(223,189,123,.46);background:#1b2e21;
+  border-radius:5px;color:#f1e2c7;padding:8px 12px;
+  font-size:11px;font-weight:600
+}
+.sidebar>.side-nav,.sidebar>.nav-caption-second,.sidebar-top{z-index:3}
+.sidebar .side-nav button,.sidebar .side-nav a.nav-help-link{
+  border-radius:7px
+}
+.sidebar .side-nav button:focus-visible,
+.sidebar .side-nav a:focus-visible,
+.sidebar-bottom button:focus-visible,
+.record-action:focus-visible{
+  outline:2px solid #f0d5a1;outline-offset:2px
+}
+/* Print data and customer actions legibly: narrow desktop can scroll
+   the table rather than squeeze every word onto two or three lines. */
+.dashboard-orders-panel .paper-table,.view .paper-table{overflow-x:auto;scrollbar-color:#cbb68f #f9f5ee}
+.dashboard-orders-panel .paper-table table{min-width:990px}
+#view-inicio .dashboard-orders-panel .customer-cell{min-width:164px}
+#view-inicio .dashboard-orders-panel .order-work{min-width:130px}
+#view-inicio .dashboard-orders-panel .order-amount{white-space:nowrap}
+#view-inicio .dashboard-orders-panel .record-actions{min-width:172px}
+#view-inicio .dashboard-orders-panel .record-action{min-width:75px}
+#view-informes .list-head{scroll-margin-top:83px}
+@media(min-width:931px) and (max-height:820px){
+  .sidebar{padding:12px 20px 9px}
+  .sidebar>.sidebar-luxe-art{width:calc(100% + 40px);margin:7px -20px 0;min-height:120px}
+  .sidebar>.sidebar-luxe-art::before{background-position:center,left bottom,4% 47%}
+  .sidebar-luxe-mark{font-size:18px;right:10px}
+  .sidebar-luxe-caption{font-size:7px;right:12px;letter-spacing:1.3px;bottom:calc(49% - 35px)}
+  .sidebar>.side-nav button,.sidebar>.side-nav a.nav-help-link{min-height:39px}
+  .sidebar-bottom{min-height:49px;padding:5px 0 0}
+  .sidebar-bottom button{min-height:34px}
+}
+@media(min-width:931px) and (max-height:650px){
+  .sidebar{overflow-y:auto;scrollbar-width:thin}
+  .sidebar>.sidebar-luxe-art{min-height:130px;flex:0 0 130px;display:block}
+  .sidebar-bottom{margin-top:0}
+}
+@media(max-width:1250px) and (min-width:931px){
+  .sidebar>.sidebar-luxe-art{width:calc(100% + 38px);margin-inline:-19px}
+}
+@media(max-width:930px){
+  .sidebar{overflow-y:auto;max-height:100dvh}
+  .sidebar>.sidebar-luxe-art{
+    display:block;flex:0 0 210px;min-height:210px;max-height:210px;
+    width:calc(100% + 48px);margin:12px -24px 0
+  }
+  .sidebar>.sidebar-luxe-art::before{background-position:center,left bottom,14% center}
+  .sidebar-luxe-mark{right:22px;font-size:20px}
+}
+@media(max-width:930px) and (max-height:650px){
+  .sidebar>.sidebar-luxe-art{flex:0 0 145px;min-height:145px;max-height:145px}
+}
+@media print{
+  .sidebar>.sidebar-luxe-art{display:none}
+  .sidebar{background:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .sidebar .side-nav button,.sidebar-bottom button{transition:none}
+}
