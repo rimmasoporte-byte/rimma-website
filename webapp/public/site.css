@@ -19,3 +19,18 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 @media(max-width:930px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-103%);transition:transform .25s;width:256px}.sidebar.open{transform:translateX(0)}.drawer-cover:not([hidden]){display:block;position:fixed;inset:0;background:#171613A6;z-index:60}.menu-toggle{display:block}.topbar{height:68px}.page-intro,.list-head{align-items:start}.summary-grid{gap:11px}.metric-card{min-height:160px}.metric-card>strong{font-size:47px}.auth-shell{grid-template-columns:1fr}.auth-side{display:none}}
 @media(max-width:630px){.topbar{padding:0 18px}.topbar-breadcrumb{font-size:9px}.topbar-right{font-size:0}.profile-chip{margin-left:2px;height:35px;width:35px}.live-indicator{display:none}main{padding:32px 18px 90px}.page-intro,.list-head{flex-direction:column;gap:9px;margin-bottom:25px}.page-intro h1,.list-head h1{font-size:46px}.intro-action{align-self:start;margin-bottom:6px}.summary-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:35px}.metric-card{min-height:137px;padding:19px}.metric-card.dark{grid-column:span 2;min-height:176px}.metric-card>strong{font-size:47px}.metric-card.dark>strong{font-size:61px}.metric-card>span{font-size:8px}.metric-card>small{font-size:10px}.filters{flex-direction:column}.filters input,.filters select{max-width:unset;width:100%}.service-grid,.report-grid,.billing-grid,.account-grid{grid-template-columns:1fr}.paper-panel,.service-card{padding:21px}.auth-main{padding:55px 21px}.auth-card h2{font-size:44px}.mini-brand{margin-bottom:34px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:span 1}.modal-actions{justify-content:stretch}.modal-actions button{flex:1}}
 @media(prefers-reduced-motion:reduce){.sidebar,.loading-star{animation:none;transition:none}}
+
+/* Contextual actions for editable client and order records. */
+.paper-table{overflow-x:auto}
+.record-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;min-width:174px}
+.record-action{cursor:pointer;border:1px solid #CBBBA0;background:#FFFDF9;color:#665539;border-radius:5px;padding:7px 9px;font:700 11px/1.3 var(--sans,Arial,sans-serif);white-space:nowrap}
+.record-action:hover,.record-action:focus-visible{border-color:#866A3C;background:#F7F0E4;outline-offset:3px}
+.record-action.danger{color:#923C34;border-color:#E0B3AB}
+.record-action.danger:hover,.record-action.danger:focus-visible{background:#FFF1EC;border-color:#A45449}
+.record-action:disabled{opacity:.4;cursor:not-allowed}
+.global-success{padding:12px 15px;margin:0 0 18px;background:#EDF5EA;border:1px solid #A0BE9D;color:#305335;font-size:12px;line-height:1.5}
+#modal-fields .edit-hint{font-size:12px;line-height:1.6;color:#71634E;margin:12px 0}
+.item-edit-list{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.item-edit-line{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #D9CBB8;border-radius:7px;padding:10px 12px}
+.item-edit-line span{flex:1;min-width:0;word-break:break-word;font-size:12px}
+@media(max-width:630px){.record-actions{min-width:135px;gap:4px}.record-action{padding:7px}.item-edit-line{flex-wrap:wrap}}

@@ -8,9 +8,10 @@ const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
 const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
-let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastCatalog=[],activeModal=null,searchClock=null;
+let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
+function success(msg){const el=$("#global-success");el.textContent=msg||"";el.hidden=!msg;}
 function modalError(msg){const el=$("#modal-error");el.textContent=msg||"";el.hidden=!msg;}
 async function request(url,options={}){
  const headers={accept:"application/json",...options.headers};
@@ -49,41 +50,50 @@ function go(view){
  const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
-function orderRow(o){
+function recordActions(type,id,canDelete=true) {
+ const safe=esc(id);
+ const label=type==="client"?"cliente":"pedido";
+ return '<div class="record-actions">'+
+  '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
+  (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
+  '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
+ '</div>';
+}
+function orderRow(o,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
  const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
  const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td></tr>';
+ return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+(actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
 }
-function orderTable(rows){
- return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th></tr></thead><tbody>'+rows.map(orderRow).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+function orderTable(rows,actions=false){
+ return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
  const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
  if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);}
  if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
- $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[]):'<p class="empty">No se pudieron consultar los pedidos.</p>';
+ $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[],true):'<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
 }
 async function loadOrders(){
  $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);
-  const result=await api("/orders?"+q);const rows=result.orders||[];
-  $("#orders-list").innerHTML=orderTable(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
+  const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
+  $("#orders-list").innerHTML=orderTable(rows,true);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
 }
 function clientRow(c){
- return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td></tr>';
+ return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td>'+recordActions("client",c.id)+'</td></tr>';
 }
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(clientsPage*PAGE)});if(clientsSearch.trim())q.set("q",clientsSearch.trim());
   const result=await api("/clients?"+q);const rows=result.clients||[];lastClients=rows;
-  $("#clients-list").innerHTML=rows.length?'<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Estado</th></tr></thead><tbody>'+rows.map(clientRow).join("")+'</tbody></table>':'<p class="empty">No hay clientes con esos filtros.</p>';
+  $("#clients-list").innerHTML=rows.length?'<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Estado</th><th scope="col">Acciones</th></tr></thead><tbody>'+rows.map(clientRow).join("")+'</tbody></table>':'<p class="empty">No hay clientes con esos filtros.</p>';
   $("#clients-page").textContent="Página "+(clientsPage+1);$("#clients-prev").disabled=clientsPage===0;$("#clients-next").disabled=rows.length<PAGE;
  }catch(e){$("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);}
 }
@@ -137,8 +147,14 @@ async function loadAccount(){
 function field(label,name,type="text",attributes=""){
  return '<div><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" name="'+name+'" type="'+type+'" '+attributes+'></div>';
 }
-function openModal(type){
- activeModal=type;modalError("");const box=$("#modal-fields");
+function openModal(type,record=null){
+ if(type.startsWith("edit-") && (!record || !/^[a-f0-9-]{36}$/i.test(record.id||""))) {
+  globalError("Selecciona un registro válido e inténtalo de nuevo.");return;
+ }
+ activeModal=type;activeRecord=record?{...record}:null;modalError("");
+ $("#modal-submit").disabled=false;$("#modal-submit").textContent="Guardar";
+ const box=$("#modal-fields");
+ box.dataset.catalog="";
  if(type==="client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Nuevo cliente";
   box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
@@ -159,7 +175,59 @@ function openModal(type){
    });
   }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});
  }
- $("#modal").showModal();
+
+ if(type==="edit-client"){
+  $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Editar cliente";
+  box.textContent="Cargando cliente…";
+  void api("/clients/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id)return;
+   const client=result.client; if(!client || client.id!==record.id)throw Error("Registro incorrecto");
+   activeRecord=client;
+   box.innerHTML='<div class="form-grid">'+
+    field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+
+    field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+
+    field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+
+    '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   for(const key of ["name","phone","email","notes"])$("#f-"+key).value=client[key]||"";
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar el cliente: "+e.message);});
+ }
+ if(type==="edit-order"){
+  $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Editar pedido";
+  box.textContent="Cargando pedido…";
+  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id)return;
+   const order=result.order; if(!order || order.id!==record.id)throw Error("Registro incorrecto");
+   activeRecord=order;
+   box.innerHTML='<p class="edit-hint">Puedes actualizar la fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón. Los importes y trabajos ya registrados permanecen intactos.</p>'+
+    '<div class="form-grid">'+field("Fecha de entrega","due","date")+
+    '<div><label for="f-reply">Seguimiento pendiente</label><select id="f-reply" name="reply"><option value="false">No</option><option value="true">Sí</option></select></div>'+
+    '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="10000"></textarea></div></div>'+
+    '<div class="item-edit-list"><strong>Estado de las prendas</strong>'+
+    (order.items||[]).map(item=>'<div class="item-edit-line"><span>'+esc(item.name)+' · '+esc(status[item.status]||item.status)+'</span>'+
+      (item.status!=="issued"?'<button type="button" class="record-action" data-action="edit-item" data-id="'+esc(order.id)+'" data-item="'+esc(item.id)+'">Cambiar estado</button>':'<small>Entregada</small>')+'</div>').join("")+'</div>';
+   $("#f-due").value=order.dueDate?String(order.dueDate).slice(0,10):"";
+   $("#f-reply").value=order.needsReply?"true":"false";
+   $("#f-notes").value=order.notes||"";
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar el pedido: "+e.message);});
+ }
+ if(type==="edit-item"){
+  $("#modal-eyebrow").textContent="ESTADO DEL ENCARGO";$("#modal-title").textContent="Cambiar estado";
+  box.textContent="Cargando prenda…";
+  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+   if(activeModal!==type || activeRecord?.id!==record.id || activeRecord?.itemId!==record.itemId)return;
+   const item=result.order?.items?.find(i=>i.id===record.itemId);
+   if(!item)throw Error("Prenda no encontrada");
+   activeRecord={id:record.id,itemId:item.id,version:item.version,status:item.status};
+   const possible={accepted:["accepted","in_progress","ready","cancelled"],
+     in_progress:["in_progress","accepted","ready","cancelled"],
+     ready:["ready","in_progress","issued","cancelled"],cancelled:["cancelled","accepted"],issued:["issued"]};
+   box.innerHTML='<p class="edit-hint">'+esc(item.name)+'. El sistema verificará los cambios permitidos; para entregar una prenda debe estar completamente pagada.</p>'+
+    '<label for="f-status">Nuevo estado</label><select name="status" id="f-status">'+
+    (possible[item.status]||[item.status]).map(value=>'<option value="'+esc(value)+'">'+esc(status[value]||value)+'</option>').join("")+'</select>';
+   $("#f-status").value=item.status;
+  }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar la prenda: "+e.message);});
+ }
+ if(!$("#modal").open)$("#modal").showModal();
 }
 async function saveModal(event){
  event.preventDefault();modalError("");const form=event.currentTarget;const submit=$("#modal-submit");submit.disabled=true;submit.textContent="Guardando…";
@@ -176,9 +244,50 @@ async function saveModal(event){
    const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})}]};
    await api("/orders",{method:"POST",body:JSON.stringify(payload)});
    $("#modal").close();activeModal=null;go("pedidos");
+  }else if(activeModal==="edit-client"){
+   if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
+   const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
+   await api("/clients/"+encodeURIComponent(activeRecord.id),{method:"PATCH",body:JSON.stringify(data)});
+   $("#modal").close();go("clientes");success("Cliente actualizado correctamente.");
+  }else if(activeModal==="edit-order"){
+   if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el pedido.");
+   const payload={expectedVersion:Number(activeRecord.version)};
+   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true";
+   if(due!==(activeRecord.dueDate?String(activeRecord.dueDate).slice(0,10):null))payload.dueDate=due;
+   if(notes!==(activeRecord.notes||null))payload.notes=notes;
+   if(needsReply!==Boolean(activeRecord.needsReply))payload.needsReply=needsReply;
+   if(Object.keys(payload).length===1)throw new Error("No hay cambios por guardar.");
+   await api("/orders/"+encodeURIComponent(activeRecord.id),{method:"PATCH",body:JSON.stringify(payload)});
+   $("#modal").close();go("pedidos");success("Pedido actualizado correctamente.");
+  }else if(activeModal==="edit-item"){
+   if(!activeRecord?.id || !activeRecord?.itemId || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar la prenda.");
+   const next=get("status");
+   if(next===activeRecord.status)throw new Error("Selecciona un estado diferente.");
+   await api("/orders/"+encodeURIComponent(activeRecord.id)+"/items/"+encodeURIComponent(activeRecord.itemId),
+     {method:"PATCH",body:JSON.stringify({status:next,expectedVersion:Number(activeRecord.version)})});
+   $("#modal").close();go("pedidos");success("Estado actualizado correctamente.");
   }
  }catch(e){modalError(e.message||"No se pudo guardar. Comprueba si el registro existe antes de volver a intentarlo.");}
  finally{submit.disabled=false;submit.textContent="Guardar";}
+}
+async function deleteRecord(type,id){
+ if(!/^[a-f0-9-]{36}$/i.test(id||"")){globalError("El registro seleccionado no es válido.");return;}
+ const route=type==="client"?"/clients/":"/orders/";
+ if(pendingDeletes.has(type+id))return;
+ const prompt=type==="client"
+  ?"¿Eliminar este cliente? Dejará de aparecer en la lista. Sus pedidos históricos se conservarán."
+  :"¿Eliminar este pedido? Los pedidos entregados o con pagos registrados deben conservarse en el historial.";
+ if(!window.confirm(prompt))return;
+ pendingDeletes.add(type+id);globalError("");success("");
+ try{
+  await api(route+encodeURIComponent(id),{method:"DELETE",body:"{}"});
+  if(type==="client"){await loadClients();success("Cliente retirado de la lista.");}
+  else{await loadOrders();await loadToday();success("Pedido retirado de la lista.");}
+ }catch(e){
+  globalError((e.status===409?"No se ha eliminado: ":"No se ha podido eliminar: ")+e.message+
+    (e.status===409?" Actualiza la lista y revisa si tiene pagos registrados.":""));
+  if(type==="client")void loadClients();else void loadOrders();
+ }finally{pendingDeletes.delete(type+id);}
 }
 async function logout(){
  const btn=$("#logout");btn.disabled=true;
@@ -190,7 +299,19 @@ $("#login-form").addEventListener("submit",login);
 $("#logout").addEventListener("click",logout);
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
-document.addEventListener("click",event=>{const b=event.target.closest("[data-view],[data-action]");if(!b)return;if(b.dataset.view)go(b.dataset.view);if(b.dataset.action==="new-client")openModal("client");if(b.dataset.action==="new-order")openModal("order");});
+document.addEventListener("click",event=>{
+ const b=event.target.closest("[data-view],[data-action]");if(!b)return;
+ if(b.dataset.view){go(b.dataset.view);return;}
+ switch(b.dataset.action){
+  case "new-client":openModal("client");break;
+  case "new-order":openModal("order");break;
+  case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
+  case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
+  case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
+  case "delete-client":void deleteRecord("client",b.dataset.id);break;
+  case "delete-order":void deleteRecord("order",b.dataset.id);break;
+ }
+});
 $("#orders-prev").addEventListener("click",()=>{ordersPage=Math.max(0,ordersPage-1);loadOrders();});
 $("#orders-next").addEventListener("click",()=>{ordersPage++;loadOrders();});
 $("#clients-prev").addEventListener("click",()=>{clientsPage=Math.max(0,clientsPage-1);loadClients();});
@@ -202,5 +323,6 @@ $("#report-period").addEventListener("change",loadReport);
 $("#modal-form").addEventListener("submit",saveModal);
 $("#modal-close").addEventListener("click",()=>$("#modal").close());
 $("#modal-cancel").addEventListener("click",()=>$("#modal").close());
+$("#modal").addEventListener("close",()=>{activeModal=null;activeRecord=null;});
 void session();
 })();

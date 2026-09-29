@@ -14,6 +14,16 @@ const mock=http.createServer(async(req,res)=>{
  if(p==='/refresh')return json(200,{success:true,tokens:{accessToken:'testaccess2',refreshToken:'testrefresh2'}});
  if(p==='/me'&&req.headers.authorization?.startsWith('Bearer testaccess'))return json(200,{success:true,me:{user:{id:'u1',email:'test@example.invalid'},workspace:{id:'w1',name:'Taller de Prueba',role:'owner'},subscription:{status:'active'}}});
  if(req.headers.authorization!=='Bearer testaccess'&&req.headers.authorization!=='Bearer testaccess2')return json(401,{error:'Unauthorized'});
+ if(/^\/clients\/[a-f0-9-]{36}$/.test(p)){
+   if(req.method==='GET')return json(200,{success:true,client:{id:p.slice(-36),name:'María',version:3}});
+   if(req.method==='PATCH')return payload.expectedVersion===3?json(200,{success:true,client:{version:4}}):json(409,{error:'Version mismatch'});
+   if(req.method==='DELETE')return json(200,{success:true,client:{deletedAt:'2026-09-29'}});
+ }
+ if(/^\/orders\/[a-f0-9-]{36}$/.test(p)){
+   if(req.method==='GET')return json(200,{success:true,order:{id:p.slice(-36),version:2,items:[]}});
+   if(req.method==='PATCH')return json(200,{success:true,order:{version:3}});
+   if(req.method==='DELETE')return json(409,{error:'Preserve paid orders'});
+ }
  if(p==='/clients'&&req.method==='POST')return json(201,{success:true,client:{id:'new',...payload}});
  if(p==='/clients')return json(200,{success:true,clients:[{id:'c1',name:'María'}]});
  if(p==='/orders')return json(200,{success:true,orders:[{id:'o1',orderNumber:1}]});
@@ -51,6 +61,22 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,403);
   r=await fetch(base+'/api/data/clients',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:JSON.stringify({name:'Sofía'})});assert.equal(r.status,201);assert.equal((await r.json()).client.name,'Sofía');
+  const id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  r=await fetch(base+'/api/data/clients/'+id,{headers:head});assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'DELETE',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
+  const authorized={...head,...headers,'x-rimma-csrf':login.csrf};
+  r=await fetch(base+'/api/data/clients/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({name:'María editada',expectedVersion:3})});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({name:'Antiguo',expectedVersion:2})});
+  assert.equal(r.status,409);
+  r=await fetch(base+'/api/data/clients/'+id,{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/orders/'+id,{method:'PATCH',headers:authorized,body:JSON.stringify({dueDate:'2026-10-01',expectedVersion:2})});
+  assert.equal(r.status,200);
+  r=await fetch(base+'/api/data/orders/'+id,{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,409);
+  r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
+  assert.equal(r.status,405);
   for(const f of ['site.js','site.css','premium.css','luxury-buttons.css','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...head,...headers,'x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,200);
