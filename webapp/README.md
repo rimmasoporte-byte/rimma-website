@@ -26,11 +26,15 @@ static assets can deploy to an isolated staging service without opening login.
 NEVER set this flag on an internet-facing service during initial deployment.
 
 ## Release gates — not yet production ready
-- BFF sessions currently run in an IN-MEMORY single-replica store and vanish
-  when the process restarts. Before production: centralized encrypted session
-  storage, rotation behavior under multi-instance load, expiry tests, abuse
-  metrics and throttling. The existing backend login-throttle PR is NOT
-  deployed until mobile v13 is compatible; do not open public login before.
+- Login stays fail-closed until a separately authorized rollout. The BFF now
+  supports encrypted PostgreSQL session persistence and atomic account-based
+  throttling; production login fails startup if the required session DB and
+  key are missing. This branch is NOT an approval to turn on login.
+- Complete integration tests with isolated staging PostgreSQL, verify role and
+  workspace isolation using two independent ateliers, and confirm the backend
+  login-throttle PR is safe for the deployed Android client BEFORE opening login.
+- Monitor credential-guessing metrics and add a trusted-edge IP rate limit
+  (do NOT trust user-supplied X-Forwarded-For). Review CSP/font privacy policy.
 - Before enabling purchases: real Play/RevenueCat verification, test purchase,
   cancellation and renewal. Web dashboard only DISPLAYS backend billing
   status; purchases stay with Google Play until web billing legal/product
@@ -47,6 +51,33 @@ NEVER set this flag on an internet-facing service during initial deployment.
 - Real API integration testing on non-production staging Postgres required,
   including permissions and two independent atelier workspaces.
 - This MVP uses plain Node.js core libraries; no unpinned external dependencies.
+
+## Encrypted session store (pre-production release gate)
+- Provision a SEPARATE PostgreSQL database and runtime role for the web sessions.
+  Do not point the web session store at the existing RIMMA customer database.
+- As a database migration administrator, apply sql/001-web-session.sql.
+  Limit the runtime role to SELECT, INSERT, UPDATE and DELETE on only
+  rimma_web_sessions and rimma_web_login_attempts (no CREATE, DROP or customer tables).
+- Set WEB_SESSION_DATABASE_URL to the restricted connection string through
+  Railway secrets; use HTTPS/TLS for public database endpoints, or private
+  Railway networking when both services run there.
+- Generate WEB_SESSION_KEY_BASE64 from 32 cryptographically random bytes
+  outside chat, e.g. node -e "console.log(require('crypto').randomBytes(32).toString('base64'))".
+  Add the output as a secret in Railway. Never commit or share its value.
+- For seamless rotation: configure the new key as WEB_SESSION_KEY_BASE64 and
+  comma-separated previous keys in WEB_SESSION_OLD_KEYS_BASE64. Keep old keys
+  until all prior sessions expire (seven days), then remove them.
+  Deleting all keys revokes all remaining sessions; it never enables fallback.
+- An atomic per-account login gate permits at most five attempts in a
+  fifteen-minute window, across replicas. The API backend must independently
+  enforce its own throttling for Android and web callers.
+- The existing server requires WEB_ORIGIN=https://app.rimmaapp.com, a working
+  HTTPS RIMMA_API_BASE_URL and NODE_ENV=production.
+- Leave WEB_PUBLIC_LOGIN_ENABLED=false until the integration and security
+  gates have passed. Do not enable WEB_BILLING_CHECKOUT_ENABLED for this rollout.
+- CI tests exercise encryption, token rotation, cross-replica persistence,
+  concurrent refresh, revocation and distributed login throttling using
+  a disposable Postgres container. No production customer records are used.
 
 ## Local smoke test
 ```

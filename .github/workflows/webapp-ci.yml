@@ -1,7 +1,7 @@
 name: RIMMA Web Portal CI
 on:
   push:
-    branches: [feat/webapp-prod-prep-20260927, feat/web-billing-checkout-gated-20260927]
+    branches: [feat/webapp-prod-prep-20260927, fix/web-session-hardening-20260929]
     paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
   pull_request:
     branches: [main, feat/webapp-prod-prep-20260927]
@@ -12,13 +12,33 @@ permissions:
 jobs:
   staging-bff-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rimma_ci
+          POSTGRES_PASSWORD: rimma_local_ci_only
+          POSTGRES_DB: rimma_web_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rimma_ci -d rimma_web_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
     defaults:
       run:
         working-directory: webapp
+    env:
+      TEST_WEB_SESSION_DATABASE_URL: postgres://rimma_ci:rimma_local_ci_only@localhost:5432/rimma_web_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - run: npm ci
+      - run: node scripts/ci-prepare-session-schema.mjs
       - run: npm run check
       - run: npm test

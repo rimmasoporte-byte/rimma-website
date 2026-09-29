@@ -8,7 +8,10 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test test/portal.test.mjs test/launch-gate.test.mjs test/web-billing.test.mjs",
+    "test": "node --test test/portal.test.mjs test/launch-gate.test.mjs test/web-billing.test.mjs test/session-store.test.mjs test/login-throttle.test.mjs",
     "check": "node --check server.mjs && node --check public/site.js && node --check web-billing.mjs"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
   }
 }
