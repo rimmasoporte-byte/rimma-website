@@ -404,6 +404,39 @@ async function logout(){
  catch(e){globalError("No se pudo cerrar la sesión. Inténtalo otra vez.");btn.disabled=false;return;}
  me=null;csrf="";$("#portal").hidden=true;$("#auth-screen").hidden=false;$("#login-form").reset();closeDrawer();btn.disabled=false;
 }
+async function downloadOwnerArchive(){
+ const button=$("#download-owner-archive"),status=$("#export-account-status");
+ if(me?.workspace?.role!=="owner"){
+  status.hidden=false;status.textContent="Solo el propietario del taller puede exportar todos los datos.";return;
+ }
+ if(button.disabled)return;
+ button.disabled=true;status.hidden=false;
+ status.textContent="Preparando tu archivo protegido…";
+ try{
+  const response=await fetch("/api/account/export/archive",{
+   method:"GET",credentials:"same-origin",
+   headers:{"x-rimma-csrf":csrf,accept:"application/zip"}
+  });
+  if(!response.ok){
+   let message="No se ha podido generar el archivo.";
+   try{const err=await response.json();message=err.error||message;}catch{}
+   throw Error(message);
+  }
+  if(String(response.headers.get("content-type")||"").split(";")[0]!=="application/zip"){
+   throw Error("El servidor no ha devuelto un archivo válido.");
+  }
+  const blob=await response.blob();
+  if(blob.size===0||blob.size>12*1024*1024)throw Error("El archivo no es válido.");
+  const location=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=location;link.download="rimma-datos-taller.zip";
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(location),30000);
+  status.textContent="Descarga preparada. Conserva el ZIP en un lugar privado antes de eliminar tu cuenta.";
+ }catch(error){status.textContent=error.message||"No se ha podido exportar el taller.";}
+ finally{button.disabled=false;}
+}
+$("#download-owner-archive").addEventListener("click",()=>void downloadOwnerArchive());
 $("#login-form").addEventListener("submit",login);
 $("#logout").addEventListener("click",logout);
 // The photographic poster is an optional visual; this dialog never reads or writes user data.
