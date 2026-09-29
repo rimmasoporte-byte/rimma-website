@@ -47,3 +47,18 @@ test("new visual-only assets preserve existing HTTPS, session and CSP security",
  assert.doesNotMatch(css,/(?:url\(|src=)[^\n]*http:\/\//i);
  assert.doesNotMatch(html,/src="http:\/\//i);
 });
+
+test("sidebar scrollbar stays invisible while wheel and keyboard scrolling remain available",async()=>{
+ const css=await read("public/sidebar-photo.css");
+ const patch=css.slice(css.lastIndexOf("/* RIMMA sidebar: hide the redundant"));
+ assert.match(patch,/\.sidebar\s*\{[\s\S]*?overflow-y:auto/);
+ assert.match(patch,/scrollbar-width:none/);
+ assert.match(patch,/-ms-overflow-style:none/);
+ assert.match(patch,/scrollbar-gutter:auto/);
+ assert.match(patch,/\.sidebar::-webkit-scrollbar\s*\{[\s\S]*?display:none/);
+ assert.doesNotMatch(patch,/overflow-y:hidden/);
+ assert.doesNotMatch(patch,/pointer-events:none/);
+ const html=await read("public/index.html");
+ assert.match(html,/id="brand-art-open"/);
+ assert.match(html,/id="logout"/);
+});
