@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/app/maison-reference.css">
   <link rel="stylesheet" href="/app/atelier-polish.css">
   <link rel="stylesheet" href="/app/sidebar-finish.css">
+  <link rel="stylesheet" href="/app/sidebar-photo.css">
 </head>
 <body>
   <a class="skip" href="#content">Ir al contenido</a>
@@ -68,7 +69,7 @@
         <button type="button" data-view="cuenta"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l-1.8 1.8a1.7 1.7 0 0 0-1.9-.3l-1.1.5-.4 2.1h-2.5l-.4-2.1-1.1-.5a1.7 1.7 0 0 0-1.9.3l-1.8-1.8A1.7 1.7 0 0 0 7 15l-.5-1.1L4.4 13.5V11l2.1-.4.5-1.1a1.7 1.7 0 0 0-.3-1.9l1.8-1.8a1.7 1.7 0 0 0 1.9.3l1.1-.5.4-2.1h2.5l.4 2.1 1.1.5a1.7 1.7 0 0 0 1.9-.3l1.8 1.8a1.7 1.7 0 0 0-.3 1.9l.5 1.1 2.1.4v2.5l-2.1.4z"/></svg></span> Configuración</button>
         <a class="nav-help-link" href="https://rimmaapp.com/support/" target="_blank" rel="noopener noreferrer"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.8 9a2.5 2.5 0 0 1 4.5 1.5c0 1.8-2.3 2.1-2.3 3.9M12 17.6v.2"/></svg></span> Ayuda</a>
       </nav>
-      <div class="sidebar-luxe-art" aria-hidden="true"><span class="sidebar-luxe-mark">RIMMA</span><span class="sidebar-luxe-caption">TU TALLER<br>A TU RITMO</span></div>
+      <button type="button" class="sidebar-luxe-art" id="brand-art-open" aria-label="Ver la fotografía completa de RIMMA" aria-haspopup="dialog" aria-controls="brand-art-dialog" title="Ampliar imagen de RIMMA"><img src="/app/rimma-luxury-full.webp" width="420" height="236" alt="RIMMA: maniquí de atelier con tela esmeralda y detalles dorados" decoding="async"></button>
       <div class="sidebar-bottom">
         <a href="mailto:rimma.soporte@gmail.com?subject=RIMMA%20-%20Portal%20web">¿Necesitas ayuda? ↗</a>
         <button type="button" id="logout">Cerrar sesión <span>→</span></button>
@@ -106,5 +107,6 @@
   </div>
   <div id="drawer-cover" class="drawer-cover" hidden></div>
   <dialog id="modal"><form id="modal-form" method="dialog"><div class="modal-header"><div><span class="eyebrow" id="modal-eyebrow">RIMMA</span><h2 id="modal-title">Nuevo registro</h2></div><button type="button" class="close-modal" id="modal-close" aria-label="Cerrar">×</button></div><div id="modal-fields"></div><div class="modal-error" id="modal-error" role="alert" hidden></div><div class="modal-actions"><button class="secondary" type="button" id="modal-cancel">Cancelar</button><button class="primary" id="modal-submit" type="submit">Guardar</button></div></form></dialog>
+  <dialog id="brand-art-dialog" class="brand-art-dialog" aria-label="Fotografía completa de RIMMA"><button type="button" id="brand-art-close" class="brand-art-close" aria-label="Cerrar imagen">Cerrar ×</button><img src="/app/rimma-luxury-full.webp" width="420" height="236" alt="RIMMA, tu taller a tu ritmo: maniquí de costura, telas esmeralda y luz dorada"></dialog>
 </body>
 </html>

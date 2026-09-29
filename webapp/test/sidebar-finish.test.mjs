@@ -40,5 +40,6 @@ test('sidebar menu, settings, support and sign out are accessible and distinct f
   assert.ok(sidebar.indexOf('sidebar-luxe-art')>sidebar.indexOf('nav-help-link'));
   assert.ok(sidebar.indexOf('sidebar-bottom')>sidebar.indexOf('sidebar-luxe-art'));
   assert.match(sidebar,/id="logout"/);
-  assert.match(sidebar,/TU TALLER<br>A TU RITMO/);
+  assert.match(sidebar,/id="brand-art-open"/);
+  assert.match(sidebar,/src="\/app\/rimma-luxury-full\.webp"/);
 });
