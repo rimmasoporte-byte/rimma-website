@@ -145,3 +145,9 @@ dialog::backdrop{background:#101A14AA;backdrop-filter:blur(4px)}
 .billing-help .account-link,.billing-detail .account-link{display:block;width:fit-content;max-width:100%;margin-top:14px;line-height:1.55}
 .billing-help .subscription-checkout{display:inline-flex;margin-top:20px;border-radius:4px;text-decoration:none}
 @media(max-width:630px){.billing-detail .billing-facts{grid-template-columns:1fr;gap:7px}.billing-facts dd{text-align:left;margin-bottom:9px}.billing-help{grid-column:auto}}
+
+/* Make the result of purchase verification visible immediately beneath the button. */
+.billing-feedback{margin:12px 0 15px!important;padding:12px 15px;border-radius:4px;
+ background:#EDF7EE;border:1px solid #8DB899;color:#204C30!important;
+ font-size:13px!important;line-height:1.6!important;overflow-wrap:anywhere}
+.billing-feedback-error{background:#FFF0E9;border-color:#D89E88;color:#873923!important}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {trialDaysRemaining,renderBilling} from '../public/billing-view.mjs';
+import {trialDaysRemaining,renderBilling,describeBillingSyncOutcome} from '../public/billing-view.mjs';
 
 const clock=Date.parse('2026-09-29T12:00:00Z');
 const trial={status:'trial',active:true,owner:true,configured:true,
@@ -39,4 +39,15 @@ test('sandbox is never presented as production access; absent date handled',()=>
  assert.match(html,/No activa una suscripción real/);
  assert.doesNotMatch(html,/solo probadores invitados/);
  assert.equal(trialDaysRemaining('bad-date',clock),null);
+});
+
+test('payment verification shows its result directly under the subscription buttons',()=>{
+ const view=renderBilling(trial,{now:clock});
+ assert.match(view, /id="billing-feedback"/);
+ assert.match(view, /role="status"/);
+ assert.match(describeBillingSyncOutcome(trial),/aún no hay una suscripción de pago activa/);
+ assert.match(describeBillingSyncOutcome(trial),/7 de octubre de 2026/);
+ const paid={status:'active',active:true,expiresAt:'2026-10-12T12:00:00Z'};
+ assert.match(describeBillingSyncOutcome(paid),/suscripción pagada está activa/);
+ assert.match(describeBillingSyncOutcome({status:'expired',active:false}),/no se ha confirmado ninguna suscripción/);
 });
