@@ -124,7 +124,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
  assert.match(js,/data-action="add-order-item"/);
- assert.ok(js.indexOf("id=\\"extra-order-items\\"")>js.indexOf('if(type==="order"){'),
+ assert.ok(js.indexOf('id="extra-order-items"')>js.indexOf('if(type==="order"){'),
   "multi-garment selector must be on order form");
  const clientForm=js.slice(js.indexOf('if(type==="client"){'),js.indexOf('if(type==="order"){'));
  assert.doesNotMatch(clientForm,/extra-order-items/);
