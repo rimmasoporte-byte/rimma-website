@@ -123,20 +123,29 @@ async function loadBilling(){
   const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs")]);
   const b=data.billing||{};
   let webCheckoutUrl=null;
-  // The backend alone decides whether this user is eligible for hosted checkout.
-  // Without Stripe + RevenueCat verification the endpoint returns unavailable.
+  // Never build a web-payment URL in browser JS: rely on server verification.
   if(b.status==="expired" && b.owner===true && b.configured===true){
    try{
     const purchase=await request("/api/billing/web-checkout");
     if(purchase.available===true)webCheckoutUrl=purchase.url;
-   }catch{/* Do not synthesize unverified payment links. */}
+   }catch{/* Preserve normal subscription screen if checkout is unavailable. */}
   }
   $("#billing-data").innerHTML=view.renderBilling(b,{webCheckoutUrl});
+  return b;
  }catch(e){
   $("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar tu suscripción. Inténtalo de nuevo.</p>'+
    '<button type="button" class="secondary" data-action="refresh-billing">Reintentar</button></div>';
   globalError(e.message);
+  return null;
  }
+}
+function showBillingFeedback(message,isError=false){
+ const el=$("#billing-feedback");
+ if(!el){globalError(message);return;}
+ el.hidden=false;
+ el.textContent=message;
+ el.classList.toggle("billing-feedback-error",isError);
+ el.setAttribute("role",isError?"alert":"status");
 }
 let billingVerifyPending=false;
 async function verifyBilling(button){
@@ -146,14 +155,35 @@ async function verifyBilling(button){
  if(button){button.disabled=true;button.textContent="Comprobando…";}
  try{
   await request("/api/billing/sync",{method:"POST",body:"{}"});
-  await loadBilling();
-  success("Suscripción comprobada. Tu acceso se muestra según la información verificada del servidor.");
+  const current=await loadBilling();
+  if(!current)return; // loadBilling has already rendered an error.
+  const view=await import("/app/billing-view.mjs");
+  showBillingFeedback(view.describeBillingSyncOutcome(current));
  }catch(e){
-  const unavailable=e.status===503?"La verificación está temporalmente indisponible. Prueba más tarde o consulta soporte.":e.message;
-  globalError(unavailable);
+  const unavailable=e.status===503
+   ?"La verificación está temporalmente indisponible. Tu acceso actual no ha cambiado; inténtalo más tarde."
+   :e.status===429
+    ?"Has realizado demasiadas comprobaciones. Vuelve a intentarlo en 15 minutos."
+    :"No se ha podido completar la comprobación: "+(e.message||"Inténtalo de nuevo.");
+  showBillingFeedback(unavailable,true);
  }finally{
   billingVerifyPending=false;
   if(button?.isConnected){button.disabled=false;button.textContent=previous||"Comprobar compra";}
+ }
+}
+async function refreshBilling(button){
+ if(billingVerifyPending)return;
+ const previous=button?.textContent;
+ if(button){button.disabled=true;button.textContent="Actualizando…";}
+ globalError("");
+ try{
+  const current=await loadBilling();
+  if(!current)return;
+  const view=await import("/app/billing-view.mjs");
+  showBillingFeedback("Estado actualizado. "+view.describeBillingSyncOutcome(current)
+    .replace(/^Comprobación completada: /,""));
+ }finally{
+  if(button?.isConnected){button.disabled=false;button.textContent=previous||"Actualizar estado";}
  }
 }
 async function loadAccount(){
@@ -330,7 +360,7 @@ document.addEventListener("click",event=>{
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
   case "delete-client":void deleteRecord("client",b.dataset.id);break;
   case "delete-order":void deleteRecord("order",b.dataset.id);break;
-  case "refresh-billing":void loadBilling();break;
+  case "refresh-billing":void refreshBilling(b);break;
   case "verify-billing":void verifyBilling(b);break;
  }
 });
