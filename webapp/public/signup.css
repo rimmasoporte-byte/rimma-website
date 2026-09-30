@@ -8,8 +8,20 @@
 #signup-form button{margin-top:10px;min-height:44px;cursor:pointer}
 #signup-form button.secondary{background:#f1ede4;border:1px solid #c6bda9;color:#41362e}
 #signup-form button[disabled]{opacity:.55;cursor:not-allowed}
-#signup-form .signup-consent{display:flex;gap:10px;align-items:flex-start;line-height:1.5}
-#signup-form .signup-consent input{margin-top:3px}
+#signup-form .signup-consent{
+ display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;align-items:start;
+ margin-top:12px;padding:14px 16px;border:1px solid #dfd4c3;border-radius:8px;
+ background:#fbf8f2;color:#6d6255;font-size:12px;line-height:1.65;font-weight:400
+}
+#signup-form .signup-consent input{
+ appearance:auto;width:16px;height:16px;margin:3px 0 0;accent-color:#846736
+}
+#signup-form .signup-consent-copy{display:block;min-width:0}
+#signup-form .signup-consent a{
+ color:#846736;font-weight:700;text-decoration:underline;text-decoration-thickness:1px;
+ text-underline-offset:3px
+}
+#signup-form .signup-consent a:hover{color:#5f4929}
 #signup-status{font-size:13px;line-height:1.5;color:#6d503e;min-height:20px}
 #signup-invite[hidden]{display:none}
 @media(max-width:660px){#signup-main .auth-main{padding:14px 8px}}
