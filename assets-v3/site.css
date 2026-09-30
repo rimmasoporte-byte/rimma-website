@@ -356,3 +356,8 @@ em{font-style:italic;font-weight:400}
 .legal-return{margin:34px 0 8px;text-align:center}
 .legal-return .legal-back{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 14px;text-decoration:none;font-weight:700}
 .legal-return .legal-back:hover,.legal-return .legal-back:focus-visible{text-decoration:underline;text-underline-offset:4px}
+
+.closing-actions{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap}
+.closing-demo-link{font:650 12px/1.4 var(--sans);color:#eadfc8;text-decoration:none;border-bottom:1px solid rgba(234,223,200,.42);padding:8px 2px}
+.closing-demo-link:hover{color:#fff7e8;border-bottom-color:#d9bc84}
+@media(max-width:630px){.closing-actions{gap:14px;flex-direction:column}.closing-demo-link{padding:5px 2px}}
