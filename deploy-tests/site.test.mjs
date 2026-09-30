@@ -120,3 +120,17 @@ test('demo sidebar uses the exact local production artwork and logo',()=>{
  assert.doesNotMatch(h,/app\.rimmaapp\.com\/app\/(?:rimma-luxury-full|rimma-logo|atelier-mannequin)\.webp/);
  assert.doesNotMatch(h,/class="sidebar-brand"[^>]*>RIMMA/);
 });
+
+test('demo reports use the same renderer as the real portal',()=>{
+ const js=read('demo/site.js');
+ assert.match(js,/import\("\.\/report-view\.mjs"\)/);
+ assert.match(js,/renderReportSummary/);
+ assert.ok(fs.existsSync(path.join(root,'demo','report-view.mjs')));
+ const report=read('demo/report-view.mjs');
+ assert.match(report,/report-panel report-kpi/);
+ assert.match(report,/report-range/);
+ assert.match(report,/report-status/);
+ const shim=read('demo/demo-shim.js');
+ assert.match(shim,/paymentsByCurrency/);
+ assert.match(shim,/duePeriodItems/);
+});
