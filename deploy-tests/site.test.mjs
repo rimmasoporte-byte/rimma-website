@@ -60,7 +60,7 @@ test('Public early access CTA offers a 15-day test without pretending live payme
   assert.match(h,/Solicitar invitación de prueba/);
   assert.match(h,/Solicitar acceso de prueba a Android/);
   assert.match(h,/periodo de prueba es de 15 días/);
-  assert.match(h,/mailto:rimma\.soporte@gmail\.com\?subject=Solicitud/);
+  assert.match(h,/mailto:soporte@rimma\\.com?subject=Solicitud/);
   assert.match(h,/No se realizan compras en esta web/);
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
   assert.match(read('assets-v3/v3.css'),/\.v3-plan-request/);
