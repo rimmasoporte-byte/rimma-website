@@ -28,7 +28,7 @@ test('reject unsafe URLs and invalid identities', () => {
 test('payment stays gated but is available before the trial ends', () => {
   assert.equal(prepareWebCheckout({enabled:false,template,billing:ready}),null);
   assert.equal(prepareWebCheckout({enabled:true,template,billing:{...ready,webPurchasesEnabled:false}}),null);
-  assert.equal(prepareWebCheckout({enabled:true,template,billing:{...ready,active:true,status:'trial'}}),template+'/'+id);
+  assert.equal(prepareWebCheckout({enabled:true,template,billing:{...ready,active:false,accessActive:true,status:'trial'}}),template+'/'+id);
   assert.equal(prepareWebCheckout({enabled:true,template,billing:{...ready,owner:false}}),null);
   assert.equal(prepareWebCheckout({enabled:true,template,billing:{...ready,configured:false}}),null);
   assert.equal(prepareWebCheckout({enabled:true,template,billing:ready}),template+'/'+id);
