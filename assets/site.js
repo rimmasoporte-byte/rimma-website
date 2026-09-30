@@ -1,6 +1,18 @@
 (() => {
   const year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
+  document.querySelectorAll("[data-legal-back]").forEach(link=>{
+    link.addEventListener("click",(event)=>{
+      event.preventDefault();
+      const fromSignup=new URLSearchParams(location.search).get("from")==="signup";
+      if(fromSignup){location.href="https://app.rimmaapp.com/register";return;}
+      if(document.referrer){
+        try{const ref=new URL(document.referrer);if(ref.origin===location.origin||ref.origin==="https://app.rimmaapp.com"){history.back();return;}}catch{}
+      }
+      if(history.length>1){history.back();return;}
+      location.href="/";
+    });
+  });
   const button = document.querySelector(".menu-button");
   const nav = document.getElementById("main-nav");
   if (button && nav) {
