@@ -7,7 +7,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
 test('The official domain stays configured and existing legal addresses remain valid',()=>{
   assert.equal(read('CNAME').trim(),'rimmaapp.com');
-  for(const p of ['privacy/index.html','terms/index.html','support/index.html','delete-account/index.html'])
+  for(const p of ['privacy/index.html','terms/index.html','support/index.html','delete-account/index.html','aviso-legal/index.html','legal/aviso-legal/index.html'])
     assert.ok(fs.existsSync(path.join(root,p)),p);
 });
 test('The production home is indexable, canonical and has the original RIMMA logo',()=>{
@@ -45,15 +45,27 @@ test('Demo never requests real login credentials and remains excluded from index
   assert.match(h,/demo-shim\.js/);
 });
 test('Legal routes use the correct production assets and sitemap retains Google Play URLs',()=>{
-  for(const p of ['privacy','terms','support','delete-account']){
+  for(const p of ['privacy','terms','support','delete-account','aviso-legal']){
     const c=read('legal/'+p+'/index.html');
     assert.match(c,/(?:\.\.\/\.\.\/|\/)assets-v3\/logo\.webp/);
     assert.doesNotMatch(c,/\.\.\/\.\.\/assets\//);
   }
   const map=read('sitemap.xml');
+  assert.match(map,/https:\/\/rimmaapp\.com\/aviso-legal\//);
+  assert.match(map,/https:\/\/rimmaapp\.com\/legal\/aviso-legal\//);
   assert.match(map,/https:\/\/rimmaapp\.com\/privacy\//);
   assert.match(map,/https:\/\/rimmaapp\.com\/delete-account\//);
   assert.match(read('robots.txt'),/Allow:\s*\//);
+});
+test('Legal notice publishes the required RIMMA autonomous-business identity without extra identifiers',()=>{
+  const h=read('legal/aviso-legal/index.html');
+  assert.match(h,/Mikhail Babarskov/);
+  assert.match(h,/trabajador autónomo \/ empresario individual/);
+  assert.match(h,/NIF:<\/strong> Z2026830Y/);
+  assert.match(h,/C\/ Muntaner s\/n, 08917 Badalona, Barcelona, España/);
+  assert.match(h,/soporte@rimmaapp\.com/);
+  assert.doesNotMatch(h,/081493775313|CEA|Seguridad Social/);
+  assert.match(read('index.html'),/\.\/legal\/aviso-legal\//);
 });
 test('Public pricing lets trial users choose subscription immediately',()=>{
   const h=read('index.html');
