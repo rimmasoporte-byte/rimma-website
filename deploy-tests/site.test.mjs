@@ -17,7 +17,9 @@ test('The production home is indexable, canonical and has the original RIMMA log
   assert.doesNotMatch(h,/noindex|nofollow/i);
   assert.match(h,/\.\/assets-v3\/logo\.webp/);
   assert.match(h,/\.\/demo\//);
-  assert.match(h,/5 €/);
+  assert.match(h,/4,99 €/);
+  assert.match(h,/moneda local/);
+  assert.match(h,/impuestos aplicables/);
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
