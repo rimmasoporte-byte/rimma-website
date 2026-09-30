@@ -54,3 +54,22 @@
 .signup-return{text-align:center;margin-top:16px}
 .signup-return a{font-weight:700;text-decoration:none}
 .signup-return a:hover,.signup-return a:focus-visible{text-decoration:underline;text-underline-offset:3px}
+
+.signup-code-status{
+ display:flex;align-items:center;gap:10px;margin-top:8px;padding:11px 13px;
+ border:1px solid #9fb7a7;border-radius:8px;background:#f2f8f4;
+ color:#244c35;font-size:13px;font-weight:700;line-height:1.35
+}
+.signup-code-status[hidden]{display:none}
+.signup-code-status-icon{
+ display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;
+ border-radius:50%;background:#2f6b49;color:#fff;font-size:13px;font-weight:800
+}
+#signup-code.is-verified{
+ border-color:#6e9a7c!important;background:#f7fbf8!important;
+ box-shadow:0 0 0 2px rgba(47,107,73,.10)
+}
+#signup-verify.is-verified{
+ border-color:#8eae98!important;background:#edf6f0!important;color:#2f6b49!important;
+ opacity:1!important
+}
