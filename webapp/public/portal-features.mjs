@@ -115,7 +115,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
       b("Eliminar","service-delete",'data-id="'+esc(s.id)+'"')+'</div></div>').join(""):'<p class="feature-muted">Sin servicios.</p>')+
       '<div class="feature-bottom">'+b("+ Añadir servicio","service-new",'data-category="'+esc(c.id)+'"')+'</div></article>';
    }).join("")||'<div class="paper-panel"><p>Sin categorías. Crea la primera para empezar.</p></div>';
-   const standardButton='<div class="feature-bottom standard-catalog-action">'+b("Añadir catálogo inicial · 36 servicios","standard-catalog")+'</div>';
+   const standardButton='<div class="feature-bottom standard-catalog-action">'+b("Añadir catálogo inicial","standard-catalog")+'</div>';
    el.insertAdjacentHTML("afterbegin",standardButton);
   }catch(e){el.innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
  }
@@ -402,7 +402,7 @@ function newPhoto(){
   if(action==="category-new")return categoryForm();
   if(action==="category-edit"){const c=findCat(id);if(c)categoryForm(c);return;}
   if(action==="service-new")return serviceForm(null,el.dataset.category);
-  if(action==="standard-catalog")return void safe(addStandardCatalog());
+  if(action==="standard-catalog")return void safe(()=>addStandardCatalog());
   if(action==="service-edit"){const s=findService(id);if(s)serviceForm(s);return;}
   if(action==="service-delete"||action==="category-delete")return askDelete(action.startsWith("service")?"service":"category",id);
   if(action==="client-measurements")return void safe(async()=>openMeasurements(id));
