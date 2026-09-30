@@ -27,8 +27,9 @@ if (live && !origin.startsWith('https://')) throw new Error('Production WEB_ORIG
 const sessions = createSessionStore({production:live, loginEnabled:process.env.WEB_PUBLIC_LOGIN_ENABLED === 'true'});
 const loginThrottle = createLoginThrottle(sessions,{namespace:'account-login',maxAttempts:6,windowMs:15*60_000});
 const authIpThrottle = createLoginThrottle(sessions,{namespace:'auth-ip',maxAttempts:30,windowMs:15*60_000});
-const signupSendIpThrottle = createLoginThrottle(sessions,{namespace:'signup-send-ip',maxAttempts:12,windowMs:60*60_000});
+const signupSendIpThrottle = createLoginThrottle(sessions,{namespace:'signup-send-ip',maxAttempts:10,windowMs:60*60_000});
 const signupActionIpThrottle = createLoginThrottle(sessions,{namespace:'signup-action-ip',maxAttempts:40,windowMs:15*60_000});
+const signupRegisterIpThrottle = createLoginThrottle(sessions,{namespace:'signup-register-ip',maxAttempts:6,windowMs:24*60*60_000});
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
@@ -262,6 +263,9 @@ export const server=http.createServer(async(req,res)=>{
       }
       if(!await loginThrottle.reserve('web-signup-'+step+':'+input.email)){
         return send(res,429,{error:'Demasiados intentos. Inténtalo más tarde.'});
+      }
+      if(step==='register'&&!await signupRegisterIpThrottle.reserve(clientAddress(req))){
+        return send(res,429,{error:'Se han creado demasiadas cuentas desde esta conexión. Inténtalo de nuevo mañana.'});
       }
       const upstreamPath={
         send:'/email-verification/send',
