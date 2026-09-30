@@ -7,7 +7,7 @@ const money=(value,currency="EUR")=>{try{return new Intl.NumberFormat("es-ES",{s
 const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
 const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
-const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
+const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Configuración"};
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastCatalog=[],activeModal=null,searchClock=null;
 const PAGE=8;
 function globalError(msg){const el=$("#global-error");el.textContent=msg||"";el.hidden=!msg;}
@@ -49,19 +49,27 @@ function go(view){
  const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
+function customerInitials(name){
+ const words=String(name||"").trim().split(/\s+/).filter(Boolean);
+ return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
+}
 function orderRow(o){
  const customer=o.client?.name||o.clientName||"Cliente";
  const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
  const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td><span class="name">#'+esc(o.orderNumber)+'</span><span class="sub">'+esc(customer)+'</span></td><td>'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td><td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td><td>'+esc(money(o.totalMinor,o.currencyCode))+'</td></tr>';
+ return '<tr><td class="order-number"><span class="name">#'+esc(o.orderNumber)+'</span></td>'+
+  '<td><div class="customer-cell"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span><span class="customer-name">'+esc(customer)+'</span></div></td>'+
+  '<td class="order-work">'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td>'+
+  '<td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td>'+
+  '<td class="order-amount">'+esc(money(o.totalMinor,o.currencyCode))+'</td></tr>';
 }
 function orderTable(rows){
- return rows.length?'<table><thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th>Estado</th><th>Importe</th></tr></thead><tbody>'+rows.map(orderRow).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+ return rows.length?'<table><thead><tr><th scope="col">#</th><th scope="col">Cliente</th><th scope="col">Trabajo</th><th scope="col">Entrega</th><th scope="col">Estado</th><th scope="col">Importe</th></tr></thead><tbody>'+rows.map(orderRow).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
  const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
- if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);}
+ if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);const ready=Number(today.value.dashboard?.summary?.readyForPickup);const dot=$("#topbar-alert-dot");if(dot)dot.hidden=!(Number.isFinite(ready)&&ready>0);}
  if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
  $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[]):'<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
@@ -91,7 +99,7 @@ async function loadServices(){
  $("#services-list").innerHTML='<div class="paper-panel"><p>Cargando catálogo…</p></div>';
  try{
   const response=await api("/price-list");lastCatalog=response.priceList?.categories||[];
-  $("#services-list").innerHTML=lastCatalog.length?lastCatalog.map(cat=>'<article class="service-card"><h2>'+esc(cat.name)+'</h2>'+((cat.services||[]).filter(s=>s.status!=="inactive").map(s=>'<div class="service-line"><span>'+esc(s.name)+'</span><strong>'+esc(s.pricingMode==="quote"?"A presupuestar":(s.pricingMode==="from"?"Desde ":"")+money(s.priceMinor,s.currencyCode))+'</strong></div>').join("")||'<p>No hay servicios activos.</p>')+'</article>').join(""):'<div class="paper-panel"><p>Aún no hay servicios en el catálogo.</p></div>';
+  $("#services-list").innerHTML=lastCatalog.length?lastCatalog.map(cat=>'<article class="service-card"><div class="service-card-header"><h2>'+esc(cat.name)+'</h2><span class="feature-muted">Demo</span></div>'+((cat.services||[]).filter(s=>s.status!=="inactive").map(s=>'<div class="feature-service-row"><div class="service-name"><strong>'+esc(s.name)+'</strong><small>Servicio de ejemplo</small></div><div class="service-price">'+esc(s.pricingMode==="quote"?"A presupuestar":(s.pricingMode==="from"?"Desde ":"")+money(s.priceMinor,s.currencyCode))+'</div></div>').join("")||'<p>No hay servicios activos.</p>')+'</article>').join(""):'<div class="paper-panel"><p>Aún no hay servicios en el catálogo.</p></div>';
  }catch(e){$("#services-list").innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
 }
 async function loadReport(){
@@ -111,8 +119,8 @@ async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
  try{
   const b=(await api("/billing")).billing||{};
-  const state=b.status==="trial"?"Periodo de prueba":b.status==="active"?"Activa":b.active?"Con acceso":"Sin suscripción activa";
-  $("#billing-data").innerHTML='<div class="paper-panel billing-card"><span class="report-value-label">TU PLAN</span><div class="report-value">'+esc(state)+'</div><p>'+(b.active?"Acceso habilitado.":"Consulta Google Play para gestionar tu acceso.")+'</p></div><div class="paper-panel"><h2>Tu suscripción</h2><p>Fecha: '+esc(date(b.expiresAt||b.trialEndsAt))+'</p><p>Renovación: '+(b.willRenew?"Activada":"Consulta Google Play")+'</p><a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noopener noreferrer" class="account-link">Gestionar en Google Play ↗</a></div>';
+  const state=b.status==="trial"?"Periodo de prueba":b.status==="active"?"RIMMA Pro":b.active?"Con acceso":"Acceso no activo";
+  $("#billing-data").innerHTML='<div class="paper-panel billing-card"><span class="report-value-label">TU ACCESO</span><div class="report-value">'+esc(state)+'</div><p>Vista de demostración: el estado de suscripción es ficticio.</p></div><div class="paper-panel billing-detail"><h2>Tu suscripción</h2><dl class="billing-facts"><dt>Estado</dt><dd>Prueba gratuita</dd><dt>Fecha de ejemplo</dt><dd>'+esc(date(b.expiresAt||b.trialEndsAt))+'</dd></dl><p>No se realizan cobros desde la demostración.</p></div><div class="paper-panel billing-help"><h2>Continuar con RIMMA</h2><p>En la cuenta real verás aquí tu precio local y las opciones de suscripción disponibles para tu país.</p><a href="../#precio" class="account-link">Ver precio de RIMMA ↗</a></div>';
  }catch(e){$("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar el plan.</p></div>';globalError(e.message);}
 }
 async function loadAccount(){
@@ -179,7 +187,19 @@ $("#login-form").addEventListener("submit",login);
 $("#logout").addEventListener("click",logout);
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
-document.addEventListener("click",event=>{const b=event.target.closest("[data-view],[data-action]");if(!b)return;if(b.dataset.view)go(b.dataset.view);if(b.dataset.action==="new-client")openModal("client");if(b.dataset.action==="new-order")openModal("order");});
+const brandArtwork=$("#brand-art-dialog");
+if(brandArtwork){
+ $("#brand-art-open")?.addEventListener("click",()=>brandArtwork.showModal());
+ $("#brand-art-close")?.addEventListener("click",()=>brandArtwork.close());
+ brandArtwork.addEventListener("click",event=>{if(event.target===brandArtwork)brandArtwork.close();});
+}
+document.addEventListener("click",event=>{
+ const b=event.target.closest("[data-view],[data-action],[data-feature]");if(!b)return;
+ if(b.dataset.feature){event.preventDefault();globalError("Esta función se muestra con el diseño real, pero solo está disponible en una cuenta RIMMA.");return;}
+ if(b.dataset.view){go(b.dataset.view);return;}
+ if(b.dataset.action==="new-client")openModal("client");
+ if(b.dataset.action==="new-order")openModal("order");
+});
 $("#orders-prev").addEventListener("click",()=>{ordersPage=Math.max(0,ordersPage-1);loadOrders();});
 $("#orders-next").addEventListener("click",()=>{ordersPage++;loadOrders();});
 $("#clients-prev").addEventListener("click",()=>{clientsPage=Math.max(0,clientsPage-1);loadClients();});

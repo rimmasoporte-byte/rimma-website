@@ -35,13 +35,21 @@ test('All new content and font resources exist without replacing legacy assets',
   for(const p of ['demo/index.html','demo/app-theme.css','demo/v3-dashboard.css'])
     assert.doesNotMatch(read(p),/\.\.\/assets\//,p);
 });
-test('Demo never requests real login credentials and remains excluded from indexing',()=>{
+test('Demo uses the production visual system without real credentials',()=>{
   const h=read('demo/index.html');
   assert.match(h,/noindex,nofollow/);
   assert.match(h,/DATOS FICTICIOS/);
   assert.match(h,/demo@example\.invalid/);
   assert.doesNotMatch(h,/type="password"|misma cuenta que utilizas/i);
-  assert.match(read('demo/v3-dashboard.css'),/Compact Informes:/);
+  for(const sheet of ['site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css']){
+    assert.match(h,new RegExp('\\./'+sheet.replace('.','\\.')));
+    assert.ok(fs.existsSync(path.join(root,'demo',sheet)),sheet);
+  }
+  assert.doesNotMatch(h,/app-theme\.css|v3-dashboard\.css/);
+  assert.match(h,/topbar-alert/);
+  assert.match(h,/metric-icon/);
+  assert.match(h,/sidebar-luxe-art/);
+  assert.match(h,/Demo · datos ficticios/);
   const mock=read('demo/demo-shim.js');
   assert.match(mock,/Never sends credentials/);
   assert.match(h,/demo-shim\.js/);
