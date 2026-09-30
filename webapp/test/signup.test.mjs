@@ -65,6 +65,7 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   assert.ok(htmlText.includes('← Volver al inicio de sesión'));
   assert.ok(htmlText.includes('id="signup-password-confirm"'));
   assert.ok(htmlText.includes('Repetir contraseña'));
+  assert.ok(htmlText.includes('name="website"'));
   assert.doesNotMatch(htmlText,/¿Ya tienes cuenta\?/);
   const legacyRegister=await fetch(base+'/register?from=browser-back',{redirect:'manual'});
   assert.equal(legacyRegister.status,302);
@@ -74,6 +75,8 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   });
   let r=await post('send',{email:'a@example.com'},'https://evil.example');
   assert.equal(r.status,403);assert.equal(requests.length,0);
+  r=await post('send',{email:'bot@example.com',website:'https://spam.invalid'});
+  assert.equal(r.status,202);assert.equal(requests.length,0);
   r=await post('send',{email:' A@EXAMPLE.COM '});assert.equal(r.status,202);
   r=await post('verify',{email:'a@example.com',code:'123456'});assert.equal(r.status,200);
   const verified=await r.json();assert.ok(verified.emailVerificationToken);
