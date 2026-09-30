@@ -46,3 +46,13 @@ test('custom throttle namespaces and quotas stay independent',async()=>{
   now+=61_000;
   assert.equal(await ip.reserve('same-key'),true);
 });
+
+test('daily signup IP quota allows five registrations then blocks until the window resets',async()=>{
+  let now=1700000000000;
+  const quota=new MemoryLoginThrottle(()=>now,{namespace:'signup-register-ip',maxAttempts:6,windowMs:24*60*60_000});
+  for(let i=0;i<5;i++)assert.equal(await quota.reserve('203.0.113.10'),true);
+  assert.equal(await quota.reserve('203.0.113.10'),false);
+  assert.equal(await quota.reserve('198.51.100.20'),true);
+  now+=24*60*60_000+1;
+  assert.equal(await quota.reserve('203.0.113.10'),true);
+});
