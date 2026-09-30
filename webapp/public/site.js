@@ -69,7 +69,7 @@ async function login(event){
  event.preventDefault();const form=event.currentTarget;const btn=$("#login-submit");const error=$("#auth-error");
  btn.disabled=true;btn.textContent="Accediendo…";error.hidden=true;
  try{
-  const data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({email:form.elements.namedItem("email").value,password:form.elements.namedItem("password").value})});
+  const data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({email:form.elements.namedItem("email").value,password:form.elements.namedItem("password").value,website:form.elements.namedItem("website")?.value||""})});
   csrf=data.csrf;me=data.me;form.elements.namedItem("password").value="";start();
  }catch(e){error.hidden=false;error.textContent=e.message;}
  finally{btn.disabled=false;btn.textContent="Entrar a mi taller ↗";}
