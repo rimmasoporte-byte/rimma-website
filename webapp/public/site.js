@@ -140,6 +140,33 @@ function go(view){
  const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
+async function prepareOrderPhoto(file){
+  if(!file)return null;
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size<1)throw new Error("Las fotografías deben ser JPEG, PNG o WebP.");
+  const MAX=150*1024;
+  if(file.size<=MAX)return {blob:file,name:file.name,contentType:file.type};
+  const image=await new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(Error("No se pudo abrir la fotografía."));};
+    img.src=url;
+  });
+  let scale=Math.min(1,1400/Math.max(image.naturalWidth,image.naturalHeight));
+  for(let attempt=0;attempt<10;attempt++){
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+    canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const ctx=canvas.getContext("2d");
+    if(!ctx)throw new Error("No se pudo preparar la fotografía.");
+    ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    for(const quality of [0.82,0.72,0.62,0.52,0.42]){
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
+      if(blob&&blob.size<=MAX)return {blob,name:(file.name.replace(/\.[^.]+$/,"")||"foto")+".jpg",contentType:"image/jpeg"};
+    }
+    scale*=0.78;
+  }
+  throw new Error("No se pudo reducir la fotografía al tamaño permitido. Prueba con otra imagen.");
+}
 function recordActions(type,id,canDelete=true) {
   const safe=esc(id);
   const label=type==="client"?"cliente":"pedido";
@@ -448,16 +475,17 @@ async function saveModal(event){
       extraPhotoFiles.push(row.querySelector('[name="extraPhoto"]')?.files?.[0]||null);
       return {name,unitPriceMinor:amount,quantity};
      })]};
-    const validatePhoto=file=>{if(file&&(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>150*1024||file.size<1))throw new Error("Las fotografías deben ser JPEG, PNG o WebP de hasta 150 KB.");};
-    validatePhoto(mainPhoto);extraPhotoFiles.forEach(validatePhoto);
+    const preparedMain=await prepareOrderPhoto(mainPhoto);
+    const preparedExtras=[];
+    for(const file of extraPhotoFiles)preparedExtras.push(await prepareOrderPhoto(file));
     const created=await api("/orders",{method:"POST",body:JSON.stringify(payload)}),orderId=created.order?.id;
     if(!/^[a-f0-9-]{36}$/i.test(orderId||""))throw new Error("El pedido se creó, pero no se pudo obtener su identificador.");
-    const fresh=await api("/orders/"+encodeURIComponent(orderId)),items=fresh.order?.items||[],files=[mainPhoto,...extraPhotoFiles];
+    const fresh=await api("/orders/"+encodeURIComponent(orderId)),items=fresh.order?.items||[],files=[preparedMain,...preparedExtras];
     for(let i=0;i<files.length;i++){
       const file=files[i],item=items[i];if(!file)continue;
       if(!item?.id)throw new Error("El pedido se creó, pero no se pudo asociar una fotografía a una prenda.");
-      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer una fotografía."));reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(file);});
-      await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.size,fileName:file.name,contentType:file.type,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
+      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer una fotografía."));reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(file.blob);});
+      await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.blob.size,fileName:file.name,contentType:file.contentType,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
     }
     $("#modal").close();activeModal=null;go("pedidos");success(files.some(Boolean)?"Pedido y fotografías guardados correctamente.":"Pedido creado correctamente.");
   }else if(activeModal==="edit-client"){
