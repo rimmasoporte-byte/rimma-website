@@ -9,6 +9,10 @@ function displayDate(value){
  if(!Number.isFinite(parsed.getTime()))return null;
  return new Intl.DateTimeFormat("es-ES",{day:"numeric",month:"long",year:"numeric",timeZone:"Europe/Madrid"}).format(parsed);
 }
+export function billingAccessLocked(billing){
+ const b=billing&&typeof billing==="object"?billing:{};
+ return b.accessActive!==true && !(b.status==="active"&&b.active===true);
+}
 export function trialDaysRemaining(value,now=Date.now()){
  const parsed=new Date(value);
  if(!Number.isFinite(parsed.getTime()))return null;
@@ -55,15 +59,15 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
   ?(remaining===null?"Acceso gratuito temporal.":
      remaining===0?"Tu periodo de prueba termina hoy.":remaining===1?"Queda aproximadamente 1 día de prueba.":"Quedan aproximadamente "+remaining+" días de prueba.")
   :isPaid?(b.willRenew===true?"Suscripción mensual activa.":"Acceso pagado vigente; la renovación no está activada.")
-  :"Tu periodo gratuito o suscripción ha terminado.";
+  :"Tu prueba gratuita ha terminado. Tu cuenta y los datos de tu taller se conservan.";
  const dateLabel=isTrial?"Finaliza la prueba":isPaid?"Acceso pagado hasta":"Acceso";
- const dateValue=isTrial?(trialEnd||"Consulta el estado con soporte"):isPaid?(paidEnd||"Fecha no disponible"):"Pendiente de suscripción";
+ const dateValue=isTrial?(trialEnd||"Consulta el estado con soporte"):isPaid?(paidEnd||"Fecha no disponible"):"Suscripción necesaria para continuar";
  let renewal="";
  if(isTrial)renewal="<p>La prueba de RIMMA no genera cobros automáticos. Puedes suscribirte ahora mismo sin esperar a que termine.</p>";
  else if(isPaid)renewal="<p>"+(b.willRenew===true
    ?"Renovación comunicada por el proveedor: activada."
    :"Renovación no activada. Conservarás el acceso hasta la fecha indicada.")+"</p>";
- else renewal="<p>Puedes consultar la forma de suscribirte en la aplicación Android.</p>";
+ else renewal="<p>Tu cuenta permanece guardada. Para volver a clientes, pedidos, servicios e informes, activa una suscripción. No eliminamos tu taller automáticamente al terminar la prueba.</p>";
  const testLink='<a href="'+testerUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Abrir RIMMA en Android para suscribirme ahora ↗</a>';
  const playManage=isPaid?'<a href="'+manageUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Gestionar mi compra en Google Play ↗</a>':"";
  const webLink=validCheckout?'<a href="'+esc(validCheckout)+'" class="primary subscription-checkout" rel="noopener noreferrer" target="_blank">Suscribirme ahora en la web ↗</a>':"";

@@ -37,3 +37,6 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 .item-edit-line{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #D9CBB8;border-radius:7px;padding:10px 12px}
 .item-edit-line span{flex:1;min-width:0;word-break:break-word;font-size:12px}
 @media(max-width:630px){.record-actions{min-width:135px;gap:4px}.record-action{padding:7px}.item-edit-line{flex-wrap:wrap}}
+
+.subscription-disabled{opacity:.42!important;cursor:not-allowed!important;filter:saturate(.55)}
+.subscription-locked .topbar-alert.subscription-disabled{opacity:.32!important}

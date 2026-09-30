@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {trialDaysRemaining,renderBilling,describeBillingSyncOutcome} from '../public/billing-view.mjs';
+import {trialDaysRemaining,renderBilling,describeBillingSyncOutcome,billingAccessLocked} from '../public/billing-view.mjs';
 
 const clock=Date.parse('2026-09-29T12:00:00Z');
 const trial={status:'trial',active:false,accessActive:true,owner:true,configured:true,
@@ -53,4 +53,15 @@ test('payment verification shows its result directly under the subscription butt
  const paid={status:'active',active:true,expiresAt:'2026-10-12T12:00:00Z'};
  assert.match(describeBillingSyncOutcome(paid),/suscripción pagada está activa/);
  assert.match(describeBillingSyncOutcome({status:'expired',active:false}),/no se ha confirmado ninguna suscripción/);
+});
+
+test('expired trial locks atelier data but preserves the account path',()=>{
+ const expired={status:'expired',active:false,accessActive:false,owner:true,configured:true};
+ assert.equal(billingAccessLocked(expired),true);
+ assert.equal(billingAccessLocked(trial),false);
+ assert.equal(billingAccessLocked({status:'active',active:true,accessActive:true}),false);
+ const html=renderBilling(expired,{now:clock});
+ assert.match(html,/datos de tu taller se conservan/);
+ assert.match(html,/No eliminamos tu taller automáticamente/);
+ assert.match(html,/Suscripción necesaria para continuar/);
 });
