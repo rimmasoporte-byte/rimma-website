@@ -8,6 +8,8 @@ const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
 const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
+const businessViews=new Set(["inicio","pedidos","clientes","servicios","informes"]);
+let subscriptionLocked=false;
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
@@ -45,12 +47,21 @@ async function request(url,options={}){
  if(options.body!==undefined){headers["content-type"]="application/json";if(csrf)headers["x-rimma-csrf"]=csrf;}
  const response=await fetch(url,{...options,headers,credentials:"same-origin"});
  let result={};try{result=await response.json();}catch{}
- if(!response.ok){const error=new Error(result.error||result.message||"No se pudo completar la solicitud.");error.status=response.status;throw error;}
+ if(!response.ok){
+  const raw=result.error||result.message||"No se pudo completar la solicitud.";
+  const error=new Error(raw);error.status=response.status;
+  if(response.status===403&&raw==="SUBSCRIPTION_REQUIRED"){
+   applySubscriptionLockUi(true);
+   error.message="Tu periodo de prueba ha terminado. Suscríbete para continuar trabajando con tu taller.";
+   if($("#portal")&&!$("#portal").hidden)setTimeout(()=>go("suscripcion"),0);
+  }
+  throw error;
+ }
  return result;
 }
 const api=(route,options={})=>request("/api/data"+route,options);
 async function session(){
- try{const response=await request("/api/auth/session");if(response.authenticated){me=response.me;csrf=response.csrf;start();return;}}
+ try{const response=await request("/api/auth/session");if(response.authenticated){me=response.me;csrf=response.csrf;void start();return;}}
  catch(error){const el=$("#auth-error");el.hidden=false;el.textContent=error.message;}
  $("#loading-screen").hidden=true;$("#auth-screen").hidden=false;
 }
@@ -63,15 +74,50 @@ async function login(event){
  }catch(e){error.hidden=false;error.textContent=e.message;}
  finally{btn.disabled=false;btn.textContent="Entrar a mi taller ↗";}
 }
-function start(){
- $("#loading-screen").hidden=true;$("#auth-screen").hidden=true;$("#portal").hidden=false;
+function fallbackTrialExpired(subscription){
+ const end=Date.parse(subscription?.trialEndsAt||"");
+ return subscription?.status==="trial"&&Number.isFinite(end)&&end<=Date.now();
+}
+function applySubscriptionLockUi(locked){
+ subscriptionLocked=locked===true;
+ document.body.classList.toggle("subscription-locked",subscriptionLocked);
+ $("[data-view]").forEach(control=>{
+  if(!businessViews.has(control.dataset.view))return;
+  control.classList.toggle("subscription-disabled",subscriptionLocked);
+  if(subscriptionLocked){
+   control.setAttribute("aria-disabled","true");
+   control.setAttribute("title","Tu prueba ha terminado. Suscríbete para continuar.");
+   if(control instanceof HTMLButtonElement)control.disabled=true;
+  }else{
+   control.removeAttribute("aria-disabled");control.removeAttribute("title");
+   if(control instanceof HTMLButtonElement)control.disabled=false;
+  }
+ });
+}
+async function resolveSubscriptionGate(){
+ try{
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs")]);
+  const billing=data.billing||{};
+  applySubscriptionLockUi(view.billingAccessLocked(billing));
+  return billing;
+ }catch{
+  applySubscriptionLockUi(fallbackTrialExpired(me?.subscription));
+  return null;
+ }
+}
+async function start(){
  $("#workspace-name").textContent=String(me?.workspace?.name||"Mi taller").slice(0,150);
  $("#profile-chip").textContent=String(me?.user?.displayName||me?.user?.email||"R").trim().slice(0,1).toUpperCase();
- const requested=new URLSearchParams(location.search).get("view");go(views[requested]?requested:"inicio");
+ await resolveSubscriptionGate();
+ $("#loading-screen").hidden=true;$("#auth-screen").hidden=true;$("#portal").hidden=false;
+ const requested=new URLSearchParams(location.search).get("view");
+ const target=views[requested]?requested:"inicio";
+ go(subscriptionLocked&&businessViews.has(target)?"suscripcion":target);
 }
 function closeDrawer(){$("#sidebar").classList.remove("open");$("#drawer-cover").hidden=true;$("#menu-toggle").setAttribute("aria-expanded","false");}
 function go(view){
  if(!views[view])return;
+ if(subscriptionLocked&&businessViews.has(view))view="suscripcion";
  globalError("");$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+view));
  $$("[data-view]").forEach(x=>{const selected=x.dataset.view===view;x.classList.toggle("active",selected);if(x.closest(".side-nav"))selected?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current");});
  $("#breadcrumb").textContent=views[view];closeDrawer();window.scrollTo(0,0);
@@ -179,6 +225,7 @@ async function loadBilling(){
    }catch{/* Preserve normal subscription screen if checkout is unavailable. */}
   }
   $("#billing-data").innerHTML=view.renderBilling(b,{webCheckoutUrl});
+  applySubscriptionLockUi(view.billingAccessLocked(b));
   return b;
  }catch(e){
   $("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar tu suscripción. Inténtalo de nuevo.</p>'+
