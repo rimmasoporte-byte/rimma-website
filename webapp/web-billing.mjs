@@ -41,7 +41,8 @@ export function prepareWebCheckout({ enabled, template, billing }) {
     billing?.configured !== true ||
     billing?.webPurchasesEnabled !== true ||
     billing?.owner !== true ||
-    !((billing?.status === 'trial' && billing?.active === true) ||
+    !((billing?.status === 'trial' &&
+       (billing?.accessActive === true || billing?.active === true)) ||
       (billing?.status === 'expired' && billing?.active === false))
   ) return null;
   return makeIdentifiedCheckoutUrl(template, billing.appUserId);
