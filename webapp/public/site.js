@@ -66,7 +66,8 @@ async function login(event){
 function start(){
  $("#loading-screen").hidden=true;$("#auth-screen").hidden=true;$("#portal").hidden=false;
  $("#workspace-name").textContent=String(me?.workspace?.name||"Mi taller").slice(0,150);
- $("#profile-chip").textContent=String(me?.user?.displayName||me?.user?.email||"R").trim().slice(0,1).toUpperCase();go("inicio");
+ $("#profile-chip").textContent=String(me?.user?.displayName||me?.user?.email||"R").trim().slice(0,1).toUpperCase();
+ const requested=new URLSearchParams(location.search).get("view");go(views[requested]?requested:"inicio");
 }
 function closeDrawer(){$("#sidebar").classList.remove("open");$("#drawer-cover").hidden=true;$("#menu-toggle").setAttribute("aria-expanded","false");}
 function go(view){
@@ -171,7 +172,7 @@ async function loadBilling(){
   const b=data.billing||{};
   let webCheckoutUrl=null;
   // Never build a web-payment URL in browser JS: rely on server verification.
-  if(b.status==="expired" && b.owner===true && b.configured===true){
+  if((b.status==="trial"||b.status==="expired") && b.owner===true && b.configured===true){
    try{
     const purchase=await request("/api/billing/web-checkout");
     if(purchase.available===true)webCheckoutUrl=purchase.url;
