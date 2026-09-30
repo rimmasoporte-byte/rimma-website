@@ -431,3 +431,8 @@ button:disabled,.feature-button[disabled]{
 @media(prefers-reduced-motion:reduce){
  .primary,.secondary,.record-action,.feature-button{transition:none}
 }
+
+/* Official RIMMA mark in the portal sidebar. */
+.sidebar .sidebar-brand-logo{display:inline-flex;align-items:center;justify-content:center;width:max-content;max-width:100%;height:auto;min-height:62px;padding:6px 10px;background:#fffaf1;border:1px solid rgba(213,178,111,.72);border-radius:6px;box-shadow:0 8px 20px rgba(4,20,12,.2);letter-spacing:0!important;line-height:1!important;overflow:hidden}
+.sidebar .sidebar-brand-logo img{display:block;width:min(184px,100%);height:auto;max-height:64px;object-fit:contain;filter:none!important}
+@media(max-width:930px){.sidebar .sidebar-brand-logo{min-height:58px}.sidebar .sidebar-brand-logo img{width:174px;max-height:60px}}
