@@ -13,7 +13,7 @@ test('server 5-day trial is clearly separate from paid Google Play renewal',()=>
  assert.match(html,/4,99 €\/mes/);
  assert.doesNotMatch(html,/Gestionar mi compra en Google Play/);
  assert.doesNotMatch(html,/Suscribirme ahora en la web/);
- assert.match(html,/solo probadores invitados/);
+ assert.match(html,/Abrir RIMMA en Android para suscribirme ahora/);
 });
 test('paid subscription shows real renewal state and Play management',()=>{
  const paid={status:'active',active:true,owner:true,configured:true,
