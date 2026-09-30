@@ -1,11 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {signupEnabled,validateSignupStep,publicSignupReply} from '../signup.mjs';
+import {signupEnabled,validateSignupStep,publicSignupReply,isDisposableEmail} from '../signup.mjs';
 test('public signup is opt-in and depends on already authorized login',()=>{
  assert.equal(signupEnabled({WEB_PUBLIC_LOGIN_ENABLED:'true'}),false);
  assert.equal(signupEnabled({WEB_PUBLIC_LOGIN_ENABLED:'false',WEB_PUBLIC_SIGNUP_ENABLED:'true'}),false);
  assert.equal(signupEnabled({WEB_PUBLIC_LOGIN_ENABLED:'true',WEB_PUBLIC_SIGNUP_ENABLED:'true'}),true);
+});
+test('disposable email domains are rejected without blocking normal mail',()=>{
+ assert.equal(isDisposableEmail('person@gmail.com'),false);
+ assert.equal(isDisposableEmail('USER@MAILINATOR.COM'),true);
+ assert.equal(isDisposableEmail('owner@yopmail.com'),true);
+ assert.throws(()=>validateSignupStep('send',{email:'owner@mailinator.com'}),/correo electrónico permanente/);
 });
 test('OTP and registration input fail closed',()=>{
  assert.deepEqual(validateSignupStep('send',{email:' A@EXAMPLE.COM '}),{email:'a@example.com'});
