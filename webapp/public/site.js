@@ -64,15 +64,27 @@ async function session(){
  try{const response=await request("/api/auth/session");if(response.authenticated){me=response.me;csrf=response.csrf;void start();return;}}
  catch(error){const el=$("#auth-error");el.hidden=false;el.textContent=error.message;}
  $("#loading-screen").hidden=true;$("#auth-screen").hidden=false;
+ void import("/app/bot-protection.mjs").then(module=>module.initBotProtection($("#login-form"))).catch(()=>{});
 }
 async function login(event){
  event.preventDefault();const form=event.currentTarget;const btn=$("#login-submit");const error=$("#auth-error");
  btn.disabled=true;btn.textContent="Accediendo…";error.hidden=true;
+ let bot;
  try{
-  const data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({email:form.elements.namedItem("email").value,password:form.elements.namedItem("password").value,website:form.elements.namedItem("website")?.value||""})});
+  bot=await import("/app/bot-protection.mjs");
+  await bot.initBotProtection(form);
+  const data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({
+   email:form.elements.namedItem("email").value,
+   password:form.elements.namedItem("password").value,
+   website:form.elements.namedItem("website")?.value||"",
+   botToken:bot.getBotToken(form)
+  })});
   csrf=data.csrf;me=data.me;form.elements.namedItem("password").value="";start();
  }catch(e){error.hidden=false;error.textContent=e.message;}
- finally{btn.disabled=false;btn.textContent="Entrar a mi taller ↗";}
+ finally{
+  if(bot)void bot.resetBotProtection(form);
+  btn.disabled=false;btn.textContent="Entrar a mi taller ↗";
+ }
 }
 function fallbackTrialExpired(subscription){
  const end=Date.parse(subscription?.trialEndsAt||"");
