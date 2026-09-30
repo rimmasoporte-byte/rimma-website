@@ -97,3 +97,14 @@ test('Public pricing lets trial users choose subscription immediately',()=>{
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
   assert.match(read('assets-v3/v3.css'),/\.v3-plan-request/);
 });
+
+test('trial is the primary conversion path while demo remains secondary',()=>{
+  const h=read('index.html');
+  assert.match(h,/Empieza 5 días gratis/);
+  assert.match(h,/https:\/\/app\.rimmaapp\.com\/app\/register\.html/);
+  assert.match(h,/Ver demo/);
+  const demo=read('demo/index.html');
+  assert.match(demo,/demo-trial-cta/);
+  assert.match(demo,/Empieza 5 días gratis/);
+  assert.match(read('demo/portal-parity.css'),/\.demo-trial-cta/);
+});
