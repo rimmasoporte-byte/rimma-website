@@ -156,6 +156,9 @@ export const server=http.createServer(async(req,res)=>{
     const method=(req.method||'GET').toUpperCase();
     if(method==='GET'&&pathname==='/health')return send(res,200,{ok:true});
     if(method==='GET'&&(pathname==='/'||pathname==='/app')){res.writeHead(302,{location:'/app/','cache-control':'no-store'});return res.end();}
+    if(method==='GET'&&(pathname==='/register'||pathname==='/register/'||pathname==='/app/register')){
+      res.writeHead(302,{location:'/app/register.html'+url.search,'cache-control':'no-store'});return res.end();
+    }
     if(method==='GET'&&(pathname==='/app/'||pathname==='/app/index.html')) {
       // Public staging never displays a form asking for production credentials.
       return process.env.WEB_PUBLIC_LOGIN_ENABLED === 'true'
@@ -188,6 +191,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/billing-view.mjs')return staticFile(res,'billing-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
+    if(method==='GET'&&pathname==='/favicon.ico')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
 
     if(method==='GET'&&pathname==='/api/auth/signup-config'){
