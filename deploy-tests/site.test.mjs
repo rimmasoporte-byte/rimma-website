@@ -109,11 +109,14 @@ test('trial is the primary conversion path while demo remains secondary',()=>{
   assert.match(read('demo/portal-parity.css'),/\.demo-trial-cta/);
 });
 
-test('demo sidebar assets never depend on app.rimmaapp.com',()=>{
+test('demo sidebar uses the exact local production artwork and logo',()=>{
  const h=read('demo/index.html');
  assert.match(h,/sidebar-brand sidebar-brand-logo/);
- assert.match(h,/\.\.\/assets-v3\/logo\.webp/);
- assert.match(h,/data:image\/webp;base64,/);
+ assert.match(h,/\.\/rimma-logo\.webp/);
+ assert.match(h,/\.\/rimma-luxury-full\.webp/);
+ assert.ok(fs.existsSync(path.join(root,'demo','rimma-logo.webp')));
+ assert.ok(fs.existsSync(path.join(root,'demo','rimma-luxury-full.webp')));
+ assert.doesNotMatch(h,/data:image\/webp;base64,/);
  assert.doesNotMatch(h,/app\.rimmaapp\.com\/app\/(?:rimma-luxury-full|rimma-logo|atelier-mannequin)\.webp/);
  assert.doesNotMatch(h,/class="sidebar-brand"[^>]*>RIMMA/);
 });
