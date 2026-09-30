@@ -31,3 +31,18 @@ if(process.env.TEST_WEB_SESSION_DATABASE_URL){
     }finally{await pool.end();}
   });
 }
+
+test('custom throttle namespaces and quotas stay independent',async()=>{
+  let now=1700000000000;
+  const login=new MemoryLoginThrottle(()=>now,{namespace:'login',maxAttempts:4,windowMs:60_000});
+  const ip=new MemoryLoginThrottle(()=>now,{namespace:'ip',maxAttempts:3,windowMs:60_000});
+  assert.equal(await login.reserve('same-key'),true);
+  assert.equal(await ip.reserve('same-key'),true);
+  assert.equal(await ip.reserve('same-key'),true);
+  assert.equal(await ip.reserve('same-key'),false);
+  assert.equal(await login.reserve('same-key'),true);
+  assert.equal(await login.reserve('same-key'),true);
+  assert.equal(await login.reserve('same-key'),false);
+  now+=61_000;
+  assert.equal(await ip.reserve('same-key'),true);
+});
