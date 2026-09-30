@@ -141,13 +141,27 @@ function go(view){
  void loaders[view]();
 }
 function recordActions(type,id,canDelete=true) {
- const safe=esc(id);
- const label=type==="client"?"cliente":"pedido";
- return '<div class="record-actions">'+
-  '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
-  (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
-  '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
- '</div>';
+  const safe=esc(id);
+  const label=type==="client"?"cliente":"pedido";
+  return '<div class="record-actions">'+
+   (type==="order"?'<button type="button" class="record-action" data-action="download-order" data-id="'+safe+'" aria-label="Descargar pedido">Descargar</button>':'')+
+   '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
+   (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
+   '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
+  '</div>';
+}
+async function downloadOrder(id){
+  if(!/^[a-f0-9-]{36}$/i.test(id||"")){globalError("El pedido seleccionado no es válido.");return;}
+  try{
+    const result=await api("/orders/"+encodeURIComponent(id)),order=result.order;
+    if(!order||order.id!==id)throw Error("No se pudo cargar el pedido.");
+    const customer=order.client?.name||order.clientName||"Cliente";
+    const items=(order.items||[]).map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc(String(item.quantity??1))+'</td><td>'+esc(money(item.unitPriceMinor,order.currencyCode))+'</td><td>'+esc(money(item.totalMinor,order.currencyCode))+'</td></tr>').join("");
+    const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>RIMMA — Pedido #'+esc(order.orderNumber)+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#222}h1{font-size:24px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{font-size:12px;text-transform:uppercase;color:#777}.meta{line-height:1.7}.total{text-align:right;font-size:20px;font-weight:700;margin-top:20px}@media print{body{margin:0}}</style></head><body><h1>RIMMA — Pedido #'+esc(order.orderNumber)+'</h1><div class="meta"><strong>Cliente:</strong> '+esc(customer)+'<br><strong>Fecha de entrega:</strong> '+esc(date(order.dueDate))+'<br><strong>Estado:</strong> '+esc(status[order.status]||order.status||"—")+(order.notes?'<br><strong>Notas:</strong> '+esc(order.notes):'')+'</div><table><thead><tr><th>Trabajo</th><th>Cantidad</th><th>Precio</th><th>Importe</th></tr></thead><tbody>'+items+'</tbody></table><div class="total">Total: '+esc(money(order.totalMinor,order.currencyCode))+'</div></body></html>';
+    const blob=new Blob([html],{type:"text/html;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="RIMMA-pedido-"+String(order.orderNumber||id)+".html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    success("Pedido descargado.");
+  }catch(e){globalError(e.message||"No se pudo descargar el pedido.");}
 }
 function customerInitials(name) {
  const words=String(name||"").trim().split(/\s+/).filter(Boolean);
@@ -348,7 +362,7 @@ function openModal(type,record=null){
    if(activeModal!=="order")return;
    lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="EUR"')+field("Fecha de entrega","due","date")+'<div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="EUR"')+field("Fecha de entrega","due","date")+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
@@ -421,22 +435,31 @@ async function saveModal(event){
    await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()})});
    $("#modal").close();activeModal=null;go("clientes");
   }else if(activeModal==="order"){
-   const minor=Math.round(Number(get("price"))*100);
-   if(!Number.isSafeInteger(minor)||minor<0)throw new Error("El precio no es válido.");
-   const options=JSON.parse($("#modal-fields").dataset.catalog||"[]");
-   const pick=get("service")===""?null:options[Number(get("service"))];
-   const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})},
-    ...[...$("#modal-fields").querySelectorAll(".extra-order-item")].map(row=>{
-     const name=row.querySelector('[name="extraName"]').value.trim();
-     const unit=Number(row.querySelector('[name="extraPrice"]').value);
-     const quantity=Number(row.querySelector('[name="extraQuantity"]').value);
-     const amount=Math.round(unit*100);
-     if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))
-      throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
-     return {name,unitPriceMinor:amount,quantity};
-    })]};
-   await api("/orders",{method:"POST",body:JSON.stringify(payload)});
-   $("#modal").close();activeModal=null;go("pedidos");
+    const minor=Math.round(Number(get("price"))*100);
+    if(!Number.isSafeInteger(minor)||minor<0)throw new Error("El precio no es válido.");
+    const options=JSON.parse($("#modal-fields").dataset.catalog||"[]");
+    const pick=get("service")===""?null:options[Number(get("service"))];
+    const mainPhoto=form.elements.namedItem("orderPhoto")?.files?.[0]||null;
+    const extraRows=[...$("#modal-fields").querySelectorAll(".extra-order-item")],extraPhotoFiles=[];
+    const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,...(pick?{categoryId:pick.catId}:{})},
+     ...extraRows.map(row=>{
+      const name=row.querySelector('[name="extraName"]').value.trim(),unit=Number(row.querySelector('[name="extraPrice"]').value),quantity=Number(row.querySelector('[name="extraQuantity"]').value),amount=Math.round(unit*100);
+      if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
+      extraPhotoFiles.push(row.querySelector('[name="extraPhoto"]')?.files?.[0]||null);
+      return {name,unitPriceMinor:amount,quantity};
+     })]};
+    const validatePhoto=file=>{if(file&&(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>150*1024||file.size<1))throw new Error("Las fotografías deben ser JPEG, PNG o WebP de hasta 150 KB.");};
+    validatePhoto(mainPhoto);extraPhotoFiles.forEach(validatePhoto);
+    const created=await api("/orders",{method:"POST",body:JSON.stringify(payload)}),orderId=created.order?.id;
+    if(!/^[a-f0-9-]{36}$/i.test(orderId||""))throw new Error("El pedido se creó, pero no se pudo obtener su identificador.");
+    const fresh=await api("/orders/"+encodeURIComponent(orderId)),items=fresh.order?.items||[],files=[mainPhoto,...extraPhotoFiles];
+    for(let i=0;i<files.length;i++){
+      const file=files[i],item=items[i];if(!file)continue;
+      if(!item?.id)throw new Error("El pedido se creó, pero no se pudo asociar una fotografía a una prenda.");
+      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer una fotografía."));reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(file);});
+      await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.size,fileName:file.name,contentType:file.type,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
+    }
+    $("#modal").close();activeModal=null;go("pedidos");success(files.some(Boolean)?"Pedido y fotografías guardados correctamente.":"Pedido creado correctamente.");
   }else if(activeModal==="edit-client"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
    const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
@@ -539,11 +562,12 @@ document.addEventListener("click",event=>{
   case "new-order":openModal("order");break;
   case "add-order-item":{
    const list=$("#extra-order-items .extra-order-list");if(!list||list.children.length>=30)break;
-   list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
+   list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><label>Fotografía <input name="extraPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><small class="helper">JPEG, PNG o WebP, hasta 150 KB.</small><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
   }
   case "remove-order-item":b.closest(".extra-order-item")?.remove();break;
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
+  case "download-order":void downloadOrder(b.dataset.id);break;
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
   case "delete-client":void deleteRecord("client",b.dataset.id);break;
   case "delete-order":void deleteRecord("order",b.dataset.id);break;
