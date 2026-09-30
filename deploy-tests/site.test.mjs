@@ -55,11 +55,11 @@ test('Legal routes use the correct production assets and sitemap retains Google 
   assert.match(map,/https:\/\/rimmaapp\.com\/delete-account\//);
   assert.match(read('robots.txt'),/Allow:\s*\//);
 });
-test('Public early access CTA offers a 15-day test without pretending live payment is available',()=>{
+test('Public early access CTA offers a 5-day test without pretending live payment is available',()=>{
   const h=read('index.html');
   assert.match(h,/Solicitar invitación de prueba/);
   assert.match(h,/Solicitar acceso de prueba a Android/);
-  assert.match(h,/periodo de prueba es de 15 días/);
+  assert.match(h,/periodo de prueba es de 5 días/);
   assert.match(h,/mailto:soporte@rimmaapp\.com\?subject=Solicitud/);
   assert.match(h,/No se realizan compras en esta web/);
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
