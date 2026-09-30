@@ -22,6 +22,7 @@ export function isDisposableEmail(value){
 function emailOf(value){
   const email=typeof value==='string'?value.trim().toLowerCase():'';
   if(email.length>254||!/^\S+@\S+\.\S+$/.test(email))fail();
+  if(isDisposableEmail(email))throw new SignupInputError('Usa un correo electrónico permanente para crear tu cuenta.');
   return email;
 }
 export function validateSignupStep(step,input){
