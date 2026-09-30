@@ -26,7 +26,7 @@ function trustedCheckout(url){
 }
 export function describeBillingSyncOutcome(billing){
  const b=billing&&typeof billing==="object"?billing:{};
- if(b.status==="trial" && b.active===true){
+ if(b.status==="trial" && (b.accessActive===true||b.active===true)){
   const ends=displayDate(b.trialEndsAt);
   return "Comprobación completada: aún no hay una suscripción de pago activa. Tu prueba gratuita sigue vigente"+
     (ends?" hasta el "+ends:"")+". Si quieres contratar, abre RIMMA en Android.";
@@ -40,7 +40,7 @@ export function describeBillingSyncOutcome(billing){
 }
 export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const b=billing&&typeof billing==="object"?billing:{};
- const isTrial=b.status==="trial"&&b.active===true;
+ const isTrial=b.status==="trial"&&(b.accessActive===true||b.active===true);
  const isPaid=b.status==="active"&&b.active===true;
  const expired=!isTrial&&!isPaid;
  const owner=b.owner===true;
