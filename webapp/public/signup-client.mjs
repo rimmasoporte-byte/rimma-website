@@ -18,7 +18,7 @@ const link=document.getElementById('signup-invite');
 const announce=text=>{if(banner)banner.textContent=text;};
 async function api(url,payload){
  let outgoing=payload;
- const protectedCall=Boolean(payload)&&url.startsWith('/api/auth/signup/');
+ const protectedCall=Boolean(payload)&&(url.startsWith('/api/auth/signup/')||url==='/api/auth/login');
  if(protectedCall){
   await initBotProtection(form);
   outgoing={...payload,botToken:getBotToken(form)};
