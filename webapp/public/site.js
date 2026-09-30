@@ -93,7 +93,7 @@ function fallbackTrialExpired(subscription){
 function applySubscriptionLockUi(locked){
  subscriptionLocked=locked===true;
  document.body.classList.toggle("subscription-locked",subscriptionLocked);
- $("[data-view]").forEach(control=>{
+ $$("[data-view]").forEach(control=>{
   if(!businessViews.has(control.dataset.view))return;
   control.classList.toggle("subscription-disabled",subscriptionLocked);
   if(subscriptionLocked){
