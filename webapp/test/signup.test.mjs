@@ -60,7 +60,8 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   const htmlText=await html.text();
   assert.ok(htmlText.includes('5 días'));
   assert.ok(htmlText.includes('/app/rimma-logo.webp'));
-  assert.ok(htmlText.includes('← Volver'));
+  assert.ok(htmlText.includes('← Volver al inicio de sesión'));
+  assert.equal((htmlText.match(/Volver al inicio de sesión/g)||[]).length,1);
   const legacyRegister=await fetch(base+'/register?from=browser-back',{redirect:'manual'});
   assert.equal(legacyRegister.status,302);
   assert.equal(legacyRegister.headers.get('location'),'/app/register.html?from=browser-back');
