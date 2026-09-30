@@ -19,7 +19,10 @@ if (!upstream || !(upstream.startsWith('https://') || (allowHttp && /^http:\/\/(
 }
 if (live && !origin.startsWith('https://')) throw new Error('Production WEB_ORIGIN must use HTTPS');
 const sessions = createSessionStore({production:live, loginEnabled:process.env.WEB_PUBLIC_LOGIN_ENABLED === 'true'});
-const loginThrottle = createLoginThrottle(sessions);
+const loginThrottle = createLoginThrottle(sessions,{namespace:'account-login',maxAttempts:6,windowMs:15*60_000});
+const authIpThrottle = createLoginThrottle(sessions,{namespace:'auth-ip',maxAttempts:30,windowMs:15*60_000});
+const signupSendIpThrottle = createLoginThrottle(sessions,{namespace:'signup-send-ip',maxAttempts:12,windowMs:60*60_000});
+const signupActionIpThrottle = createLoginThrottle(sessions,{namespace:'signup-action-ip',maxAttempts:40,windowMs:15*60_000});
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
@@ -68,6 +71,16 @@ function mutationAllowed(req) {
   // Strict origin check prevents cross-site login CSRF and mutation CSRF.
   const requestOrigin=req.headers.origin;
   return typeof requestOrigin==='string' && requestOrigin===origin && (!req.headers['sec-fetch-site'] || ['same-origin','none'].includes(req.headers['sec-fetch-site']));
+}
+function clientAddress(req) {
+  const forwarded=req.headers['x-forwarded-for'];
+  const raw=Array.isArray(forwarded)?forwarded.at(-1):typeof forwarded==='string'
+    ? forwarded.split(',').at(-1) : req.socket?.remoteAddress;
+  const value=String(raw||'').trim().replace(/^::ffff:/,'').slice(0,128);
+  return value||'unknown';
+}
+function trapped(input) {
+  return typeof input?.website==='string' && input.website.trim().length>0;
 }
 async function body(req,limit=maxBody) {
   if (!String(req.headers['content-type']||'').toLowerCase().startsWith('application/json')) {
@@ -202,8 +215,17 @@ export const server=http.createServer(async(req,res)=>{
       if(!signupEnabled(process.env))return send(res,503,{error:'Las nuevas cuentas web todavía no están disponibles.'});
       if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
       const step=pathname.split('/').at(-1);
+      const rawInput=await body(req,4096);
+      const ipGate=step==='send'?signupSendIpThrottle:signupActionIpThrottle;
+      if(!await ipGate.reserve(clientAddress(req))){
+        return send(res,429,{error:'Demasiados intentos desde esta conexión. Espera antes de volver a intentarlo.'});
+      }
+      if(trapped(rawInput)){
+        if(step==='send')return send(res,202,{success:true,message:'Si el correo es válido, recibirás un código.'});
+        return send(res,400,{error:'Verifica los datos y vuelve a intentarlo.'});
+      }
       let input;
-      try{input=validateSignupStep(step,await body(req,4096));}
+      try{input=validateSignupStep(step,rawInput);}
       catch(error){
         if(error instanceof SignupInputError)return send(res,400,{error:error.message});
         throw error;
@@ -237,6 +259,10 @@ export const server=http.createServer(async(req,res)=>{
       }
       if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
       const input=await body(req);
+      if(!await authIpThrottle.reserve(clientAddress(req))){
+        return send(res,429,{error:'Demasiados intentos desde esta conexión. Espera antes de volver a intentarlo.'});
+      }
+      if(trapped(input))return send(res,401,{error:'Correo o contraseña incorrectos.'});
       if(typeof input.email!=='string'||typeof input.password!=='string'||input.email.length>254||input.password.length>256) return send(res,400,{error:'Revisa los datos de acceso.'});
       if(!await loginThrottle.reserve(input.email))return send(res,429,{error:'Demasiados intentos. Espera antes de volver a intentarlo.'});
       const result=await fromBackend('POST','/login',{email:input.email.trim(),password:input.password});
