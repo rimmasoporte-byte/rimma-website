@@ -12,12 +12,13 @@ test('OTP and registration input fail closed',()=>{
  assert.throws(()=>validateSignupStep('verify',{email:'a@example.com',code:'12345'}));
  assert.deepEqual(validateSignupStep('verify',{email:'a@example.com',code:'123456'}),
   {email:'a@example.com',code:'123456'});
- const valid={email:'a@example.com',password:'password123',displayName:'Alice',
+ const valid={email:'a@example.com',password:'password123',confirmPassword:'password123',displayName:'Alice',
   workspaceName:'Mi taller',countryCode:'ES',currencyCode:'EUR',timezone:'Europe/Madrid',
   emailVerificationToken:'x'.repeat(40),acceptsTerms:true};
  assert.ok(validateSignupStep('register',valid).emailVerificationToken);
  assert.throws(()=>validateSignupStep('register',{...valid,acceptsTerms:false}));
- assert.throws(()=>validateSignupStep('register',{...valid,password:'123'}));
+ assert.throws(()=>validateSignupStep('register',{...valid,password:'123',confirmPassword:'123'}));
+ assert.throws(()=>validateSignupStep('register',{...valid,confirmPassword:'different123'}));
  assert.throws(()=>validateSignupStep('register',{...valid,timezone:'unknown'}));
  assert.throws(()=>validateSignupStep('nonsense',valid));
 });
@@ -62,6 +63,8 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   assert.ok(htmlText.includes('class="auth-side-logo"'));
   assert.ok(htmlText.includes('/app/rimma-logo.webp'));
   assert.ok(htmlText.includes('← Volver al inicio de sesión'));
+  assert.ok(htmlText.includes('id="signup-password-confirm"'));
+  assert.ok(htmlText.includes('Repetir contraseña'));
   assert.doesNotMatch(htmlText,/¿Ya tienes cuenta\?/);
   const legacyRegister=await fetch(base+'/register?from=browser-back',{redirect:'manual'});
   assert.equal(legacyRegister.status,302);
@@ -74,7 +77,7 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   r=await post('send',{email:' A@EXAMPLE.COM '});assert.equal(r.status,202);
   r=await post('verify',{email:'a@example.com',code:'123456'});assert.equal(r.status,200);
   const verified=await r.json();assert.ok(verified.emailVerificationToken);
-  r=await post('register',{email:'a@example.com',password:'password123',displayName:'Alice',
+  r=await post('register',{email:'a@example.com',password:'password123',confirmPassword:'password123',displayName:'Alice',
    workspaceName:'Mi taller',countryCode:'ES',currencyCode:'EUR',timezone:'Europe/Madrid',
    emailVerificationToken:verified.emailVerificationToken,acceptsTerms:true});
   assert.equal(r.status,201);assert.equal((await r.json()).registered,true);
