@@ -125,6 +125,7 @@ async function start(){
  const requested=new URLSearchParams(location.search).get("view");
  const target=views[requested]?requested:"inicio";
  go(subscriptionLocked&&businessViews.has(target)?"suscripcion":target);
+ void import("/app/onboarding.mjs").then(module=>module.initOnboarding(me,{auto:true})).catch(()=>{});
 }
 function closeDrawer(){$("#sidebar").classList.remove("open");$("#drawer-cover").hidden=true;$("#menu-toggle").setAttribute("aria-expanded","false");}
 function go(view){
