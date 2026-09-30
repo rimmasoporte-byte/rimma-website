@@ -67,6 +67,14 @@ test('Legal notice publishes the required RIMMA autonomous-business identity wit
   assert.doesNotMatch(h,/081493775313|CEA|Seguridad Social/);
   assert.match(read('index.html'),/\.\/legal\/aviso-legal\//);
 });
+test('Legal pages provide an explicit way back',()=>{
+  for(const p of ['terms','privacy','support','delete-account','aviso-legal']){
+    const c=read('legal/'+p+'/index.html');
+    assert.match(c,/data-legal-back/);
+    assert.match(c,/← Volver/);
+  }
+  assert.match(read('assets-v3/site.js'),/data-legal-back/);
+});
 test('Public pricing lets trial users choose subscription immediately',()=>{
   const h=read('index.html');
   assert.match(h,/Suscribirme ahora/);
