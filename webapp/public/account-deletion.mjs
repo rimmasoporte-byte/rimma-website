@@ -1,4 +1,4 @@
-/* Owner-only, narrowly supported trial account closure UI.
+/* Owner-only account closure UI for server-verified deletion modes.
  * Full export is prominently offered before confirmation, and the 256-bit
  * status token is shown only ONCE after the server revokes the web session.
  */
@@ -38,9 +38,12 @@ export async function renderAccountDeletionPanel({api,request,onClosed,target}){
   note(target,'La eliminación automática todavía no está disponible para este taller. Puedes solicitar una eliminación verificada al equipo RIMMA.');
   support(target);return;
  }
- note(target,info.deletionMode==='TRIAL_WITH_OPERATIONAL_DATA'
-  ? 'Se eliminarán los datos de tu taller de prueba, incluidas las fotografías y los registros de cobros. Guarda tu archivo ZIP antes de continuar. El acceso se bloqueará inmediatamente; la limpieza comenzará como mínimo 20 minutos después y puede requerir revisión manual.'
-  : 'Disponible solo para talleres de prueba sin historial de pagos ni fotografías. El acceso se bloqueará inmediatamente; la limpieza de datos se realizará más tarde.');
+ const modeMessage=info.deletionMode==='FULL_WITH_RETAINED_BILLING'
+  ? 'Se eliminarán los datos activos de tu cuenta y taller, incluidos clientes, pedidos, medidas, fotografías y cobros del taller. RIMMA solicitará también la eliminación del cliente en RevenueCat. Para cumplir obligaciones legales y prevenir fraude, se conservará de forma separada y pseudonimizada únicamente la evidencia mínima de la compra durante el plazo aplicable, con una referencia operativa de seis años. La suscripción de Google Play se cancela por separado.'
+  : info.deletionMode==='TRIAL_WITH_OPERATIONAL_DATA'
+    ? 'Se eliminarán los datos de tu taller, incluidas las fotografías y los registros de cobros. Guarda tu archivo ZIP antes de continuar. El acceso se bloqueará inmediatamente; la limpieza comenzará como mínimo 20 minutos después y puede requerir revisión manual.'
+    : 'La eliminación automática está disponible para esta cuenta. El acceso se bloqueará inmediatamente y la limpieza de los datos activos se realizará de forma asíncrona.';
+ note(target,modeMessage);
  const exportLink=make('button','Preparar mi archivo ZIP antes de eliminar',{type:'button',className:'secondary'});
  exportLink.addEventListener('click',()=>{
   const button=document.getElementById('download-owner-archive');
@@ -112,7 +115,7 @@ export async function renderAccountDeletionPanel({api,request,onClosed,target}){
    password.value='';
    onClosed?.();
    target.replaceChildren();
-   note(target,'Tu acceso se ha bloqueado. La eliminación de los datos activos está pendiente. La copia de seguridad cifrada puede conservarse durante el plazo indicado en la política.');
+   note(target,'Tu acceso se ha bloqueado. La eliminación de los datos activos está pendiente. Las copias de seguridad cifradas pueden conservarse durante un máximo de 27 días.');
    const text=make('textarea',JSON.stringify({
     jobId:result.jobId,statusToken:result.statusToken}));
    text.readOnly=true;text.rows=4;
@@ -132,7 +135,14 @@ export async function renderAccountDeletionPanel({api,request,onClosed,target}){
       method:'POST',body:JSON.stringify({jobId:result.jobId,statusToken:result.statusToken})});
      const translations={scheduled:'Programada',final_verification:'Verificación final',
       manual_review:'Requiere revisión manual',completed:'Datos activos eliminados'};
-     status.textContent=translations[data.status?.status]||'Estado no disponible';
+     let message=translations[data.status?.status]||'Estado no disponible';
+     if(data.status?.status==='completed'&&data.status?.retainedBillingEvidence===true)
+      message+=' · Evidencia mínima de compra conservada de forma pseudonimizada según el plazo legal.';
+     if(data.status?.status==='completed'&&data.status?.revenueCatDeletionRequested===true)
+      message+=' · Eliminación del cliente RevenueCat solicitada.';
+     if(data.status?.storeSubscriptionCancellationIsSeparate===true)
+      message+=' · La suscripción de Google Play se gestiona por separado.';
+     status.textContent=message;
     }catch{status.textContent='No se ha podido consultar. Guarda tu código y contacta con soporte.';}
     finally{check.disabled=false;}
    });

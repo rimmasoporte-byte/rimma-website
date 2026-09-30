@@ -20,7 +20,7 @@ const mock=http.createServer(async(req,res)=>{
  }});
  if(route==='/public/account-deletion-status')
   return input.jobId===job&&input.statusToken===token?
-   reply(200,{success:true,status:{status:'scheduled',deletionComplete:false}}):
+   reply(200,{success:true,status:{status:'scheduled',deletionComplete:false,storeSubscriptionCancellationIsSeparate:true}}):
    reply(404,{error:'DELETION_STATUS_NOT_FOUND'});
  if(blocked)return reply(401,{error:'Revoked'});
  if(req.headers.authorization!=='Bearer synthetic-access')
@@ -29,7 +29,7 @@ const mock=http.createServer(async(req,res)=>{
  if(route==='/account/deletion-info'&&req.headers['x-rimma-deletion-client']!=='web-v1')
   return reply(412,{error:'CLIENT_PROTOCOL_UPGRADE_REQUIRED'});
  if(route==='/account/deletion-info')return reply(200,{info:{
-  deletionAvailable:true,workspaces:[{id:wid,name:'Synthetic Atelier',
+  deletionAvailable:true,deletionMode:'FULL_WITH_RETAINED_BILLING',workspaces:[{id:wid,name:'Synthetic Atelier',
    role:'owner',deleteWorkspace:true,otherMembers:0}],backupPolicyDays:27
  }});
  if(route==='/account/delete'){
@@ -83,6 +83,9 @@ test('owner deletion BFF requires CSRF, revokes web session, preserves private s
   assert.match(source,/download-owner-archive/);
   assert.match(source,/understandsStoreCancellation:true/);
   assert.match(source,/staffLossAcknowledgements/);
+  assert.match(source,/FULL_WITH_RETAINED_BILLING/);
+  assert.match(source,/evidencia mínima de la compra/);
+  assert.match(source,/máximo de 27 días/);
   res=await fetch(base+'/api/account/delete',{method:'POST',headers:authorized,
    body:JSON.stringify({password:'correct',confirmation:'ELIMINAR',
     understandsStoreCancellation:true,workspaceIds:[wid],staffLossAcknowledgements:[]})});
@@ -104,7 +107,7 @@ test('owner deletion BFF requires CSRF, revokes web session, preserves private s
    headers:{'content-type':'application/json',origin:base},
    body:JSON.stringify({jobId:job,statusToken:token})});
   assert.equal(res.status,200);
-  assert.deepEqual((await res.json()).status,{status:'scheduled',deletionComplete:false});
+  assert.deepEqual((await res.json()).status,{status:'scheduled',deletionComplete:false,storeSubscriptionCancellationIsSeparate:true});
   assert.equal(deletionCalls,1);
  }finally{
   await new Promise(resolve=>server.close(resolve));
