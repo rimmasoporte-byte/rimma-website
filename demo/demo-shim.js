@@ -56,7 +56,16 @@ window.fetch=(input,options={})=>{
  if(pathname==="/price-list")return reply({success:true,priceList:catalog});
  if(pathname==="/billing")return reply({success:true,billing:{status:"trial",active:true,trialEndsAt:"2026-10-12",willRenew:false}});
  if(pathname==="/me")return reply({success:true,me:{user:{id:"preview",displayName:"María",email:"demo@example.invalid"},workspace:{id:"preview",name:"Atelier Ejemplo",role:"owner"},subscription:{status:"trial"}}});
- if(pathname==="/reports/summary")return reply({success:true,report:{period:url.searchParams.get("period")||"month",startDate:"2026-09-01",endDate:"2026-09-30",orders:{created:orders.length},clients:{new:customers.length},orderMoneyByCurrency:[{currencyCode:"EUR",totalMinor:orders.reduce((a,o)=>a+o.totalMinor,0)}]}});
+ if(pathname==="/reports/summary"){
+  const previous=url.searchParams.has("date");
+  return reply({success:true,report:{
+   period:url.searchParams.get("period")||"month",startDate:previous?"2026-08-01":"2026-09-01",endDate:previous?"2026-08-31":"2026-09-30",
+   orders:previous?{created:2,accepted:0,inProgress:1,ready:1,issued:0,cancelled:0,duePeriodItems:2}:{created:3,accepted:1,inProgress:1,ready:1,issued:0,cancelled:0,duePeriodItems:3},
+   clients:{new:previous?2:3},
+   orderMoneyByCurrency:[{currencyCode:"EUR",totalMinor:previous?5000:6800}],
+   paymentsByCurrency:[{currencyCode:"EUR",confirmedMinor:previous?3500:5000}]
+  }});
+ }
  return reply({error:"Esta función no está disponible en la demostración."},404);
 };
 document.addEventListener("click",event=>{
