@@ -32,8 +32,8 @@ export function makeIdentifiedCheckoutUrl(template, appUserId) {
 /**
  * Safety conditions are intentionally conjunctive. Both portal configuration
  * AND the backend's independently reviewed web-purchase capability are needed.
- * Current backend does not yet expose webPurchasesEnabled, so this returns
- * unavailable on all existing production deployments.
+ * Trial users may purchase immediately; paid users are excluded because
+ * RevenueCat does not allow purchasing the same active subscription twice.
  */
 export function prepareWebCheckout({ enabled, template, billing }) {
   if (enabled !== true || !template) return null;
@@ -41,8 +41,8 @@ export function prepareWebCheckout({ enabled, template, billing }) {
     billing?.configured !== true ||
     billing?.webPurchasesEnabled !== true ||
     billing?.owner !== true ||
-    billing?.active !== false ||
-    billing?.status !== 'expired'
+    !((billing?.status === 'trial' && billing?.active === true) ||
+      (billing?.status === 'expired' && billing?.active === false))
   ) return null;
   return makeIdentifiedCheckoutUrl(template, billing.appUserId);
 }
