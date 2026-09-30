@@ -40,3 +40,20 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 
 .subscription-disabled{opacity:.42!important;cursor:not-allowed!important;filter:saturate(.55)}
 .subscription-locked .topbar-alert.subscription-disabled{opacity:.32!important}
+
+/* Accessible show/hide password control used by login, signup and dynamic account forms. */
+.password-field{position:relative;display:block;width:100%}
+.password-field>input{width:100%;padding-right:52px!important}
+.password-toggle{
+ position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;
+ display:inline-grid!important;place-items:center;width:38px!important;height:38px!important;
+ min-width:38px!important;min-height:38px!important;margin:0!important;padding:0!important;
+ border:0!important;border-radius:50%!important;background:transparent!important;
+ color:#76664d!important;box-shadow:none!important;letter-spacing:0!important;cursor:pointer
+}
+.password-toggle:hover{background:#eee7db!important;color:#4f402b!important}
+.password-toggle:focus-visible{outline:2px solid #846736!important;outline-offset:1px!important}
+.password-toggle svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.password-toggle .password-eye-off{display:none}
+.password-toggle[aria-pressed="true"] .password-eye{display:none}
+.password-toggle[aria-pressed="true"] .password-eye-off{display:block}
