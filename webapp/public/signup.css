@@ -19,7 +19,7 @@
  display:block;color:#756a5d;font-size:12px;line-height:1.6
 }
 #signup-form .signup-legal-links{
- display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px
 }
 #signup-form .signup-legal-links a{
  display:flex;align-items:center;justify-content:center;min-height:42px;padding:9px 12px;
