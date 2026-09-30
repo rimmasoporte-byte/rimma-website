@@ -38,10 +38,9 @@
    <button id="signup-send" class="secondary" type="button">Enviarme un código por correo</button>
    <label for="signup-code">Código de seis cifras</label>
    <input id="signup-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
-   <button id="signup-verify" class="secondary" type="button">Verificar código</button>
-   <div id="signup-code-status" class="signup-code-status" role="status" aria-live="polite" hidden>
+   <div id="signup-code-status" class="signup-code-status" role="status" aria-live="polite" hidden data-state="idle">
     <span class="signup-code-status-icon" aria-hidden="true">✓</span>
-    <span>Correo verificado</span>
+    <span id="signup-code-status-text">Correo verificado</span>
    </div>
    <div class="signup-legal-review" aria-labelledby="signup-legal-title">
     <strong id="signup-legal-title">Antes de continuar</strong>
