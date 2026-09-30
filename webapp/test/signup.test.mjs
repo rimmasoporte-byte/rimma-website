@@ -59,6 +59,7 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   const html=await fetch(base+'/app/register.html');assert.equal(html.status,200);
   const htmlText=await html.text();
   assert.ok(htmlText.includes('5 días'));
+  assert.ok(htmlText.includes('class="auth-side-logo"'));
   assert.ok(htmlText.includes('/app/rimma-logo.webp'));
   assert.ok(htmlText.includes('← Volver al inicio de sesión'));
   assert.doesNotMatch(htmlText,/¿Ya tienes cuenta\?/);
