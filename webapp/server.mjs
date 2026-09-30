@@ -13,6 +13,12 @@ const port = Number(process.env.PORT || 19333);
 const upstream = String(process.env.RIMMA_API_BASE_URL || '').replace(/\/+$/, '');
 const origin = String(process.env.WEB_ORIGIN || 'http://127.0.0.1:' + port).replace(/\/+$/, '');
 const live = process.env.NODE_ENV === 'production';
+const turnstileSiteKey = String(process.env.TURNSTILE_SITE_KEY || '').trim();
+const turnstileSecretKey = String(process.env.TURNSTILE_SECRET_KEY || '').trim();
+if ((turnstileSiteKey || turnstileSecretKey) && !(turnstileSiteKey && turnstileSecretKey)) {
+  throw new Error('TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be configured together');
+}
+const turnstileEnabled = Boolean(turnstileSiteKey && turnstileSecretKey);
 const allowHttp = !live && process.env.ALLOW_HTTP_UPSTREAM === '1';
 if (!upstream || !(upstream.startsWith('https://') || (allowHttp && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(upstream)))) {
   throw new Error('Configure RIMMA_API_BASE_URL with an HTTPS origin (localhost HTTP allowed only during tests)');
@@ -39,7 +45,7 @@ function securityHeaders(type) {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'x-frame-options': 'DENY',
-    'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    'content-security-policy': "default-src 'none'; script-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; frame-src"+(turnstileEnabled?" https://challenges.cloudflare.com":"'none'")+"; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'cross-origin-opener-policy': 'same-origin',
     'cross-origin-resource-policy': 'same-origin',
@@ -92,6 +98,23 @@ async function body(req,limit=maxBody) {
   catch {const e=new Error('Invalid JSON');e.status=400;throw e;}
 }
 function timeoutFetch(url, options) {return fetch(url,{...options,signal:AbortSignal.timeout(25000)});}
+async function verifyTurnstile(token,remoteIp) {
+  if(!turnstileEnabled)return true;
+  if(typeof token!=='string'||token.length<10||token.length>4096)return false;
+  const body=new URLSearchParams({secret:turnstileSecretKey,response:token});
+  if(remoteIp&&remoteIp!=='unknown')body.set('remoteip',remoteIp);
+  try{
+    const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+      method:'POST',
+      headers:{'content-type':'application/x-www-form-urlencoded','accept':'application/json'},
+      body:body.toString(),
+      signal:AbortSignal.timeout(8000)
+    });
+    if(!response.ok)return false;
+    const result=await response.json().catch(()=>null);
+    return result?.success===true;
+  }catch{return false;}
+}
 async function fromBackend(verb,route,payload,authToken,extraHeaders={}) {
   const headers={'accept':'application/json',...extraHeaders};
   // Backend v1 would otherwise hand an asynchronous status token to
@@ -184,6 +207,7 @@ export const server=http.createServer(async(req,res)=>{
     }
     if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/password-toggle.mjs')return staticFile(res,'password-toggle.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
@@ -208,6 +232,9 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/favicon.ico')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
 
+    if(method==='GET'&&pathname==='/api/auth/bot-config'){
+      return send(res,200,{turnstile:turnstileEnabled,siteKey:turnstileEnabled?turnstileSiteKey:null});
+    }
     if(method==='GET'&&pathname==='/api/auth/signup-config'){
       return send(res,200,{enabled:signupEnabled(process.env)});
     }
@@ -223,6 +250,9 @@ export const server=http.createServer(async(req,res)=>{
       if(trapped(rawInput)){
         if(step==='send')return send(res,202,{success:true,message:'Si el correo es válido, recibirás un código.'});
         return send(res,400,{error:'Verifica los datos y vuelve a intentarlo.'});
+      }
+      if(!await verifyTurnstile(rawInput.botToken,clientAddress(req))){
+        return send(res,403,{error:'Confirma que no eres un robot y vuelve a intentarlo.'});
       }
       let input;
       try{input=validateSignupStep(step,rawInput);}
@@ -263,6 +293,9 @@ export const server=http.createServer(async(req,res)=>{
         return send(res,429,{error:'Demasiados intentos desde esta conexión. Espera antes de volver a intentarlo.'});
       }
       if(trapped(input))return send(res,401,{error:'Correo o contraseña incorrectos.'});
+      if(!await verifyTurnstile(input.botToken,clientAddress(req))){
+        return send(res,403,{error:'Confirma que no eres un robot y vuelve a intentarlo.'});
+      }
       if(typeof input.email!=='string'||typeof input.password!=='string'||input.email.length>254||input.password.length>256) return send(res,400,{error:'Revisa los datos de acceso.'});
       if(!await loginThrottle.reserve(input.email))return send(res,429,{error:'Demasiados intentos. Espera antes de volver a intentarlo.'});
       const result=await fromBackend('POST','/login',{email:input.email.trim(),password:input.password});
