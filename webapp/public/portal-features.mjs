@@ -222,11 +222,36 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     }).join(""):'<p>Esta prenda todavía no tiene fotografías.</p>')+
    '<div class="feature-bottom">'+b("+ Subir fotografía","photo-new")+'</div>',null);
  }
- function newPhoto(){
+ async function preparePhoto(file){
+  if(!file||!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size<1)throw new Error("Selecciona un JPEG, PNG o WebP.");
+  const MAX=150*1024;
+  if(file.size<=MAX)return {blob:file,name:file.name,contentType:file.type};
+  const image=await new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(Error("No se pudo abrir la fotografía."));};
+    img.src=url;
+  });
+  let scale=Math.min(1,1400/Math.max(image.naturalWidth,image.naturalHeight));
+  for(let attempt=0;attempt<10;attempt++){
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+    canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const ctx=canvas.getContext("2d");if(!ctx)throw new Error("No se pudo preparar la fotografía.");
+    ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    for(const quality of [0.82,0.72,0.62,0.52,0.42]){
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
+      if(blob&&blob.size<=MAX)return {blob,name:(file.name.replace(/\.[^.]+$/,"")||"foto")+".jpg",contentType:"image/jpeg"};
+    }
+    scale*=0.78;
+  }
+  throw new Error("No se pudo reducir la fotografía al tamaño permitido. Prueba con otra imagen.");
+}
+function newPhoto(){
   const {orderId,itemId}=selected||{};
   if(!uuid(orderId)||!uuid(itemId))return;
   layout("photo-new","Subir fotografía",
-   '<p class="feature-muted">Archivo JPEG, PNG o WebP de hasta 150 KB. Se enviará exclusivamente a tu espacio de trabajo.</p>'+
+   '<p class="feature-muted">JPEG, PNG o WebP. Las fotografías grandes se reducirán automáticamente antes de subirlas. Se enviarán exclusivamente a tu espacio de trabajo.</p>'+
    '<div class="feature-fields">'+field("file","Fotografía *","file",'required accept="image/jpeg,image/png,image/webp"')+
    select("photoType","Tipo",choice("intake",photoTypes))+textarea("caption","Comentario",500)+'</div>');
   selected={orderId,itemId};
@@ -300,19 +325,15 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    clearPaymentRetry(retry);
    close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
   }else if(mode==="photo-new"){
-   const file=form().elements.namedItem("file").files[0];
-   if(!file||!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>150*1024||file.size<1)
-    throw Error("Selecciona un JPEG, PNG o WebP de hasta 150 KB.");
+   const file=form().elements.namedItem("file").files[0],prepared=await preparePhoto(file);
    const base64=await new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onerror=()=>reject(Error("No se pudo leer la fotografía."));
-    reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");
-    reader.readAsDataURL(file);
+    const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer la fotografía."));
+    reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(prepared.blob);
    });
    const {orderId,itemId}=selected;
    await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos/upload",{
-    method:"POST",body:JSON.stringify({base64,sizeBytes:file.size,fileName:file.name,
-     contentType:file.type,photoType:get("photoType"),caption:get("caption").trim()||null})});
+    method:"POST",body:JSON.stringify({base64,sizeBytes:prepared.blob.size,fileName:prepared.name,
+     contentType:prepared.contentType,photoType:get("photoType"),caption:get("caption").trim()||null})});
    close();await openPhotos(orderId,itemId);success("Fotografía subida correctamente.");
   }
  }
