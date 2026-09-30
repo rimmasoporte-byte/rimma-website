@@ -8,6 +8,28 @@
 #signup-form button{margin-top:10px;min-height:44px;cursor:pointer}
 #signup-form button.secondary{background:#f1ede4;border:1px solid #c6bda9;color:#41362e}
 #signup-form button[disabled]{opacity:.55;cursor:not-allowed}
+#signup-form .signup-legal-review{
+ margin-top:14px;padding:16px;border:1px solid #d7c8ae;border-radius:10px;
+ background:#fffdf9;box-shadow:0 4px 18px rgba(84,67,42,.05)
+}
+#signup-form .signup-legal-review>strong{
+ display:block;margin-bottom:5px;color:#3f382f;font-size:13px
+}
+#signup-form .signup-legal-review>span{
+ display:block;color:#756a5d;font-size:12px;line-height:1.6
+}
+#signup-form .signup-legal-links{
+ display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px
+}
+#signup-form .signup-legal-links a{
+ display:flex;align-items:center;justify-content:center;min-height:42px;padding:9px 12px;
+ border:1px solid #bca57e;border-radius:7px;background:#f7f1e7;color:#6b512e;
+ font-size:11px;font-weight:700;text-align:center;text-decoration:none
+}
+#signup-form .signup-legal-links a:hover,
+#signup-form .signup-legal-links a:focus-visible{
+ background:#eee3d2;border-color:#846736;color:#49361f
+}
 #signup-form .signup-consent{
  display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;align-items:start;
  margin-top:12px;padding:14px 16px;border:1px solid #dfd4c3;border-radius:8px;
@@ -24,4 +46,7 @@
 #signup-form .signup-consent a:hover{color:#5f4929}
 #signup-status{font-size:13px;line-height:1.5;color:#6d503e;min-height:20px}
 #signup-invite[hidden]{display:none}
-@media(max-width:660px){#signup-main .auth-main{padding:14px 8px}}
+@media(max-width:660px){
+ #signup-main .auth-main{padding:14px 8px}
+ #signup-form .signup-legal-links{grid-template-columns:1fr}
+}
