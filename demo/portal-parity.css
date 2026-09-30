@@ -441,3 +441,7 @@ body:has(.demo-ribbon) main{padding-bottom:145px}
 .demo-trial-cta{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 12px;border:1px solid #c7a66c;border-radius:6px;background:#1b3023;color:#fff6e4;font:650 11px/1.2 var(--font);white-space:nowrap;text-decoration:none;box-shadow:0 5px 14px rgba(16,35,24,.12)}
 .demo-trial-cta:hover{background:#294735;color:#fffdf8}
 @media(max-width:720px){.demo-trial-cta{font-size:10px;padding:6px 9px}.topbar-private{display:none!important}}
+
+.sidebar .sidebar-brand-logo{display:inline-flex;align-items:center;justify-content:center;width:max-content;max-width:100%;height:auto;min-height:62px;padding:6px 10px;background:#fffaf1;border:1px solid rgba(213,178,111,.72);border-radius:6px;box-shadow:0 8px 20px rgba(4,20,12,.2);letter-spacing:0!important;line-height:1!important;overflow:hidden}
+.sidebar .sidebar-brand-logo img{display:block;width:min(184px,100%);height:auto;max-height:64px;object-fit:contain;filter:none!important}
+@media(max-width:930px){.sidebar .sidebar-brand-logo{min-height:58px}.sidebar .sidebar-brand-logo img{width:174px;max-height:60px}}
