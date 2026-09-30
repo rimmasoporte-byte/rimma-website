@@ -20,6 +20,7 @@ export function validateSignupStep(step,input){
   }
   if(step!=='register')fail();
   const password=input.password;
+  const confirmPassword=input.confirmPassword;
   const displayName=typeof input.displayName==='string'?input.displayName.trim():'';
   const workspaceName=typeof input.workspaceName==='string'?input.workspaceName.trim():'';
   const countryCode=typeof input.countryCode==='string'?input.countryCode.toUpperCase():'';
@@ -27,6 +28,7 @@ export function validateSignupStep(step,input){
   const timezone=input.timezone;
   const token=input.emailVerificationToken;
   if(typeof password!=='string'||password.length<8||password.length>200||
+    typeof confirmPassword!=='string'||confirmPassword!==password||
     !displayName||displayName.length>120||!workspaceName||workspaceName.length>120||
     !/^[A-Z]{2}$/.test(countryCode)||!/^[A-Z]{3}$/.test(currencyCode)||
     typeof timezone!=='string'||timezone.length>64||
