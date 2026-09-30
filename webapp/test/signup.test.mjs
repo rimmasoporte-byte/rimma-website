@@ -78,6 +78,8 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   assert.ok(htmlText.includes('id="signup-password-confirm"'));
   assert.ok(htmlText.includes('Repetir contraseña'));
   assert.ok(htmlText.includes('name="website"'));
+  assert.ok(htmlText.includes('id="signup-code-status"'));
+  assert.ok(htmlText.includes('Correo verificado'));
   assert.doesNotMatch(htmlText,/¿Ya tienes cuenta\?/);
   const legacyRegister=await fetch(base+'/register?from=browser-back',{redirect:'manual'});
   assert.equal(legacyRegister.status,302);
