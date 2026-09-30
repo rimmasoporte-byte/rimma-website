@@ -10,6 +10,8 @@ const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:
 const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
 const businessViews=new Set(["inicio","pedidos","clientes","servicios","informes"]);
 let subscriptionLocked=false;
+const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
+let checkoutHandled=false;
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
@@ -108,7 +110,7 @@ function applySubscriptionLockUi(locked){
 }
 async function resolveSubscriptionGate(){
  try{
-  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs")]);
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261001b")]);
   const billing=data.billing||{};
   applySubscriptionLockUi(view.billingAccessLocked(billing));
   return billing;
@@ -227,18 +229,25 @@ async function loadReport(){
 async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
  try{
-  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs")]);
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261001b")]);
   const b=data.billing||{};
   let webCheckoutUrl=null;
   // Never build a web-payment URL in browser JS: rely on server verification.
   if((b.status==="trial"||b.status==="expired") && b.owner===true && b.configured===true){
    try{
     const purchase=await request("/api/billing/web-checkout");
-    if(purchase.available===true)webCheckoutUrl=purchase.url;
+    if(purchase.available===true){
+     webCheckoutUrl=purchase.url;
+     if(checkoutRequested&&!checkoutHandled){checkoutHandled=true;window.location.assign(purchase.url);return b;}
+    }
    }catch{/* Preserve normal subscription screen if checkout is unavailable. */}
   }
   $("#billing-data").innerHTML=view.renderBilling(b,{webCheckoutUrl});
   applySubscriptionLockUi(view.billingAccessLocked(b));
+  if(checkoutRequested&&!checkoutHandled&&!webCheckoutUrl){
+   checkoutHandled=true;
+   showBillingFeedback("La cuenta está creada, pero el pago web no está disponible todavía. Puedes seguir con tus 5 días gratis o volver a intentarlo desde Suscripción.",true);
+  }
   return b;
  }catch(e){
   $("#billing-data").innerHTML='<div class="paper-panel"><p>No se pudo consultar tu suscripción. Inténtalo de nuevo.</p>'+
@@ -265,7 +274,7 @@ async function verifyBilling(button){
   await request("/api/billing/sync",{method:"POST",body:"{}"});
   const current=await loadBilling();
   if(!current)return; // loadBilling has already rendered an error.
-  const view=await import("/app/billing-view.mjs");
+  const view=await import("/app/billing-view.mjs?v=20261001b");
   showBillingFeedback(view.describeBillingSyncOutcome(current));
  }catch(e){
   const unavailable=e.status===503
@@ -287,7 +296,7 @@ async function refreshBilling(button){
  try{
   const current=await loadBilling();
   if(!current)return;
-  const view=await import("/app/billing-view.mjs");
+  const view=await import("/app/billing-view.mjs?v=20261001b");
   showBillingFeedback("Estado actualizado. "+view.describeBillingSyncOutcome(current)
     .replace(/^Comprobación completada: /,""));
  }finally{

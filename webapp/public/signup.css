@@ -6,6 +6,13 @@
  border-radius:5px;padding:10px;font:inherit;color:#33312c
 }
 #signup-form button{margin-top:10px;min-height:44px;cursor:pointer}
+#signup-form .signup-plan-choice{margin:14px 0 4px;padding:0;border:0;display:grid;gap:10px}
+#signup-form .signup-plan-choice legend{margin-bottom:2px;font-size:13px;font-weight:700;color:#3f382f}
+#signup-form .signup-plan-option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;margin:0;padding:14px 15px;border:1px solid #d7c8ae;border-radius:9px;background:#fffdf9;cursor:pointer}
+#signup-form .signup-plan-option:has(input:checked){border-color:#846736;box-shadow:0 0 0 1px #846736 inset;background:#faf4e9}
+#signup-form .signup-plan-option input{appearance:auto;width:16px;height:16px;min-height:0;margin:3px 0 0;padding:0;border:0;background:transparent;accent-color:#846736}
+#signup-form .signup-plan-option strong{display:block;color:#3f382f;font-size:13px}
+#signup-form .signup-plan-option small{display:block;margin-top:3px;color:#756a5d;font-size:11px;line-height:1.55}
 #signup-form button.secondary{background:#f1ede4;border:1px solid #c6bda9;color:#41362e}
 #signup-form button[disabled]{opacity:.55;cursor:not-allowed}
 #signup-form .signup-legal-review{

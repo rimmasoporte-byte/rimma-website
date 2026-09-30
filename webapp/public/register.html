@@ -5,17 +5,17 @@
 <link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/app/site.css">
 <link rel="stylesheet" href="/app/premium.css">
-<link rel="stylesheet" href="/app/signup.css">
-<script src="/app/signup-client.mjs?v=20261001a" type="module"></script>
+<link rel="stylesheet" href="/app/signup.css?v=20261001b">
+<script src="/app/signup-client.mjs?v=20261001b" type="module"></script>
 <script src="/app/password-toggle.mjs?v=20261001a" type="module"></script>
 </head><body>
 <a class="skip" href="#signup-main">Ir al contenido</a>
 <section class="auth-shell" id="signup-main">
  <div class="auth-side">
   <a class="auth-side-logo" href="https://rimmaapp.com" aria-label="RIMMA página principal"><img src="/app/rimma-logo.webp" alt="RIMMA" width="190" height="67" decoding="async"></a>
-  <span class="auth-caption">5 DÍAS PARA DESCUBRIR RIMMA</span>
+  <span class="auth-caption">ELIGE CÓMO EMPEZAR</span>
   <h1>Tu taller,<br>tu <em>espacio.</em></h1>
-  <p>Empieza gratis durante 5 días. No necesitas introducir una tarjeta.</p>
+  <p>Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.</p>
  </div>
  <div class="auth-main"><div class="auth-card">
   <a class="auth-logo" href="https://rimmaapp.com" aria-label="RIMMA página principal"><img src="/app/rimma-logo.webp" alt="RIMMA" width="176" height="62" decoding="async"></a>
@@ -35,6 +35,17 @@
    <input id="signup-password-confirm" name="confirmPassword" type="password" required minlength="8" maxlength="200" autocomplete="new-password">
    <label for="signup-country">País</label>
    <select id="signup-country" name="countryCode" required></select>
+   <fieldset class="signup-plan-choice">
+    <legend>¿Cómo quieres empezar?</legend>
+    <label class="signup-plan-option">
+     <input type="radio" name="startOption" value="trial" checked>
+     <span><strong>Probar 5 días gratis</strong><small>Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.</small></span>
+    </label>
+    <label class="signup-plan-option">
+     <input type="radio" name="startOption" value="paid">
+     <span><strong>Suscribirme ahora</strong><small>Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.</small></span>
+    </label>
+   </fieldset>
    <button id="signup-send" class="secondary" type="button">Enviarme un código por correo</button>
    <label for="signup-code">Código de seis cifras</label>
    <input id="signup-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
@@ -56,7 +67,7 @@
     <span class="signup-consent-copy">He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.</span>
    </label>
    <div class="bot-check" data-rimma-turnstile hidden></div>
-   <button id="signup-submit" class="primary" type="submit" disabled>Crear mi taller gratis</button>
+   <button id="signup-submit" class="primary" type="submit" disabled>Crear mi taller · 5 días gratis</button>
   </form>
   <p id="signup-status" role="status" aria-live="polite"></p>
   <p class="small signup-return"><a href="/app/" aria-label="Volver al inicio de sesión">← Volver al inicio de sesión</a></p>

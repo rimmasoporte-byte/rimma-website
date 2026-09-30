@@ -69,15 +69,15 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
    :"Renovación no activada. Conservarás el acceso hasta la fecha indicada.")+"</p>";
  else renewal="<p>Tu cuenta permanece guardada. Para volver a clientes, pedidos, servicios e informes, activa una suscripción. No eliminamos tu taller automáticamente al terminar la prueba.</p>";
  const testLink='<a href="'+testerUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Abrir RIMMA en Android para suscribirme ahora ↗</a>';
- const playManage=isPaid?'<a href="'+manageUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Gestionar mi compra en Google Play ↗</a>':"";
- const webLink=validCheckout?'<a href="'+esc(validCheckout)+'" class="primary subscription-checkout" rel="noopener noreferrer" target="_blank">Suscribirme ahora en la web ↗</a>':"";
+ const playManage=isPaid&&b.store==="play_store"?'<a href="'+manageUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Gestionar mi compra en Google Play ↗</a>':"";
+ const webLink=validCheckout?'<a href="'+esc(validCheckout)+'" class="primary subscription-checkout" rel="noopener noreferrer" target="_blank">Suscribirme ahora · pago inmediato ↗</a>':"";
  const ownerInfo=owner?(ready
-   ?'<p>Puedes suscribirte en cualquier momento, también durante los 5 días de prueba. Google Play mostrará el precio definitivo según tu país antes de cobrarte.</p>'+
+   ?'<p>Puedes elegir: mantener tus 5 días gratis sin tarjeta o suscribirte ahora. Si eliges la suscripción web, el cobro se realiza inmediatamente al confirmar el pago.</p>'+
      (validCheckout?"":'<p class="billing-muted">La compra directa con tarjeta en esta web todavía no está habilitada.</p>')
    :'<p class="billing-warning">La verificación de pagos no está disponible temporalmente. Contacta con soporte antes de realizar una compra.</p>')
    :'<p>Solo el propietario del taller puede contratar o verificar una suscripción. Pide ayuda al propietario.</p>';
  const verify=owner&&ready?'<button type="button" class="secondary billing-action" data-action="verify-billing">Comprobar compra</button>':"";
- const renewNotice=isTrial?'<p class="billing-muted">Plan mensual en España: 4,99 €/mes. El precio y los impuestos aplicables se confirmarán en Google Play antes de pagar; otros países pueden tener precios diferentes.</p>':"";
+ const renewNotice=isTrial?'<p class="billing-muted">Plan mensual en España: 4,99 €/mes. En la compra web verás el importe final, moneda e impuestos antes de confirmar; en otros países el precio puede ser diferente.</p>':"";
  const sandbox=b.isSandbox===true?'<p class="billing-warning">Existe una compra de prueba (sandbox). No activa una suscripción real.</p>':"";
  return '<div class="paper-panel billing-card"><span class="report-value-label">TU ACCESO</span>'+
   '<div class="report-value">'+esc(heading)+'</div><p>'+esc(short)+'</p>'+

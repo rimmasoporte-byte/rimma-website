@@ -63,6 +63,11 @@ if(form&&config.enabled){
  const codeStatus=form.querySelector('#signup-code-status');
  const codeStatusText=form.querySelector('#signup-code-status-text');
  const submit=form.querySelector('#signup-submit');
+ const startOptions=[...form.querySelectorAll('input[name="startOption"]')];
+ const selectedStart=()=>form.querySelector('input[name="startOption"]:checked')?.value==='paid'?'paid':'trial';
+ const updateSubmitLabel=()=>{submit.textContent=selectedStart()==='paid'?'Crear mi taller y suscribirme ahora':'Crear mi taller · 5 días gratis';};
+ startOptions.forEach(option=>option.addEventListener('change',updateSubmitLabel));
+ updateSubmitLabel();
  let grant=null,busy=false,lastVerificationAttempt='';
  const setCodeStatus=(state,text)=>{
   codeStatus.dataset.state=state;
@@ -149,6 +154,7 @@ if(form&&config.enabled){
    const normalized=email.value.trim().toLowerCase();
    if(!grant||grant.email!==normalized){announce('Primero verifica este correo electrónico.');return;}
    const data=new FormData(form);
+   const startOption=selectedStart();
    const region=COUNTRIES.find(x=>x[0]===data.get('countryCode'));
    if(!region)throw new Error('Selecciona un país válido.');
    await api('/api/auth/signup/register',{
@@ -162,7 +168,7 @@ if(form&&config.enabled){
    announce('¡Cuenta creada! Estamos abriendo tu taller…');
    try{
     await api('/api/auth/login',{email:normalized,password:password.value});
-    window.location.assign('/app/');
+    window.location.assign(startOption==='paid'?'/app/?view=suscripcion&checkout=1':'/app/');
    }catch{
     announce('Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.');
     submit.disabled=true;

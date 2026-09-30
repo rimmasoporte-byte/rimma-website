@@ -12,30 +12,30 @@ test('server 5-day trial is clearly separate from paid Google Play renewal',()=>
  assert.match(html,/no genera cobros automáticos/);
  assert.match(html,/4,99 €\/mes/);
  assert.doesNotMatch(html,/Gestionar mi compra en Google Play/);
- assert.doesNotMatch(html,/Suscribirme ahora en la web/);
+ assert.doesNotMatch(html,/Suscribirme ahora · pago inmediato/);
  assert.match(html,/Abrir RIMMA en Android para suscribirme ahora/);
 });
 test('paid subscription shows real renewal state and Play management',()=>{
- const paid={status:'active',active:true,owner:true,configured:true,
+ const paid={status:'active',active:true,owner:true,configured:true,store:'play_store',
   expiresAt:'2026-10-12T00:00:00Z',willRenew:true};
  const html=renderBilling(paid,{now:clock});
  assert.match(html,/Renovación comunicada por el proveedor: activada/);
  assert.match(html,/Gestionar mi compra en Google Play/);
  assert.doesNotMatch(html,/no genera cobros automáticos/);
- assert.doesNotMatch(html,/Suscribirme ahora en la web/);
+ assert.doesNotMatch(html,/Suscribirme ahora · pago inmediato/);
  const cancelled=renderBilling({...paid,willRenew:false},{now:clock});
  assert.match(cancelled,/la renovación no está activada/);
 });
 test('web card checkout is hidden until backend says it is available',()=>{
  const expired={status:'expired',active:false,owner:true,configured:true};
  const url='https://pay.rev.cat/TESTCODE123456/rimma_workspace_aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
- assert.doesNotMatch(renderBilling(expired,{webCheckoutUrl:url}),/Suscribirme ahora en la web/);
- assert.match(renderBilling({...expired,webPurchasesEnabled:true},{webCheckoutUrl:url}),/Suscribirme ahora en la web/);
- assert.doesNotMatch(renderBilling({...expired,webPurchasesEnabled:true},{webCheckoutUrl:'https://evil.test/phishing'}),/Suscribirme ahora en la web/);
- assert.doesNotMatch(renderBilling({...expired,owner:false,webPurchasesEnabled:true},{webCheckoutUrl:url}),/Suscribirme ahora en la web/);
+ assert.doesNotMatch(renderBilling(expired,{webCheckoutUrl:url}),/Suscribirme ahora · pago inmediato/);
+ assert.match(renderBilling({...expired,webPurchasesEnabled:true},{webCheckoutUrl:url}),/Suscribirme ahora · pago inmediato/);
+ assert.doesNotMatch(renderBilling({...expired,webPurchasesEnabled:true},{webCheckoutUrl:'https://evil.test/phishing'}),/Suscribirme ahora · pago inmediato/);
+ assert.doesNotMatch(renderBilling({...expired,owner:false,webPurchasesEnabled:true},{webCheckoutUrl:url}),/Suscribirme ahora · pago inmediato/);
  const trialUrl=renderBilling({...trial,webPurchasesEnabled:true},{now:clock,webCheckoutUrl:url});
- assert.match(trialUrl,/Suscribirme ahora en la web/);
- assert.match(trialUrl,/sin esperar a que termine/);
+ assert.match(trialUrl,/Suscribirme ahora · pago inmediato/);
+ assert.match(trialUrl,/cobro se realiza inmediatamente/);
 });
 test('sandbox is never presented as production access; absent date handled',()=>{
  const html=renderBilling({status:'expired',active:false,configured:false,isSandbox:true});
