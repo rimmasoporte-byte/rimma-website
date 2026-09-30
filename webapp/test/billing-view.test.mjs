@@ -4,11 +4,11 @@ import {trialDaysRemaining,renderBilling,describeBillingSyncOutcome} from '../pu
 
 const clock=Date.parse('2026-09-29T12:00:00Z');
 const trial={status:'trial',active:true,owner:true,configured:true,
-  trialEndsAt:'2026-10-07T12:00:00Z',willRenew:false};
-test('server 15-day trial is clearly separate from paid Google Play renewal',()=>{
- assert.equal(trialDaysRemaining(trial.trialEndsAt,clock),8);
+  trialEndsAt:'2026-10-04T12:00:00Z',willRenew:false};
+test('server 5-day trial is clearly separate from paid Google Play renewal',()=>{
+ assert.equal(trialDaysRemaining(trial.trialEndsAt,clock),5);
  const html=renderBilling(trial,{now:clock});
- assert.match(html,/Quedan aproximadamente 8 días/);
+ assert.match(html,/Quedan aproximadamente 5 días/);
  assert.match(html,/no genera cobros automáticos/);
  assert.match(html,/4,99 €\/mes/);
  assert.doesNotMatch(html,/Gestionar mi compra en Google Play/);
@@ -46,7 +46,7 @@ test('payment verification shows its result directly under the subscription butt
  assert.match(view, /id="billing-feedback"/);
  assert.match(view, /role="status"/);
  assert.match(describeBillingSyncOutcome(trial),/aún no hay una suscripción de pago activa/);
- assert.match(describeBillingSyncOutcome(trial),/7 de octubre de 2026/);
+ assert.match(describeBillingSyncOutcome(trial),/4 de octubre de 2026/);
  const paid={status:'active',active:true,expiresAt:'2026-10-12T12:00:00Z'};
  assert.match(describeBillingSyncOutcome(paid),/suscripción pagada está activa/);
  assert.match(describeBillingSyncOutcome({status:'expired',active:false}),/no se ha confirmado ninguna suscripción/);

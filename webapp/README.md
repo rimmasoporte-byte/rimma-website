@@ -141,8 +141,8 @@ Sandbox to RevenueCat; create a separate Stripe monthly product and import
 into the same RevenueCat entitlement (`rimma_pro`); create a hosted
 Web Purchase Link for a dedicated web offering; run test purchases and
 separately configure the live Stripe business account, regional VAT and
-customer portal. The existing 15-day trial is in RIMMA's PostgreSQL;
-do NOT add another 15-day Stripe trial.
+customer portal. The existing 5-day trial is in RIMMA's PostgreSQL;
+do NOT add another 5-day Stripe trial.
 
 Official docs:
 https://www.revenuecat.com/docs/web/integrations/stripe
