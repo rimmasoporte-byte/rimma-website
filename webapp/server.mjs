@@ -179,7 +179,9 @@ function requireCsrf(req,res,s) {
 async function staticFile(res,filename,type) {
   try {
     const content=await fs.readFile(path.join(root,filename));
-    res.writeHead(200,{...securityHeaders(type),'cache-control':filename.endsWith('.html')?'no-store':'public, max-age=600'});
+    const revalidate=/\.(?:js|mjs|css)$/i.test(filename);
+    const cacheControl=filename.endsWith('.html')?'no-store':revalidate?'no-cache':'public, max-age=600';
+    res.writeHead(200,{...securityHeaders(type),'cache-control':cacheControl});
     res.end(content);
   } catch {send(res,404,{error:'Página no encontrada.'});}
 }
