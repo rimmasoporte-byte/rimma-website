@@ -1,3 +1,4 @@
+import {initBotProtection,getBotToken,resetBotProtection} from '/app/bot-protection.mjs';
 const COUNTRIES=Object.freeze([
  ['ES','España','EUR','Europe/Madrid'],['MX','México','MXN','America/Mexico_City'],
  ['AR','Argentina','ARS','America/Argentina/Buenos_Aires'],['CL','Chile','CLP','America/Santiago'],
@@ -16,12 +17,22 @@ const form=document.getElementById('signup-form');
 const link=document.getElementById('signup-invite');
 const announce=text=>{if(banner)banner.textContent=text;};
 async function api(url,payload){
- const response=await fetch(url,{method:payload?'POST':'GET',
-  headers:payload?{'content-type':'application/json'}:{},
-  body:payload?JSON.stringify(payload):undefined,credentials:'same-origin'});
- const result=await response.json().catch(()=>({}));
- if(!response.ok)throw new Error(result.error||'No se ha podido completar la solicitud.');
- return result;
+ let outgoing=payload;
+ const protectedCall=Boolean(payload)&&url.startsWith('/api/auth/signup/');
+ if(protectedCall){
+  await initBotProtection(form);
+  outgoing={...payload,botToken:getBotToken(form)};
+ }
+ try{
+  const response=await fetch(url,{method:outgoing?'POST':'GET',
+   headers:outgoing?{'content-type':'application/json'}:{},
+   body:outgoing?JSON.stringify(outgoing):undefined,credentials:'same-origin'});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'No se ha podido completar la solicitud.');
+  return result;
+ }finally{
+  if(protectedCall)void resetBotProtection(form);
+ }
 }
 const config=await api('/api/auth/signup-config').catch(()=>({enabled:false}));
 if(link)link.hidden=!config.enabled;
@@ -30,6 +41,7 @@ if(form&&!config.enabled){
  for(const el of form.elements)el.disabled=true;
 }
 if(form&&config.enabled){
+ await initBotProtection(form);
  const country=form.querySelector('#signup-country');
  for(const [id,label] of COUNTRIES){
   const option=document.createElement('option');option.value=id;option.textContent=label;
