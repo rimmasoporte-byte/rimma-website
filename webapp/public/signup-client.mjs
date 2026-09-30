@@ -38,6 +38,13 @@ if(form&&config.enabled){
  country.value='ES';
  const email=form.querySelector('#signup-email');
  const password=form.querySelector('#signup-password');
+ const confirmPassword=form.querySelector('#signup-password-confirm');
+ const syncPasswordMatch=()=>{
+  const mismatch=confirmPassword.value.length>0&&password.value!==confirmPassword.value;
+  confirmPassword.setCustomValidity(mismatch?'Las contraseñas no coinciden.':'');
+ };
+ password.addEventListener('input',syncPasswordMatch);
+ confirmPassword.addEventListener('input',syncPasswordMatch);
  const send=form.querySelector('#signup-send');
  const verify=form.querySelector('#signup-verify');
  const submit=form.querySelector('#signup-submit');
@@ -68,14 +75,16 @@ if(form&&config.enabled){
  form.addEventListener('submit',event=>{
   event.preventDefault();
   perform(async()=>{
+   syncPasswordMatch();
    if(!form.reportValidity())return;
+   if(password.value!==confirmPassword.value){announce('Las contraseñas no coinciden.');confirmPassword.focus();return;}
    const normalized=email.value.trim().toLowerCase();
    if(!grant||grant.email!==normalized){announce('Primero verifica este correo electrónico.');return;}
    const data=new FormData(form);
    const region=COUNTRIES.find(x=>x[0]===data.get('countryCode'));
    if(!region)throw new Error('Selecciona un país válido.');
    await api('/api/auth/signup/register',{
-    email:normalized,password:password.value,
+    email:normalized,password:password.value,confirmPassword:confirmPassword.value,
     displayName:String(data.get('displayName')||'').trim(),
     workspaceName:String(data.get('workspaceName')||'').trim(),
     countryCode:region[0],currencyCode:region[2],timezone:region[3],
