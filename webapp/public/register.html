@@ -35,9 +35,17 @@
    <label for="signup-code">Código de seis cifras</label>
    <input id="signup-code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
    <button id="signup-verify" class="secondary" type="button">Verificar código</button>
+   <div class="signup-legal-review" aria-labelledby="signup-legal-title">
+    <strong id="signup-legal-title">Antes de continuar</strong>
+    <span>Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.</span>
+    <div class="signup-legal-links">
+     <a href="https://rimmaapp.com/terms/" target="_blank" rel="noopener noreferrer">Leer Términos de uso ↗</a>
+     <a href="https://rimmaapp.com/privacy/" target="_blank" rel="noopener noreferrer">Leer Política de privacidad ↗</a>
+    </div>
+   </div>
    <label class="signup-consent">
     <input id="signup-consent" name="consent" type="checkbox" required>
-    <span class="signup-consent-copy">Acepto los <a href="https://rimmaapp.com/terms/" target="_blank" rel="noopener noreferrer">Términos de uso</a> y confirmo que he leído la <a href="https://rimmaapp.com/privacy/" target="_blank" rel="noopener noreferrer">Política de privacidad</a>.</span>
+    <span class="signup-consent-copy">He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.</span>
    </label>
    <button id="signup-submit" class="primary" type="submit" disabled>Crear mi taller gratis</button>
   </form>
