@@ -20,11 +20,15 @@
     document.addEventListener("keydown",event=>{if(event.key==="Escape"&&document.body.classList.contains("menu-open")){closeMenu();menu.focus();}});
     window.matchMedia("(min-width: 861px)").addEventListener("change",event=>{if(event.matches)closeMenu();});
   }
+  const legalFromSignup=new URLSearchParams(location.search).get("from")==="signup";
   document.querySelectorAll("[data-legal-back]").forEach(link=>{
+    if(legalFromSignup){
+      link.textContent="← Volver al registro";
+      link.setAttribute("aria-label","Volver al registro de RIMMA");
+    }
     link.addEventListener("click",event=>{
       event.preventDefault();
-      const fromSignup=new URLSearchParams(location.search).get("from")==="signup";
-      if(fromSignup){location.href="https://app.rimmaapp.com/register";return;}
+      if(legalFromSignup){location.href="https://app.rimmaapp.com/app/register.html";return;}
       if(document.referrer){
         try{
           const ref=new URL(document.referrer);

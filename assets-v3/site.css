@@ -352,3 +352,7 @@ em{font-style:italic;font-weight:400}
 
 
 .legal-breadcrumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.legal-back{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid #d8c9ae;border-radius:999px;background:#fbf7ef;color:#6c5431;font-weight:700}.legal-back:hover{background:#f1e7d6;color:#4d3a21}.legal-breadcrumb>span{color:#b1a28d}
+
+.legal-return{margin:34px 0 8px;text-align:center}
+.legal-return .legal-back{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 14px;text-decoration:none;font-weight:700}
+.legal-return .legal-back:hover,.legal-return .legal-back:focus-visible{text-decoration:underline;text-underline-offset:4px}
