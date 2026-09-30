@@ -59,25 +59,30 @@ if(form&&config.enabled){
  password.addEventListener('input',syncPasswordMatch);
  confirmPassword.addEventListener('input',syncPasswordMatch);
  const send=form.querySelector('#signup-send');
- const verify=form.querySelector('#signup-verify');
  const code=form.querySelector('#signup-code');
  const codeStatus=form.querySelector('#signup-code-status');
+ const codeStatusText=form.querySelector('#signup-code-status-text');
  const submit=form.querySelector('#signup-submit');
- let grant=null,busy=false;
+ let grant=null,busy=false,lastVerificationAttempt='';
+ const setCodeStatus=(state,text)=>{
+  codeStatus.dataset.state=state;
+  codeStatus.hidden=state==='idle';
+  codeStatusText.textContent=text||'';
+  const icon=codeStatus.querySelector('.signup-code-status-icon');
+  if(icon)icon.textContent=state==='verified'?'✓':state==='error'?'!':'…';
+ };
  const setVerified=value=>{
   code.classList.toggle('is-verified',value);
   code.readOnly=value;
-  codeStatus.hidden=!value;
-  verify.classList.toggle('is-verified',value);
-  verify.textContent=value?'Código verificado ✓':'Verificar código';
-  verify.disabled=busy||value;
+  setCodeStatus(value?'verified':'idle',value?'Correo verificado':'');
   submit.disabled=busy||!grant;
  };
  const resetVerification=()=>{
   grant=null;
+  lastVerificationAttempt='';
   setVerified(false);
  };
- const setBusy=value=>{busy=value;send.disabled=value;verify.disabled=value||Boolean(grant);
+ const setBusy=value=>{busy=value;send.disabled=value;code.disabled=value&&!grant;
   submit.disabled=value||!grant;};
  email.addEventListener('input',()=>{
   resetVerification();
@@ -86,8 +91,9 @@ if(form&&config.enabled){
  async function perform(work){
   if(busy)return;
   setBusy(true);
-  try{await work();}catch(error){announce(error.message||'Error de conexión. Inténtalo de nuevo.');}
-  finally{setBusy(false);}
+  try{await work();}catch(error){
+   if(!error?.handled)announce(error.message||'Error de conexión. Inténtalo de nuevo.');
+  }finally{setBusy(false);}
  }
  send.addEventListener('click',()=>perform(async()=>{
   if(!email.validity.valid){email.reportValidity();return;}
@@ -95,15 +101,45 @@ if(form&&config.enabled){
   code.value='';
   await api('/api/auth/signup/send',{email:email.value,website:website?.value||''});
   announce('Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.');
+  code.focus();
  }));
- verify.addEventListener('click',()=>perform(async()=>{
+ async function verifyCodeAutomatically(){
+  if(busy||grant)return;
   if(!email.validity.valid){email.reportValidity();return;}
-  const code=form.querySelector('#signup-code');
-  if(!/^\d{6}$/.test(code.value.trim())){code.reportValidity();announce('Introduce un código de seis cifras.');return;}
-  const result=await api('/api/auth/signup/verify',{email:email.value,code:code.value.trim(),website:website?.value||''});
-  grant={email:email.value.trim().toLowerCase(),token:result.emailVerificationToken};
-  announce('Correo verificado. Ya puedes crear tu taller.');
- }));
+  const value=code.value.trim();
+  if(!/^\d{6}$/.test(value))return;
+  const attempt=email.value.trim().toLowerCase()+':'+value;
+  if(attempt===lastVerificationAttempt)return;
+  lastVerificationAttempt=attempt;
+  setCodeStatus('checking','Verificando código…');
+  await perform(async()=>{
+   try{
+    const result=await api('/api/auth/signup/verify',{email:email.value,code:value,website:website?.value||''});
+    grant={email:email.value.trim().toLowerCase(),token:result.emailVerificationToken};
+    setVerified(true);
+    announce('Correo verificado. Ya puedes crear tu taller.');
+   }catch(error){
+    grant=null;
+    code.classList.remove('is-verified');
+    code.readOnly=false;
+    setCodeStatus('error','Código incorrecto. Compruébalo e inténtalo de nuevo.');
+    announce('Código incorrecto. Compruébalo e inténtalo de nuevo.');
+    error.handled=true;
+    throw error;
+   }
+  });
+ }
+ code.addEventListener('input',()=>{
+  if(code.readOnly)return;
+  const cleaned=code.value.replace(/\D/g,'').slice(0,6);
+  if(cleaned!==code.value)code.value=cleaned;
+  if(code.value.length<6){
+   lastVerificationAttempt='';
+   setCodeStatus('idle','');
+   return;
+  }
+  void verifyCodeAutomatically();
+ });
  form.addEventListener('submit',event=>{
   event.preventDefault();
   perform(async()=>{
