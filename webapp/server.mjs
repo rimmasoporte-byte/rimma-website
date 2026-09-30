@@ -177,6 +177,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/sidebar-finish.css')return staticFile(res,'sidebar-finish.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/sidebar-photo.css')return staticFile(res,'sidebar-photo.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/rimma-luxury-full.webp')return staticFile(res,'rimma-luxury-full.webp','image/webp');
+    if(method==='GET'&&pathname==='/app/rimma-logo.webp')return staticFile(res,'rimma-logo.webp','image/webp');
     if(method==='GET'&&pathname==='/app/atelier-mannequin.webp')return staticFile(res,'atelier-mannequin.webp','image/webp');
     if(method==='GET'&&pathname==='/app/report-view.mjs')return staticFile(res,'report-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-features.mjs')return staticFile(res,'portal-features.mjs','text/javascript; charset=utf-8');
