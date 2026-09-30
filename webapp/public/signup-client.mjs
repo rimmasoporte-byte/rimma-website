@@ -60,11 +60,29 @@ if(form&&config.enabled){
  confirmPassword.addEventListener('input',syncPasswordMatch);
  const send=form.querySelector('#signup-send');
  const verify=form.querySelector('#signup-verify');
+ const code=form.querySelector('#signup-code');
+ const codeStatus=form.querySelector('#signup-code-status');
  const submit=form.querySelector('#signup-submit');
  let grant=null,busy=false;
- const setBusy=value=>{busy=value;send.disabled=value;verify.disabled=value;
+ const setVerified=value=>{
+  code.classList.toggle('is-verified',value);
+  code.readOnly=value;
+  codeStatus.hidden=!value;
+  verify.classList.toggle('is-verified',value);
+  verify.textContent=value?'Código verificado ✓':'Verificar código';
+  verify.disabled=busy||value;
+  submit.disabled=busy||!grant;
+ };
+ const resetVerification=()=>{
+  grant=null;
+  setVerified(false);
+ };
+ const setBusy=value=>{busy=value;send.disabled=value;verify.disabled=value||Boolean(grant);
   submit.disabled=value||!grant;};
- email.addEventListener('input',()=>{grant=null;submit.disabled=true;});
+ email.addEventListener('input',()=>{
+  resetVerification();
+  code.value='';
+ });
  async function perform(work){
   if(busy)return;
   setBusy(true);
@@ -73,7 +91,8 @@ if(form&&config.enabled){
  }
  send.addEventListener('click',()=>perform(async()=>{
   if(!email.validity.valid){email.reportValidity();return;}
-  grant=null;submit.disabled=true;
+  resetVerification();
+  code.value='';
   await api('/api/auth/signup/send',{email:email.value,website:website?.value||''});
   announce('Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.');
  }));
@@ -103,7 +122,7 @@ if(form&&config.enabled){
     countryCode:region[0],currencyCode:region[2],timezone:region[3],
     emailVerificationToken:grant.token,acceptsTerms:data.get('consent')==='on'
    });
-   grant=null;
+   resetVerification();
    announce('¡Cuenta creada! Estamos abriendo tu taller…');
    try{
     await api('/api/auth/login',{email:normalized,password:password.value});
