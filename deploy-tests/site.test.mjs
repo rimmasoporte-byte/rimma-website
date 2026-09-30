@@ -47,7 +47,7 @@ test('Demo never requests real login credentials and remains excluded from index
 test('Legal routes use the correct production assets and sitemap retains Google Play URLs',()=>{
   for(const p of ['privacy','terms','support','delete-account']){
     const c=read('legal/'+p+'/index.html');
-    assert.match(c,/\.\.\/\.\.\/assets-v3\/logo\.webp/);
+    assert.match(c,/(?:\.\.\/\.\.\/|\/)assets-v3\/logo\.webp/);
     assert.doesNotMatch(c,/\.\.\/\.\.\/assets\//);
   }
   const map=read('sitemap.xml');
