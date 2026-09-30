@@ -57,7 +57,7 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   const base='http://127.0.0.1:'+port;
   const get=await fetch(base+'/api/auth/signup-config');assert.equal((await get.json()).enabled,true);
   const html=await fetch(base+'/app/register.html');assert.equal(html.status,200);
-  assert.ok((await html.text()).includes('15 días'));
+  assert.ok((await html.text()).includes('5 días'));
   const post=(route,data,origin=base)=>fetch(base+'/api/auth/signup/'+route,{
    method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(data)
   });
