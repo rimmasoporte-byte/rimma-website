@@ -45,7 +45,7 @@ function securityHeaders(type) {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'x-frame-options': 'DENY',
-    'content-security-policy': "default-src 'none'; script-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; frame-src"+(turnstileEnabled?" https://challenges.cloudflare.com":"'none'")+"; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    'content-security-policy': "default-src 'none'; script-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'"+(turnstileEnabled?" https://challenges.cloudflare.com":"")+"; frame-src "+(turnstileEnabled?"https://challenges.cloudflare.com":"'none'")+"; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'cross-origin-opener-policy': 'same-origin',
     'cross-origin-resource-policy': 'same-origin',
