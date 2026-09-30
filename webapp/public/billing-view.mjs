@@ -49,7 +49,7 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const paidEnd=displayDate(b.expiresAt);
  const verified=displayDate(b.verifiedAt);
  const remaining=trialDaysRemaining(b.trialEndsAt,now);
- const validCheckout=expired&&ready&&owner&&b.webPurchasesEnabled===true?trustedCheckout(webCheckoutUrl):null;
+ const validCheckout=(isTrial||expired)&&ready&&owner&&b.webPurchasesEnabled===true?trustedCheckout(webCheckoutUrl):null;
  const heading=isTrial?"Periodo de prueba":isPaid?"RIMMA Pro":"Acceso no activo";
  const short=isTrial
   ?(remaining===null?"Acceso gratuito temporal.":
@@ -59,16 +59,16 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const dateLabel=isTrial?"Finaliza la prueba":isPaid?"Acceso pagado hasta":"Acceso";
  const dateValue=isTrial?(trialEnd||"Consulta el estado con soporte"):isPaid?(paidEnd||"Fecha no disponible"):"Pendiente de suscripción";
  let renewal="";
- if(isTrial)renewal="<p>La prueba de RIMMA no genera cobros automáticos. Para continuar después, contrata desde Android.</p>";
+ if(isTrial)renewal="<p>La prueba de RIMMA no genera cobros automáticos. Puedes suscribirte ahora mismo sin esperar a que termine.</p>";
  else if(isPaid)renewal="<p>"+(b.willRenew===true
    ?"Renovación comunicada por el proveedor: activada."
    :"Renovación no activada. Conservarás el acceso hasta la fecha indicada.")+"</p>";
  else renewal="<p>Puedes consultar la forma de suscribirte en la aplicación Android.</p>";
- const testLink='<a href="'+testerUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Instalar RIMMA para Android (solo probadores invitados) ↗</a>';
+ const testLink='<a href="'+testerUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Abrir RIMMA en Android para suscribirme ahora ↗</a>';
  const playManage=isPaid?'<a href="'+manageUrl+'" class="account-link" target="_blank" rel="noopener noreferrer">Gestionar mi compra en Google Play ↗</a>':"";
- const webLink=validCheckout?'<a href="'+esc(validCheckout)+'" class="primary subscription-checkout" rel="noopener noreferrer" target="_blank">Contratar desde la web ↗</a>':"";
+ const webLink=validCheckout?'<a href="'+esc(validCheckout)+'" class="primary subscription-checkout" rel="noopener noreferrer" target="_blank">Suscribirme ahora en la web ↗</a>':"";
  const ownerInfo=owner?(ready
-   ?'<p>La suscripción mensual se contrata actualmente desde la aplicación Android. Google Play mostrará el precio definitivo según tu país antes de cobrarte.</p>'+
+   ?'<p>Puedes suscribirte en cualquier momento, también durante los 5 días de prueba. Google Play mostrará el precio definitivo según tu país antes de cobrarte.</p>'+
      (validCheckout?"":'<p class="billing-muted">La compra directa con tarjeta en esta web todavía no está habilitada.</p>')
    :'<p class="billing-warning">La verificación de pagos no está disponible temporalmente. Contacta con soporte antes de realizar una compra.</p>')
    :'<p>Solo el propietario del taller puede contratar o verificar una suscripción. Pide ayuda al propietario.</p>';
