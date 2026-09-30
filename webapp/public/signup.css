@@ -50,3 +50,7 @@
  #signup-main .auth-main{padding:14px 8px}
  #signup-form .signup-legal-links{grid-template-columns:1fr}
 }
+
+.signup-return{text-align:center;margin-top:16px}
+.signup-return a{font-weight:700;text-decoration:none}
+.signup-return a:hover,.signup-return a:focus-visible{text-decoration:underline;text-underline-offset:3px}
