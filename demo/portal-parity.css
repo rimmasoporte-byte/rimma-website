@@ -437,3 +437,7 @@ body:has(.demo-ribbon) .sidebar-bottom{padding-bottom:36px}
 body:has(.demo-ribbon) main{padding-bottom:145px}
 .demo-only-disabled{opacity:.55!important;cursor:not-allowed!important}
 @media(max-width:630px){.demo-ribbon{font-size:8px;letter-spacing:1px;min-height:32px}.sidebar-bottom{padding-bottom:34px!important}}
+
+.demo-trial-cta{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 12px;border:1px solid #c7a66c;border-radius:6px;background:#1b3023;color:#fff6e4;font:650 11px/1.2 var(--font);white-space:nowrap;text-decoration:none;box-shadow:0 5px 14px rgba(16,35,24,.12)}
+.demo-trial-cta:hover{background:#294735;color:#fffdf8}
+@media(max-width:720px){.demo-trial-cta{font-size:10px;padding:6px 9px}.topbar-private{display:none!important}}
