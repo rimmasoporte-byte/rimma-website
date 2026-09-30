@@ -159,5 +159,5 @@ test('portal sidebar uses the official RIMMA logo asset',()=>{
 test('subscription gate iterates all navigation controls safely',()=>{
  const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
  assert.match(js,/\$\$\("\[data-view\]"\)\.forEach/);
- assert.doesNotMatch(js,/\$\("\[data-view\]"\)\.forEach/);
+ assert.doesNotMatch(js,/(?<!\$)\$\("\[data-view\]"\)\.forEach/);
 });
