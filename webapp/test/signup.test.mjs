@@ -56,7 +56,9 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   ({server}=await import('../server.mjs'));
   await new Promise(resolve=>server.listen(port,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+port;
+  const bot=await fetch(base+'/api/auth/bot-config');assert.deepEqual(await bot.json(),{turnstile:false,siteKey:null});
   const get=await fetch(base+'/api/auth/signup-config');assert.equal((await get.json()).enabled,true);
+  const protection=await fetch(base+'/app/bot-protection.mjs');assert.equal(protection.status,200);
   const html=await fetch(base+'/app/register.html');assert.equal(html.status,200);
   const htmlText=await html.text();
   assert.ok(htmlText.includes('5 días'));
