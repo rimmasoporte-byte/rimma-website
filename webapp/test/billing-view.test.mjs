@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {trialDaysRemaining,renderBilling,describeBillingSyncOutcome} from '../public/billing-view.mjs';
 
 const clock=Date.parse('2026-09-29T12:00:00Z');
-const trial={status:'trial',active:true,owner:true,configured:true,
+const trial={status:'trial',active:false,accessActive:true,owner:true,configured:true,
   trialEndsAt:'2026-10-04T12:00:00Z',willRenew:false};
 test('server 5-day trial is clearly separate from paid Google Play renewal',()=>{
  assert.equal(trialDaysRemaining(trial.trialEndsAt,clock),5);
