@@ -57,3 +57,7 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 .password-toggle .password-eye-off{display:none}
 .password-toggle[aria-pressed="true"] .password-eye{display:none}
 .password-toggle[aria-pressed="true"] .password-eye-off{display:block}
+
+/* Off-screen honeypot: humans never interact with it; automated form fillers often do. */
+.form-trap{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+.form-trap input,.form-trap label{width:1px!important;height:1px!important;padding:0!important;margin:0!important;border:0!important}
