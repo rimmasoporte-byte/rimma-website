@@ -66,6 +66,36 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  }
  const findCat=id=>catalog.find(c=>c.id===id);
  const findService=id=>catalog.flatMap(c=>c.services||[]).find(x=>x.id===id);
+ const STANDARD_CATALOG=[
+  {name:"Pantalones",services:["Dobladillo sencillo","Dobladillo original","Ajustar cintura","Ajustar cadera","Entallar pantalón","Acortar pantalón","Alargar pantalón","Cambiar cremallera"]},
+  {name:"Camisas",services:["Acortar mangas","Ajustar mangas","Ajustar cintura","Entallar camisa","Cambiar cuello","Cambiar puños","Cambiar botones"]},
+  {name:"Faldas",services:["Dobladillo sencillo","Ajustar cintura","Ajustar cadera","Entallar falda","Cambiar cremallera"]},
+  {name:"Vestidos",services:["Dobladillo sencillo","Ajustar cintura","Ajustar cadera","Entallar vestido","Acortar vestido"]},
+  {name:"Chaquetas y abrigos",services:["Acortar mangas","Ajustar mangas","Entallar chaqueta","Ajustar espalda","Cambiar cremallera"]},
+  {name:"Bolsos",services:["Cambiar cremallera","Reparar asa","Reparar forro"]},
+  {name:"Arreglos generales",services:["Cambiar botones","Reparar costura","Cambiar forro"]},
+  {name:"Otros",services:["Arreglo de prenda","Modificación de prenda","Presupuesto personalizado"]}
+ ];
+ async function addStandardCatalog(){
+  const activeCats=catalog.filter(c=>c.status==="active"),byName=new Map(activeCats.map(c=>[c.name.trim().toLowerCase(),c]));
+  let createdCategories=0,createdServices=0,skipped=0;
+  for(const group of STANDARD_CATALOG){
+   let category=byName.get(group.name.toLowerCase());
+   if(!category){
+    const res=await api("/categories",{method:"POST",body:JSON.stringify({name:group.name})});
+    category=res.category||res;if(!category?.id)throw Error("No se pudo crear la categoría "+group.name);
+    byName.set(group.name.toLowerCase(),category);createdCategories++;
+   }
+   const existing=new Set((category.services||[]).filter(s=>s.status!=="deleted").map(s=>s.name.trim().toLowerCase()));
+   for(const name of group.services){
+    if(existing.has(name.toLowerCase())){skipped++;continue;}
+    await api("/price-list/services",{method:"POST",body:JSON.stringify({categoryId:category.id,name,description:"",pricingMode:"quote",priceMinor:null,currencyCode:defaultCurrency})});
+    createdServices++;existing.add(name.toLowerCase());
+   }
+  }
+  await loadServices();
+  success(createdServices||createdCategories?("Catálogo inicial añadido: "+createdServices+" servicios, "+createdCategories+" categorías."):"El catálogo estándar ya estaba añadido.");
+ }
  async function loadServices(){
   const el=document.querySelector("#services-list");
   el.innerHTML='<p class="empty">Cargando servicios…</p>';
@@ -85,6 +115,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
       b("Eliminar","service-delete",'data-id="'+esc(s.id)+'"')+'</div></div>').join(""):'<p class="feature-muted">Sin servicios.</p>')+
       '<div class="feature-bottom">'+b("+ Añadir servicio","service-new",'data-category="'+esc(c.id)+'"')+'</div></article>';
    }).join("")||'<div class="paper-panel"><p>Sin categorías. Crea la primera para empezar.</p></div>';
+   const standardButton='<div class="feature-bottom standard-catalog-action">'+b("Añadir catálogo inicial · 36 servicios","standard-catalog")+'</div>';
+   el.insertAdjacentHTML("afterbegin",standardButton);
   }catch(e){el.innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
  }
  function serviceForm(record=null,catId=""){
@@ -370,6 +402,7 @@ function newPhoto(){
   if(action==="category-new")return categoryForm();
   if(action==="category-edit"){const c=findCat(id);if(c)categoryForm(c);return;}
   if(action==="service-new")return serviceForm(null,el.dataset.category);
+  if(action==="standard-catalog")return void safe(addStandardCatalog());
   if(action==="service-edit"){const s=findService(id);if(s)serviceForm(s);return;}
   if(action==="service-delete"||action==="category-delete")return askDelete(action.startsWith("service")?"service":"category",id);
   if(action==="client-measurements")return void safe(async()=>openMeasurements(id));
