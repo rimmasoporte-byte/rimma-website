@@ -130,6 +130,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  const clientForm=js.slice(js.indexOf('if(type==="client"){'),js.indexOf('if(type==="order"){'));
  assert.doesNotMatch(clientForm,/extra-order-items/);
  assert.match(feat,/deliveryMode|manualmente/);
+ assert.match(feat,/Idempotency-Key/);
+ assert.match(feat,/sessionStorage/);
+ assert.match(feat,/crypto\?\.randomUUID/);
+ assert.match(server,/idempotency-key/);
  assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
  assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);

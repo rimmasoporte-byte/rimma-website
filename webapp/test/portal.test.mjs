@@ -30,6 +30,11 @@ const mock=http.createServer(async(req,res)=>{
  if(p==='/orders')return json(200,{success:true,orders:[{id:'o1',orderNumber:1}]});
  if(p==='/billing')return json(200,{success:true,billing:{active:true,status:'active'}});
  if(p==='/billing/sync'&&req.method==='POST')return json(200,{success:true,billing:{active:true,status:'active'},sync:{status:'verified'}});
+ if(/^\/orders\/[a-f0-9-]{36}\/payments$/.test(p)&&req.method==='POST'){
+  return req.headers['idempotency-key']==='cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+   ?json(200,{success:true,replayed:false})
+   :json(400,{error:'Missing idempotency key'});
+ }
  if(p==='/logout')return json(200,{success:true,logout:{revoked:true}});
  return json(200,{success:true});
 });
@@ -108,7 +113,9 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   for(const [verb,url] of writes){
    r=await fetch(base+url,{method:verb,headers:{...head,...headers},body:'{}'});
    assert.equal(r.status,403,"each business mutation requires CSRF");
-   r=await fetch(base+url,{method:verb,headers:authorized,body:'{}'});
+   const mutationHeaders={...authorized};
+   if(verb==='POST'&&/\/payments$/.test(url))mutationHeaders['idempotency-key']='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+   r=await fetch(base+url,{method:verb,headers:mutationHeaders,body:'{}'});
    assert.equal(r.status,200,"authorized scope stays explicit");
   }
   r=await fetch(base+'/api/data/account/delete',{method:'POST',headers:authorized,body:'{}'});

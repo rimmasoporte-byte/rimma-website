@@ -79,8 +79,8 @@ async function body(req,limit=maxBody) {
   catch {const e=new Error('Invalid JSON');e.status=400;throw e;}
 }
 function timeoutFetch(url, options) {return fetch(url,{...options,signal:AbortSignal.timeout(25000)});}
-async function fromBackend(verb,route,payload,authToken) {
-  const headers={'accept':'application/json'};
+async function fromBackend(verb,route,payload,authToken,extraHeaders={}) {
+  const headers={'accept':'application/json',...extraHeaders};
   // Backend v1 would otherwise hand an asynchronous status token to
   // old Android clients that expect a synchronous deleted:boolean response.
   // Only this reviewed web BFF opts into the new response contract.
@@ -115,11 +115,11 @@ async function refresh(s) {
   s.validUntil=updated.validUntil;
   return true;
 }
-async function callWithSession(s,method,route,payload) {
-  let result=await fromBackend(method,route,payload,s.tokens.accessToken);
+async function callWithSession(s,method,route,payload,extraHeaders={}) {
+  let result=await fromBackend(method,route,payload,s.tokens.accessToken,extraHeaders);
   if(result.status===401){
     await refresh(s);
-    result=await fromBackend(method,route,payload,s.tokens.accessToken);
+    result=await fromBackend(method,route,payload,s.tokens.accessToken,extraHeaders);
   }
   return result;
 }
@@ -363,8 +363,17 @@ export const server=http.createServer(async(req,res)=>{
       if(method!=='GET'&&!requireCsrf(req,res,s))return;
       const photoUpload=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/.test(route);
       const payload=method==='GET'?undefined:await body(req,photoUpload?maxPhotoBody:maxBody);
+      const extraHeaders={};
+      const paymentCreate=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/payments$/.test(route);
+      if(paymentCreate){
+        const key=String(req.headers['idempotency-key']||'').toLowerCase();
+        if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(key)){
+          return send(res,400,{error:'Identificador de cobro no valido. Actualiza la pagina e intentalo de nuevo.'});
+        }
+        extraHeaders['idempotency-key']=key;
+      }
       let result;
-      try {result=await callWithSession(s,method,route+query,payload)}
+      try {result=await callWithSession(s,method,route+query,payload,extraHeaders)}
       catch (e) {
         if(String(e?.message).includes('refresh')){await forget(s);return send(res,401,{error:'La sesión ha caducado.'},{'set-cookie':cookie(null)});}
         throw e;
