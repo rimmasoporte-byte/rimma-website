@@ -37,6 +37,7 @@ if(form&&config.enabled){
  }
  country.value='ES';
  const email=form.querySelector('#signup-email');
+ const website=form.querySelector('#signup-website');
  const password=form.querySelector('#signup-password');
  const confirmPassword=form.querySelector('#signup-password-confirm');
  const syncPasswordMatch=()=>{
@@ -61,14 +62,14 @@ if(form&&config.enabled){
  send.addEventListener('click',()=>perform(async()=>{
   if(!email.validity.valid){email.reportValidity();return;}
   grant=null;submit.disabled=true;
-  await api('/api/auth/signup/send',{email:email.value});
+  await api('/api/auth/signup/send',{email:email.value,website:website?.value||''});
   announce('Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.');
  }));
  verify.addEventListener('click',()=>perform(async()=>{
   if(!email.validity.valid){email.reportValidity();return;}
   const code=form.querySelector('#signup-code');
   if(!/^\d{6}$/.test(code.value.trim())){code.reportValidity();announce('Introduce un código de seis cifras.');return;}
-  const result=await api('/api/auth/signup/verify',{email:email.value,code:code.value.trim()});
+  const result=await api('/api/auth/signup/verify',{email:email.value,code:code.value.trim(),website:website?.value||''});
   grant={email:email.value.trim().toLowerCase(),token:result.emailVerificationToken};
   announce('Correo verificado. Ya puedes crear tu taller.');
  }));
@@ -84,7 +85,7 @@ if(form&&config.enabled){
    const region=COUNTRIES.find(x=>x[0]===data.get('countryCode'));
    if(!region)throw new Error('Selecciona un país válido.');
    await api('/api/auth/signup/register',{
-    email:normalized,password:password.value,confirmPassword:confirmPassword.value,
+    email:normalized,password:password.value,confirmPassword:confirmPassword.value,website:website?.value||'',
     displayName:String(data.get('displayName')||'').trim(),
     workspaceName:String(data.get('workspaceName')||'').trim(),
     countryCode:region[0],currencyCode:region[2],timezone:region[3],
