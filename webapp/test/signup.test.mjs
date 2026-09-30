@@ -12,6 +12,10 @@ test('disposable email domains are rejected without blocking normal mail',()=>{
  assert.equal(isDisposableEmail('USER@MAILINATOR.COM'),true);
  assert.equal(isDisposableEmail('owner@yopmail.com'),true);
  assert.throws(()=>validateSignupStep('send',{email:'owner@mailinator.com'}),/correo electrónico permanente/);
+ const disposableRegistration={email:'owner@yopmail.com',password:'password123',confirmPassword:'password123',
+  displayName:'Alice',workspaceName:'Mi taller',countryCode:'ES',currencyCode:'EUR',
+  timezone:'Europe/Madrid',emailVerificationToken:'x'.repeat(40),acceptsTerms:true};
+ assert.throws(()=>validateSignupStep('register',disposableRegistration),/correo electrónico permanente/);
 });
 test('OTP and registration input fail closed',()=>{
  assert.deepEqual(validateSignupStep('send',{email:' A@EXAMPLE.COM '}),{email:'a@example.com'});
