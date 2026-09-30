@@ -3,7 +3,22 @@ export const signupEnabled = env =>
   env.WEB_PUBLIC_LOGIN_ENABLED === 'true' && env.WEB_PUBLIC_SIGNUP_ENABLED === 'true';
 export class SignupInputError extends Error {}
 const fail=()=>{throw new SignupInputError('Comprueba los datos del formulario.')};
+const disposableDomains=new Set([
+  '10minutemail.com','10minutemail.net','dispostable.com','fakeinbox.com',
+  'getnada.com','guerrillamail.biz','guerrillamail.com','guerrillamail.de',
+  'guerrillamail.info','guerrillamail.net','guerrillamail.org','guerrillamailblock.com',
+  'maildrop.cc','mailinator.com','mohmal.com','nada.email','sharklasers.com',
+  'spam4.me','throwawaymail.com','trashmail.com','trashmail.net',
+  'yopmail.com','yopmail.fr','yopmail.net'
+]);
 const plain=o=>o&&typeof o==='object'&&!Array.isArray(o);
+export function isDisposableEmail(value){
+  const email=typeof value==='string'?value.trim().toLowerCase():'';
+  const at=email.lastIndexOf('@');
+  if(at<1||at===email.length-1)return false;
+  const domain=email.slice(at+1).replace(/\.$/,'');
+  return disposableDomains.has(domain);
+}
 function emailOf(value){
   const email=typeof value==='string'?value.trim().toLowerCase():'';
   if(email.length>254||!/^\S+@\S+\.\S+$/.test(email))fail();
