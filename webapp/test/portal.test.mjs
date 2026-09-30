@@ -133,7 +133,7 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/categories',{method:'POST',headers:authorized,
    body:JSON.stringify({name:'X'.repeat(34_000)})});
   assert.equal(r.status,413,"non-photo writes retain 32KB max");
-  for(const f of ['site.js','confirm-dialog.mjs','billing-view.mjs','portal-features.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
+  for(const f of ['site.js','confirm-dialog.mjs','billing-view.mjs','portal-features.mjs','site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css','onboarding.css','onboarding.mjs','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200);}
   r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);
@@ -153,4 +153,11 @@ test('portal sidebar uses the official RIMMA logo asset',()=>{
  assert.match(html,/sidebar-brand sidebar-brand-logo/);
  assert.match(html,/\/app\/rimma-logo\.webp/);
  assert.doesNotMatch(html,/class="sidebar-brand"[^>]*>RIMMA/);
+});
+
+
+test('subscription gate iterates all navigation controls safely',()=>{
+ const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
+ assert.match(js,/\$\$\("\[data-view\]"\)\.forEach/);
+ assert.doesNotMatch(js,/\$\("\[data-view\]"\)\.forEach/);
 });
