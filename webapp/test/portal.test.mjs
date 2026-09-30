@@ -139,3 +139,10 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   console.log('PASS: authenticated web BFF, CRUD and billing sync assertions');
  }finally{await cleanup();}
 });
+
+test('portal sidebar uses the official RIMMA logo asset',()=>{
+ const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+ assert.match(html,/sidebar-brand sidebar-brand-logo/);
+ assert.match(html,/\/app\/rimma-logo\.webp/);
+ assert.doesNotMatch(html,/class="sidebar-brand"[^>]*>RIMMA/);
+});
