@@ -2,22 +2,24 @@
 (() => {
 "use strict";
 const nativeFetch=window.fetch.bind(window);
+const BR=window.RimmaLocale?.isPt===true;
+const CURRENCY=BR?"BRL":"EUR";
 const customers=[
- {id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",name:"María García",phone:"+34 600 111 222",email:"maria@example.invalid"},
- {id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",name:"Carlos Ruiz",phone:"+34 600 222 333",email:"carlos@example.invalid"},
- {id:"cccccccc-cccc-4ccc-cccc-cccccccccccc",name:"Sofía López",phone:"+34 600 333 444",email:"sofia@example.invalid"}
+ {id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",name:BR?"Mariana Oliveira":"María García",phone:BR?"+55 11 91234-5678":"+34 600 111 222",email:"mariana@example.invalid"},
+ {id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",name:BR?"Carlos Souza":"Carlos Ruiz",phone:BR?"+55 21 99876-5432":"+34 600 222 333",email:"carlos@example.invalid"},
+ {id:"cccccccc-cccc-4ccc-cccc-cccccccccccc",name:BR?"Ana Costa":"Sofía López",phone:BR?"+55 31 98888-7777":"+34 600 333 444",email:"ana@example.invalid"}
 ];
 const orders=[
- {id:"dddddddd-dddd-4ddd-dddd-dddddddddddd",orderNumber:1,client:{name:"María García"},items:[{name:"Arreglo de vestido"}],dueDate:"2026-09-25",totalMinor:3500,currencyCode:"EUR",status:"in_progress"},
- {id:"eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee",orderNumber:2,client:{name:"Carlos Ruiz"},items:[{name:"Bajo de pantalón"}],dueDate:"2026-09-26",totalMinor:1500,currencyCode:"EUR",status:"ready"},
- {id:"ffffffff-ffff-4fff-ffff-ffffffffffff",orderNumber:3,client:{name:"Sofía López"},items:[{name:"Cambio de cremallera"}],dueDate:"2026-09-27",totalMinor:1800,currencyCode:"EUR",status:"accepted"}
+ {id:"dddddddd-dddd-4ddd-dddd-dddddddddddd",orderNumber:1,client:{name:customers[0].name},items:[{name:BR?"Ajuste de vestido":"Arreglo de vestido"}],dueDate:"2026-09-25",totalMinor:BR?12990:3500,currencyCode:CURRENCY,status:"in_progress"},
+ {id:"eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee",orderNumber:2,client:{name:customers[1].name},items:[{name:BR?"Bainha de calça":"Bajo de pantalón"}],dueDate:"2026-09-26",totalMinor:BR?4990:1500,currencyCode:CURRENCY,status:"ready"},
+ {id:"ffffffff-ffff-4fff-ffff-ffffffffffff",orderNumber:3,client:{name:customers[2].name},items:[{name:BR?"Troca de zíper":"Cambio de cremallera"}],dueDate:"2026-09-27",totalMinor:BR?6990:1800,currencyCode:CURRENCY,status:"accepted"}
 ];
 const catalog={categories:[
- {id:"abbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",name:"Arreglos de ropa",services:[
-  {id:"a1111111-1111-4111-8111-111111111111",name:"Bajo de pantalón",pricingMode:"fixed",priceMinor:1500,currencyCode:"EUR",status:"active"},
-  {id:"a2222222-2222-4222-8222-222222222222",name:"Cambio de cremallera",pricingMode:"from",priceMinor:1800,currencyCode:"EUR",status:"active"}]},
- {id:"accccccc-cccc-4ccc-8ccc-cccccccccccc",name:"Vestidos y prendas",services:[
-  {id:"a3333333-3333-4333-8333-333333333333",name:"Arreglo de vestido",pricingMode:"fixed",priceMinor:3500,currencyCode:"EUR",status:"active"}]}
+ {id:"abbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",name:BR?"Ajustes de roupas":"Arreglos de ropa",services:[
+  {id:"a1111111-1111-4111-8111-111111111111",name:BR?"Bainha de calça":"Bajo de pantalón",pricingMode:"fixed",priceMinor:BR?4990:1500,currencyCode:CURRENCY,status:"active"},
+  {id:"a2222222-2222-4222-8222-222222222222",name:BR?"Troca de zíper":"Cambio de cremallera",pricingMode:"from",priceMinor:BR?6990:1800,currencyCode:CURRENCY,status:"active"}]},
+ {id:"accccccc-cccc-4ccc-8ccc-cccccccccccc",name:BR?"Vestidos e peças":"Vestidos y prendas",services:[
+  {id:"a3333333-3333-4333-8333-333333333333",name:BR?"Ajuste de vestido":"Arreglo de vestido",pricingMode:"fixed",priceMinor:BR?12990:3500,currencyCode:CURRENCY,status:"active"}]}
 ]};
 function reply(data,status=200){
  return Promise.resolve(new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json;charset=utf-8","cache-control":"no-store"}}));
@@ -28,7 +30,7 @@ window.fetch=(input,options={})=>{
  const method=String(options.method||"GET").toUpperCase();
  const route=url.pathname;const pathname=route.slice("/api/data".length);
  let payload={};try{payload=JSON.parse(options.body||"{}")}catch{}
- if(route==="/api/auth/session")return reply({authenticated:true,csrf:"preview-only",me:{user:{id:"preview",displayName:"María",email:"demo@example.invalid"},workspace:{id:"preview",name:"Atelier Ejemplo",role:"owner"},subscription:{status:"trial"}}});
+ if(route==="/api/auth/session")return reply({authenticated:true,csrf:"preview-only",me:{user:{id:"preview",displayName:BR?"Mariana":"María",email:"demo@example.invalid"},workspace:{id:"preview",name:BR?"Ateliê Exemplo":"Atelier Ejemplo",role:"owner",countryCode:BR?"BR":"ES",defaultCurrencyCode:CURRENCY},subscription:{status:"trial"}}});
  if(route==="/api/auth/login")return reply({error:"Esta página solo contiene datos ficticios. Accede a RIMMA desde la app real."},403);
  if(route==="/api/auth/logout")return reply({success:true});
  if(pathname==="/dashboard/today")return reply({dashboard:{date:"2026-09-25",summary:{dueToday:3,readyForPickup:2}}});
@@ -55,15 +57,15 @@ window.fetch=(input,options={})=>{
  }
  if(pathname==="/price-list")return reply({success:true,priceList:catalog});
  if(pathname==="/billing")return reply({success:true,billing:{status:"trial",active:true,trialEndsAt:"2026-10-12",willRenew:false}});
- if(pathname==="/me")return reply({success:true,me:{user:{id:"preview",displayName:"María",email:"demo@example.invalid"},workspace:{id:"preview",name:"Atelier Ejemplo",role:"owner"},subscription:{status:"trial"}}});
+ if(pathname==="/me")return reply({success:true,me:{user:{id:"preview",displayName:BR?"Mariana":"María",email:"demo@example.invalid"},workspace:{id:"preview",name:BR?"Ateliê Exemplo":"Atelier Ejemplo",role:"owner",countryCode:BR?"BR":"ES",defaultCurrencyCode:CURRENCY},subscription:{status:"trial"}}});
  if(pathname==="/reports/summary"){
   const previous=url.searchParams.has("date");
   return reply({success:true,report:{
    period:url.searchParams.get("period")||"month",startDate:previous?"2026-08-01":"2026-09-01",endDate:previous?"2026-08-31":"2026-09-30",
    orders:previous?{created:2,accepted:0,inProgress:1,ready:1,issued:0,cancelled:0,duePeriodItems:2}:{created:3,accepted:1,inProgress:1,ready:1,issued:0,cancelled:0,duePeriodItems:3},
    clients:{new:previous?2:3},
-   orderMoneyByCurrency:[{currencyCode:"EUR",totalMinor:previous?5000:6800}],
-   paymentsByCurrency:[{currencyCode:"EUR",confirmedMinor:previous?3500:5000}]
+   orderMoneyByCurrency:[{currencyCode:CURRENCY,totalMinor:previous?(BR?17980:5000):(BR?24870:6800)}],
+   paymentsByCurrency:[{currencyCode:CURRENCY,confirmedMinor:previous?(BR?12990:3500):(BR?17980:5000)}]
   }});
  }
  return reply({error:"Esta función no está disponible en la demostración."},404);
