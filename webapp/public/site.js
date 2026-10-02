@@ -3,11 +3,13 @@
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const money=(value,currency="EUR")=>{try{return new Intl.NumberFormat("es-ES",{style:"currency",currency}).format(Number(value||0)/100)}catch{return String(Number(value||0)/100)+" "+currency}};
-const n=v=>Number.isFinite(Number(v))?Number(v).toLocaleString("es-ES"):"—";
-const date=v=>v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha";
-const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
-const views={inicio:"Inicio",pedidos:"Pedidos",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
+const L=window.RimmaLocale||{isPt:false,locale:"es-ES",currency:"EUR",t:(es)=>es};
+const tr=(es,pt)=>L.isPt?pt:es;
+const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency}).format(Number(value||0)/100);
+const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
+const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
+const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
+const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
 const businessViews=new Set(["inicio","pedidos","clientes","servicios","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
@@ -50,7 +52,8 @@ async function request(url,options={}){
  const response=await fetch(url,{...options,headers,credentials:"same-origin"});
  let result={};try{result=await response.json();}catch{}
  if(!response.ok){
-  const raw=result.error||result.message||"No se pudo completar la solicitud.";
+  const source=result.error||result.message||"No se pudo completar la solicitud.";
+  const raw=L.translate?L.translate(source):source;
   const error=new Error(raw);error.status=response.status;
   if(response.status===403&&raw==="SUBSCRIPTION_REQUIRED"){
    applySubscriptionLockUi(true);
@@ -213,7 +216,9 @@ async function downloadOrder(id){
     if(!order||order.id!==id)throw Error("No se pudo cargar el pedido.");
     const customer=order.client?.name||order.clientName||"Cliente";
     const items=(order.items||[]).map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc(String(item.quantity??1))+'</td><td>'+esc(money(item.unitPriceMinor,order.currencyCode))+'</td><td>'+esc(money(item.totalMinor,order.currencyCode))+'</td></tr>').join("");
-    const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>RIMMA — Pedido #'+esc(order.orderNumber)+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#222}h1{font-size:24px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{font-size:12px;text-transform:uppercase;color:#777}.meta{line-height:1.7}.total{text-align:right;font-size:20px;font-weight:700;margin-top:20px}@media print{body{margin:0}}</style></head><body><h1>RIMMA — Pedido #'+esc(order.orderNumber)+'</h1><div class="meta"><strong>Cliente:</strong> '+esc(customer)+'<br><strong>Fecha de entrega:</strong> '+esc(date(order.dueDate))+'<br><strong>Estado:</strong> '+esc(status[order.status]||order.status||"—")+(order.notes?'<br><strong>Notas:</strong> '+esc(order.notes):'')+'</div><table><thead><tr><th>Trabajo</th><th>Cantidad</th><th>Precio</th><th>Importe</th></tr></thead><tbody>'+items+'</tbody></table><div class="total">Total: '+esc(money(order.totalMinor,order.currencyCode))+'</div></body></html>';
+    const docLang=L.isPt?"pt-BR":"es";
+    const docTitle=tr("Pedido","Pedido")+" #"+esc(order.orderNumber);
+    const html='<!doctype html><html lang="'+docLang+'"><head><meta charset="utf-8"><title>RIMMA — '+docTitle+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#222}h1{font-size:24px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{font-size:12px;text-transform:uppercase;color:#777}.meta{line-height:1.7}.total{text-align:right;font-size:20px;font-weight:700;margin-top:20px}@media print{body{margin:0}}</style></head><body><h1>RIMMA — '+docTitle+'</h1><div class="meta"><strong>'+tr("Cliente","Cliente")+':</strong> '+esc(customer)+'<br><strong>'+tr("Fecha de entrega","Data de entrega")+':</strong> '+esc(date(order.dueDate))+'<br><strong>'+tr("Estado","Status")+':</strong> '+esc(status[order.status]||order.status||"—")+(order.notes?'<br><strong>'+tr("Notas","Observações")+':</strong> '+esc(order.notes):'')+'</div><table><thead><tr><th>'+tr("Trabajo","Serviço")+'</th><th>'+tr("Cantidad","Quantidade")+'</th><th>'+tr("Precio","Preço")+'</th><th>'+tr("Importe","Valor")+'</th></tr></thead><tbody>'+items+'</tbody></table><div class="total">Total: '+esc(money(order.totalMinor,order.currencyCode))+'</div></body></html>';
     const blob=new Blob([html],{type:"text/html;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url;a.download="RIMMA-pedido-"+String(order.orderNumber||id)+".html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
     success("Pedido descargado.");
@@ -418,11 +423,11 @@ function openModal(type,record=null){
    if(activeModal!=="order")return;
    lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="EUR"')+field("Fecha de entrega","due","date")+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
-    $("#f-name").value=pick.service.name;$("#f-currency").value=pick.service.currencyCode||"EUR";
+    $("#f-name").value=pick.service.name;$("#f-currency").value=pick.service.currencyCode||L.currency||"EUR";
     if(pick.service.pricingMode!=="quote"&&pick.service.priceMinor!=null)$("#f-price").value=(Number(pick.service.priceMinor)/100).toFixed(2);
    });
   }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});

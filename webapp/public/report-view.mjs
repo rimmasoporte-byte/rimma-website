@@ -1,20 +1,21 @@
 /* Read-only financial presentation. Every number comes from workspace-scoped /reports/summary. */
+const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',isPt:false};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const count=v=>{const n=Number(v);return Number.isSafeInteger(n)&&n>=0?n:0;};
-const displayCount=v=>v===undefined||v===null?"—":count(v).toLocaleString("es-ES");
+const displayCount=v=>v===undefined||v===null?"—":count(v).toLocaleString(L.locale||"es-ES");
 const CURRENCY=/^[A-Z]{3}$/;
 function money(minor,code){
  const iso=String(code??"").toUpperCase();
  const n=Number(minor);
  if(!CURRENCY.test(iso)||!Number.isFinite(n))return "—";
- try{return new Intl.NumberFormat("es-ES",{style:"currency",currency:iso}).format(n/100)}
+ try{return new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency:iso}).format(n/100)}
  catch{return esc((n/100).toFixed(2)+" "+iso)}
 }
 function dateLabel(iso){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso)))return esc(iso||"—");
  const date=new Date(iso+"T12:00:00Z");
  if(!Number.isFinite(date.getTime()))return esc(iso);
- return esc(new Intl.DateTimeFormat("es-ES",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"}).format(date));
+ return esc(new Intl.DateTimeFormat(L.locale||"es-ES",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"}).format(date));
 }
 export function previousPeriodAnchor(period,startDate){
  if(!["day","week","month","year"].includes(period)||!/^\d{4}-\d{2}-\d{2}$/.test(String(startDate)))return null;
@@ -63,7 +64,7 @@ export function renderReportSummary(report,previous=null){
   const value=count(o[st.key]),percent=Math.round(100*value/statusTotal);
   return '<div class="feature-status-tile feature-status-'+st.className+'" role="listitem">'+
   '<span class="feature-status-label">'+st.label+'</span>'+
-  '<strong class="feature-status-count">'+value.toLocaleString("es-ES")+'</strong>'+
+  '<strong class="feature-status-count">'+value.toLocaleString(L.locale||"es-ES")+'</strong>'+
   '<span class="feature-status-share">'+percent+'% del período</span></div>';
  }).join("")+'</div>':'<p class="report-empty">Todavía no hay pedidos en este período.</p>';
  const period=dateLabel(r.startDate)+' — '+dateLabel(r.endDate);

@@ -1,6 +1,7 @@
 import {initBotProtection,getBotToken,resetBotProtection} from '/app/bot-protection.mjs';
+const tr=(es,pt)=>window.RimmaLocale?.isPt?pt:es;
 const COUNTRIES=Object.freeze([
- ['ES','España','EUR','Europe/Madrid'],['MX','México','MXN','America/Mexico_City'],
+ ['ES','España','EUR','Europe/Madrid'],['BR','Brasil','BRL','America/Sao_Paulo'],['MX','México','MXN','America/Mexico_City'],
  ['AR','Argentina','ARS','America/Argentina/Buenos_Aires'],['CL','Chile','CLP','America/Santiago'],
  ['CO','Colombia','COP','America/Bogota'],['PE','Perú','PEN','America/Lima'],
  ['EC','Ecuador','USD','America/Guayaquil'],['UY','Uruguay','UYU','America/Montevideo'],
@@ -28,7 +29,7 @@ async function api(url,payload){
    headers:outgoing?{'content-type':'application/json'}:{},
    body:outgoing?JSON.stringify(outgoing):undefined,credentials:'same-origin'});
   const result=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(result.error||'No se ha podido completar la solicitud.');
+  if(!response.ok){const message=result.error||'No se ha podido completar la solicitud.';throw new Error(window.RimmaLocale?.translate?window.RimmaLocale.translate(message):message);}
   return result;
  }finally{
   if(protectedCall)void resetBotProtection(form);
@@ -47,14 +48,15 @@ if(form&&config.enabled){
   const option=document.createElement('option');option.value=id;option.textContent=label;
   country.append(option);
  }
- country.value='ES';
+ const preferred=window.RimmaLocale?.country||'ES';
+ country.value=COUNTRIES.some(([id])=>id===preferred)?preferred:'ES';
  const email=form.querySelector('#signup-email');
  const website=form.querySelector('#signup-website');
  const password=form.querySelector('#signup-password');
  const confirmPassword=form.querySelector('#signup-password-confirm');
  const syncPasswordMatch=()=>{
   const mismatch=confirmPassword.value.length>0&&password.value!==confirmPassword.value;
-  confirmPassword.setCustomValidity(mismatch?'Las contraseñas no coinciden.':'');
+  confirmPassword.setCustomValidity(mismatch?tr('Las contraseñas no coinciden.','As senhas não coincidem.'):'');
  };
  password.addEventListener('input',syncPasswordMatch);
  confirmPassword.addEventListener('input',syncPasswordMatch);
@@ -168,7 +170,8 @@ if(form&&config.enabled){
    announce('¡Cuenta creada! Estamos abriendo tu taller…');
    try{
     await api('/api/auth/login',{email:normalized,password:password.value});
-    window.location.assign(startOption==='paid'?'/app/?view=suscripcion&checkout=1':'/app/');
+    const target=startOption==='paid'?'/app/?view=suscripcion&checkout=1':'/app/';
+    window.location.assign(window.RimmaLocale?.withLocale?window.RimmaLocale.withLocale(target):target);
    }catch{
     announce('Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.');
     submit.disabled=true;
