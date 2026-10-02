@@ -411,7 +411,10 @@
     if(!isPt)return;
     if(root.nodeType===Node.TEXT_NODE){
       const parent=root.parentElement;
-      if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName))root.nodeValue=translate(root.nodeValue);
+      if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName)){
+        const next=translate(root.nodeValue);
+        if(next!==root.nodeValue)root.nodeValue=next;
+      }
       return;
     }
     if(root instanceof Element)translateElement(root);
@@ -419,7 +422,10 @@
     let node;
     while((node=walker.nextNode())){
       const parent=node.parentElement;
-      if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName))node.nodeValue=translate(node.nodeValue);
+      if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName)){
+        const next=translate(node.nodeValue);
+        if(next!==node.nodeValue)node.nodeValue=next;
+      }
     }
     if(root.querySelectorAll)root.querySelectorAll('*').forEach(translateElement);
   };

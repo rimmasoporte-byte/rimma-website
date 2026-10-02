@@ -33,3 +33,9 @@ test('Brazilian portal uses pt-BR formats and BRL defaults without changing Span
   assert.match(billing,/America\/Sao_Paulo/);
   assert.match(billing,/R\$ 29,90\/mês/);
 });
+
+test('pt-BR observer does not rewrite unchanged text forever',()=>{
+  const locale=read('public/locale.js');
+  assert.match(locale,/if\(next!==root\.nodeValue\)root\.nodeValue=next/);
+  assert.match(locale,/if\(next!==node\.nodeValue\)node\.nodeValue=next/);
+});
