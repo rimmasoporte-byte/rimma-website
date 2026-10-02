@@ -192,6 +192,7 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
  .nav{display:none;position:fixed;top:78px;left:0;right:0;max-height:calc(100dvh - 78px);overflow:auto;background:#FFFEFB;padding:20px 29px 35px;box-shadow:0 18px 28px #29291E21;z-index:100;gap:0}
  .menu-open .nav{display:flex;flex-direction:column;align-items:stretch}
  .nav>a{display:block;font:600 18px var(--sans);padding:18px 0;border-bottom:1px solid #EAE4DB}
+ .br-page .nav-mobile-login{display:block}
  .mobile-toggle{display:flex;border-radius:9px}
  .v3-hero-grid{display:block;padding-block:43px 0}
  .v3-copy{max-width:720px;padding:33px 0 25px}
@@ -209,14 +210,20 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
 }
 @media(max-width:600px){
  .container{width:calc(100% - 39px)}
- .header-inner{height:72px}
- .header-login{min-height:42px;border-radius:8px}
+ .header-inner{height:72px;gap:6px}
+ .header-actions{gap:6px}
+ .header-login{min-height:42px;min-width:64px;padding:0 10px;border-radius:8px;gap:0}
+ .br-page .header-login{display:none}
+ .header-login-text{display:none}
+ .header-login:before{content:'Entrar';font:700 10px var(--sans)}
+ .header-login svg{display:none}
  .nav{top:72px;max-height:calc(100dvh - 72px)}
  .brand,.brand img{width:143px}
  .v3-hero-grid{padding-top:18px}
  .v3-copy{padding:39px 0 30px}
  .v3-eyebrow{font-size:9px;letter-spacing:1.95px}
  .v3-copy h1{font-size:clamp(47px,11vw,65px);line-height:1.12;letter-spacing:-1.7px;margin:21px 0}
+ .br-page .v3-copy h1{font-size:clamp(39px,9.8vw,51px);letter-spacing:-1.3px}
  .v3-copy>p{font-size:14px;line-height:1.76;margin-bottom:23px}
  .v3-actions{gap:13px}
  .v3-button{font-size:12px;min-height:49px;gap:12px;padding-inline:15px}
@@ -267,5 +274,5 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
 
 
 @media(min-width:1321px){.v3-copy h1{font-size:clamp(60px,4.6vw,70px)}}
-@media(max-width:374px){.header-inner{gap:3px}.header-login{padding:0 9px;min-height:39px}.header-login-text{display:none}.header-login:before{content:'Demo';font:700 11px var(--sans)}.header-actions{gap:5px}}
+@media(max-width:374px){.header-inner{gap:3px}.header-login{padding:0 8px;min-width:58px;min-height:39px}.header-login-text{display:none}.header-login:before{content:'Entrar';font:700 10px var(--sans)}.header-actions{gap:4px}}
 

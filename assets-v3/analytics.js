@@ -5,6 +5,22 @@
   const STORAGE_KEY = 'rimma_analytics_consent_v1';
   const GRANTED = 'granted';
   const DENIED = 'denied';
+  const isPt = (document.documentElement.lang || '').toLowerCase().startsWith('pt');
+  const cookieCopy = isPt ? {
+    aria: 'Preferências de cookies',
+    title: 'Sua privacidade na RIMMA',
+    body: 'Usamos o Google Analytics somente com o seu consentimento para entender visitas, países e fontes de tráfego. Não usamos esses dados para publicidade personalizada.',
+    more: 'Saiba mais',
+    accept: 'Aceitar analytics',
+    reject: 'Somente necessárias'
+  } : {
+    aria: 'Preferencias de cookies',
+    title: 'Tu privacidad en RIMMA',
+    body: 'Usamos Google Analytics solo si lo aceptas para conocer visitas, países y fuentes de tráfico. No usamos estos datos para publicidad personalizada.',
+    more: 'Más información',
+    accept: 'Aceptar analíticas',
+    reject: 'Solo necesarias'
+  };
   let loaded = false;
 
   const getChoice = () => {
@@ -94,13 +110,13 @@
       banner.id = 'rimma-cookie-consent';
       banner.className = 'rimma-cookie';
       banner.setAttribute('role', 'dialog');
-      banner.setAttribute('aria-label', 'Preferencias de cookies');
+      banner.setAttribute('aria-label', cookieCopy.aria);
       banner.innerHTML = `
-        <strong>Tu privacidad en RIMMA</strong>
-        <p>Usamos Google Analytics solo si lo aceptas para conocer visitas, países y fuentes de tráfico. No usamos estos datos para publicidad personalizada. <a href="/legal/privacy/">Más información</a>.</p>
+        <strong>${cookieCopy.title}</strong>
+        <p>${cookieCopy.body} <a href="/legal/privacy/">${cookieCopy.more}</a>.</p>
         <div class="rimma-cookie-actions">
-          <button type="button" data-rimma-consent="accept">Aceptar analíticas</button>
-          <button type="button" class="secondary" data-rimma-consent="reject">Solo necesarias</button>
+          <button type="button" data-rimma-consent="accept">${cookieCopy.accept}</button>
+          <button type="button" class="secondary" data-rimma-consent="reject">${cookieCopy.reject}</button>
         </div>
       `;
       document.body.appendChild(banner);
