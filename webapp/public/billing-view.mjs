@@ -1,4 +1,6 @@
 // Pure presentation. Payment decisions come ONLY from the authenticated RIMMA backend.
+const L=(typeof window!=='undefined'&&window.RimmaLocale)||{isPt:false,locale:'es-ES'};
+const tr=(es,pt)=>L.isPt?pt:es;
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const testerUrl="https://play.google.com/apps/internaltest/4701506028838235389";
 const manageUrl="https://play.google.com/store/account/subscriptions";
@@ -7,7 +9,7 @@ function displayDate(value){
  if(!value)return null;
  const parsed=new Date(value);
  if(!Number.isFinite(parsed.getTime()))return null;
- return new Intl.DateTimeFormat("es-ES",{day:"numeric",month:"long",year:"numeric",timeZone:"Europe/Madrid"}).format(parsed);
+ return new Intl.DateTimeFormat(L.locale||"es-ES",{day:"numeric",month:"long",year:"numeric",timeZone:L.isPt?"America/Sao_Paulo":"Europe/Madrid"}).format(parsed);
 }
 export function billingAccessLocked(billing){
  const b=billing&&typeof billing==="object"?billing:{};
@@ -77,7 +79,7 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
    :'<p class="billing-warning">La verificación de pagos no está disponible temporalmente. Contacta con soporte antes de realizar una compra.</p>')
    :'<p>Solo el propietario del taller puede contratar o verificar una suscripción. Pide ayuda al propietario.</p>';
  const verify=owner&&ready?'<button type="button" class="secondary billing-action" data-action="verify-billing">Comprobar compra</button>':"";
- const renewNotice=isTrial?'<p class="billing-muted">Plan mensual en España: 4,99 €/mes. En la compra web verás el importe final, moneda e impuestos antes de confirmar; en otros países el precio puede ser diferente.</p>':"";
+ const renewNotice=isTrial?'<p class="billing-muted">'+(L.isPt?"Brasil: preço de referência R$ 29,90/mês. O valor final e os impostos aplicáveis serão mostrados antes da confirmação.":"Plan mensual en España: 4,99 €/mes. En la compra web verás el importe final, moneda e impuestos antes de confirmar; en otros países el precio puede ser diferente.")+'</p>':"";
  const sandbox=b.isSandbox===true?'<p class="billing-warning">Existe una compra de prueba (sandbox). No activa una suscripción real.</p>':"";
  return '<div class="paper-panel billing-card"><span class="report-value-label">TU ACCESO</span>'+
   '<div class="report-value">'+esc(heading)+'</div><p>'+esc(short)+'</p>'+

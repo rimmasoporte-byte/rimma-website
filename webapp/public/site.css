@@ -61,3 +61,9 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 /* Off-screen honeypot: humans never interact with it; automated form fillers often do. */
 .form-trap{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
 .form-trap input,.form-trap label{width:1px!important;height:1px!important;padding:0!important;margin:0!important;border:0!important}
+
+.locale-switch{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-4px 0 15px;font-size:11px;font-weight:700;letter-spacing:.5px;color:#9a8a70}
+.locale-switch a{color:#6f5b39;text-decoration:none}
+.locale-switch a:hover{text-decoration:underline;text-underline-offset:3px}
+.sidebar-bottom .portal-locale{justify-content:flex-start;margin:0 0 8px;color:inherit}
+.sidebar-bottom .portal-locale a{color:inherit}

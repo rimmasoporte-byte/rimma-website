@@ -2,6 +2,8 @@
  * All mutations go through the existing same-origin session + CSRF BFF.
  * This module never requests or stores Android/Google Play tokens.
  */
+const L=(typeof window!=='undefined'&&window.RimmaLocale)||{isPt:false,locale:'es-ES',currency:'EUR'};
+const tr=(es,pt)=>L.isPt?pt:es;
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uuid=v=>/^[a-f0-9-]{36}$/i.test(String(v||""));
 function paymentRetry(orderId,body){
@@ -25,11 +27,11 @@ export const moneyMinor=value=>{
  if(!Number.isSafeInteger(cents))throw Error("El importe no es válido.");
  return cents;
 };
-const money=(v,c="EUR")=>{try{return new Intl.NumberFormat("es-ES",{style:"currency",currency:c}).format(Number(v||0)/100)}catch{return esc(v)+" "+esc(c)}};
+const money=(v,c=L.currency||"EUR")=>{try{return new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency:c}).format(Number(v||0)/100)}catch{return esc(v)+" "+esc(c)}};
 const choice=(v,opts)=>opts.map(([id,label])=>'<option value="'+esc(id)+'"'+(id===v?' selected':'')+'>'+esc(label)+'</option>').join("");
-const garment=[["body","Cuerpo"],["pants","Pantalones"],["dress","Vestido"],["shirt","Camisa"],["jacket","Chaqueta"],["skirt","Falda"],["blouse","Blusa"],["other","Otro"]];
-const methods=[["cash","Efectivo"],["card","Tarjeta (pago externo)"],["bank_transfer","Transferencia"],["spei","SPEI"],["other","Otro"]];
-const photoTypes=[["intake","Recepción"],["detail","Detalle"],["after","Trabajo terminado"],["other","Otro"]];
+const garment=[["body",tr("Cuerpo","Corpo")],["pants",tr("Pantalones","Calças")],["dress","Vestido"],["shirt","Camisa"],["jacket",tr("Chaqueta","Jaqueta")],["skirt",tr("Falda","Saia")],["blouse","Blusa"],["other",tr("Otro","Outro")]];
+const methods=[["cash",tr("Efectivo","Dinheiro")],["card",tr("Tarjeta (pago externo)","Cartão (pagamento externo)")],["bank_transfer",tr("Transferencia","Transferência")],["spei","SPEI"],["other",tr("Otro","Outro")]];
+const photoTypes=[["intake",tr("Recepción","Recebimento")],["detail",tr("Detalle","Detalhe")],["after",tr("Trabajo terminado","Trabalho concluído")],["other",tr("Otro","Outro")]];
 const b=(label,action,data="",extra="")=>'<button type="button" class="feature-button" data-feature="'+action+'" '+data+' '+extra+'>'+label+'</button>';
 const select=(id,label,options)=>'<label for="fx-'+id+'">'+label+'</label><select id="fx-'+id+'" name="'+id+'">'+options+'</select>';
 const field=(id,label,type="text",extra="")=>'<label for="fx-'+id+'">'+label+'</label><input id="fx-'+id+'" name="'+id+'" type="'+type+'" '+extra+'>';
@@ -47,7 +49,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const form=()=>dlg.querySelector("#feature-form");
  const submit=()=>dlg.querySelector("#feature-submit");
  const errorEl=()=>dlg.querySelector("#feature-error");
- let catalog=[],defaultCurrency="EUR",mode="",selected=null,busy=false;
+ let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false;
  function alertError(message){errorEl().hidden=false;errorEl().textContent=message;}
  function layout(next,title,markup,buttonText="Guardar"){
   mode=next;errorEl().hidden=true;errorEl().textContent="";
@@ -66,7 +68,16 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  }
  const findCat=id=>catalog.find(c=>c.id===id);
  const findService=id=>catalog.flatMap(c=>c.services||[]).find(x=>x.id===id);
- const STANDARD_CATALOG=[
+ const STANDARD_CATALOG=L.isPt?[
+  {name:"Calças",services:["Bainha simples","Bainha original","Ajustar cintura","Ajustar quadril","Ajustar modelagem da calça","Encurtar calça","Alongar calça","Trocar zíper"]},
+  {name:"Camisas",services:["Encurtar mangas","Ajustar mangas","Ajustar cintura","Ajustar camisa","Trocar gola","Trocar punhos","Trocar botões"]},
+  {name:"Saias",services:["Bainha simples","Ajustar cintura","Ajustar quadril","Ajustar saia","Trocar zíper"]},
+  {name:"Vestidos",services:["Bainha simples","Ajustar cintura","Ajustar quadril","Ajustar vestido","Encurtar vestido"]},
+  {name:"Jaquetas e casacos",services:["Encurtar mangas","Ajustar mangas","Ajustar jaqueta","Ajustar costas","Trocar zíper"]},
+  {name:"Bolsas",services:["Trocar zíper","Reparar alça","Reparar forro"]},
+  {name:"Ajustes gerais",services:["Trocar botões","Reparar costura","Trocar forro"]},
+  {name:"Outros",services:["Ajuste de peça","Modificação de peça","Orçamento personalizado"]}
+ ]:[
   {name:"Pantalones",services:["Dobladillo sencillo","Dobladillo original","Ajustar cintura","Ajustar cadera","Entallar pantalón","Acortar pantalón","Alargar pantalón","Cambiar cremallera"]},
   {name:"Camisas",services:["Acortar mangas","Ajustar mangas","Ajustar cintura","Entallar camisa","Cambiar cuello","Cambiar puños","Cambiar botones"]},
   {name:"Faldas",services:["Dobladillo sencillo","Ajustar cintura","Ajustar cadera","Entallar falda","Cambiar cremallera"]},
@@ -101,7 +112,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   el.innerHTML='<p class="empty">Cargando servicios…</p>';
   try{
    const data=(await api("/price-list")).priceList||{};
-   catalog=data.categories||[];defaultCurrency=data.defaultCurrencyCode||"EUR";
+   catalog=data.categories||[];defaultCurrency=data.defaultCurrencyCode||L.currency||"EUR";
    el.innerHTML=catalog.filter(c=>c.status!=="deleted").map(c=>{
     const active=(c.services||[]).filter(s=>s.status!=="deleted");
     return '<article class="service-card"><div class="service-card-header"><h2>'+esc(c.name)+'</h2>'+
@@ -116,7 +127,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
       '<div class="feature-bottom">'+b("+ Añadir servicio","service-new",'data-category="'+esc(c.id)+'"')+'</div></article>';
    }).join("")||'<div class="paper-panel"><p>Sin categorías. Crea la primera para empezar.</p></div>';
    const standardButton='<div class="feature-bottom standard-catalog-action">'+b("Añadir catálogo inicial","standard-catalog")+'</div>';
-   el.insertAdjacentHTML("afterbegin",standardButton);
+   el.innerHTML=standardButton+el.innerHTML;
   }catch(e){el.innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
  }
  function serviceForm(record=null,catId=""){

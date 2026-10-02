@@ -1,4 +1,5 @@
 const PASSWORD_SELECTOR='input[type="password"]';
+const tr=(es,pt)=>window.RimmaLocale?.isPt?pt:es;
 
 function makeIcon(className, hiddenLine=false){
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -36,8 +37,8 @@ function enhancePassword(input){
   const button=document.createElement('button');
   button.type='button';
   button.className='password-toggle';
-  button.setAttribute('aria-label','Mostrar contraseña');
-  button.setAttribute('title','Mostrar contraseña');
+  button.setAttribute('aria-label',tr('Mostrar contraseña','Mostrar senha'));
+  button.setAttribute('title',tr('Mostrar contraseña','Mostrar senha'));
   button.setAttribute('aria-pressed','false');
   button.append(makeIcon('password-eye'),makeIcon('password-eye-off',true));
 
@@ -45,7 +46,7 @@ function enhancePassword(input){
     const show=input.type==='password';
     input.type=show?'text':'password';
     button.setAttribute('aria-pressed',show?'true':'false');
-    const label=show?'Ocultar contraseña':'Mostrar contraseña';
+    const label=show?tr('Ocultar contraseña','Ocultar senha'):tr('Mostrar contraseña','Mostrar senha');
     button.setAttribute('aria-label',label);
     button.setAttribute('title',label);
   });

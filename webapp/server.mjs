@@ -208,7 +208,8 @@ export const server=http.createServer(async(req,res)=>{
       if(!signupEnabled(process.env))return send(res,404,{error:'Registro no disponible.'});
       return staticFile(res,'register.html','text/html; charset=utf-8');
     }
-    if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/locale.js')return staticFile(res,'locale.js','text/javascript; charset=utf-8');
+  if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/password-toggle.mjs')return staticFile(res,'password-toggle.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
