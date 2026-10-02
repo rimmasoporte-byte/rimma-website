@@ -40,3 +40,9 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 
 .subscription-disabled{opacity:.42!important;cursor:not-allowed!important;filter:saturate(.55)}
 .subscription-locked .topbar-alert.subscription-disabled{opacity:.32!important}
+
+.locale-switch{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-4px 0 15px;font-size:11px;font-weight:700;letter-spacing:.5px;color:#9a8a70}
+.locale-switch a{color:#6f5b39;text-decoration:none}
+.locale-switch a:hover{text-decoration:underline;text-underline-offset:3px}
+.sidebar-bottom .portal-locale{justify-content:flex-start;margin:0 0 8px;color:inherit}
+.sidebar-bottom .portal-locale a{color:inherit}

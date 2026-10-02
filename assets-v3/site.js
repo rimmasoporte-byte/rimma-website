@@ -3,17 +3,19 @@
   const menu=document.querySelector(".mobile-toggle");
   const nav=document.getElementById("nav");
   const year=document.getElementById("year");
+  const isPt=(document.documentElement.lang||"").toLowerCase().startsWith("pt");
+  const copy=isPt?{open:"Abrir menu",close:"Fechar menu",back:"← Voltar ao cadastro",backAria:"Voltar ao cadastro da RIMMA"}:{open:"Abrir menú",close:"Cerrar menú",back:"← Volver al registro",backAria:"Volver al registro de RIMMA"};
   if(year)year.textContent=String(new Date().getFullYear());
   const closeMenu=()=>{
     document.body.classList.remove("menu-open");
-    if(menu){menu.setAttribute("aria-expanded","false");menu.setAttribute("aria-label","Abrir menú");}
+    if(menu){menu.setAttribute("aria-expanded","false");menu.setAttribute("aria-label",copy.open);}
   };
   if(menu&&nav){
     menu.addEventListener("click",()=>{
       const opening=!document.body.classList.contains("menu-open");
       document.body.classList.toggle("menu-open",opening);
       menu.setAttribute("aria-expanded",String(opening));
-      menu.setAttribute("aria-label",opening?"Cerrar menú":"Abrir menú");
+      menu.setAttribute("aria-label",opening?copy.close:copy.open);
       if(opening)nav.querySelector("a")?.focus();
     });
     nav.querySelectorAll("a").forEach(a=>a.addEventListener("click",closeMenu));
@@ -23,8 +25,8 @@
   const legalFromSignup=new URLSearchParams(location.search).get("from")==="signup";
   document.querySelectorAll("[data-legal-back]").forEach(link=>{
     if(legalFromSignup){
-      link.textContent="← Volver al registro";
-      link.setAttribute("aria-label","Volver al registro de RIMMA");
+      link.textContent=copy.back;
+      link.setAttribute("aria-label",copy.backAria);
     }
     link.addEventListener("click",event=>{
       event.preventDefault();

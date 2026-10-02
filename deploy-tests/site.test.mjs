@@ -134,3 +134,34 @@ test('demo reports use the same renderer as the real portal',()=>{
  assert.match(shim,/paymentsByCurrency/);
  assert.match(shim,/duePeriodItems/);
 });
+
+test('Brazilian public landing is localized and discoverable',()=>{
+  const es=read('index.html');
+  const br=read('br/index.html');
+  assert.match(es,/hreflang="pt-BR" href="https:\/\/rimmaapp\.com\/br\//);
+  assert.match(es,/class="header-lang" href="\/br\//);
+  assert.match(br,/<html lang="pt-BR">/);
+  assert.match(br,/https:\/\/rimmaapp\.com\/br\//);
+  assert.match(br,/Gestão para ateliês de costura no Brasil/);
+  assert.match(br,/Experimente 5 dias grátis/);
+  assert.match(br,/R\$ 29,90/);
+  assert.match(br,/country=BR/);
+  assert.match(br,/Em português/);
+  assert.match(read('sitemap.xml'),/https:\/\/rimmaapp\.com\/br\//);
+});
+test('Brazilian demo and legal pages are localized end to end',()=>{
+  const br=read('br/index.html');
+  assert.match(br,/\/demo\/\?locale=pt-BR&country=BR/);
+  assert.ok(fs.existsSync(path.join(root,'demo','locale.js')));
+  assert.match(read('demo/index.html'),/\.\/locale\.js/);
+  assert.match(read('demo/demo-shim.js'),/BRL/);
+  assert.match(read('demo/demo-shim.js'),/Mariana Oliveira/);
+  for(const p of ['privacy','terms','support','delete-account','aviso-legal']){
+    const file='br/legal/'+p+'/index.html';
+    assert.ok(fs.existsSync(path.join(root,file)),file);
+    const html=read(file);
+    assert.match(html,/<html lang="pt-BR">/);
+    assert.doesNotMatch(html,/Saltar al contenido|← Volver|Inicio<\/a> \/ (?:Privacidad|Términos|Soporte)/);
+    assert.match(read('sitemap.xml'),new RegExp('https:\\/\\/rimmaapp\\.com\\/br\\/legal\\/'+p.replace('-','\\-')+'\\/'));
+  }
+});
