@@ -165,3 +165,8 @@ test('Brazilian demo and legal pages are localized end to end',()=>{
     assert.match(read('sitemap.xml'),new RegExp('https:\\/\\/rimmaapp\\.com\\/br\\/legal\\/'+p.replace('-','\\-')+'\\/'));
   }
 });
+test('Brazilian demo localization observer is stable',()=>{
+  const locale=read('demo/locale.js');
+  assert.match(locale,/if\(next!==root\.nodeValue\)root\.nodeValue=next/);
+  assert.match(locale,/if\(next!==node\.nodeValue\)node\.nodeValue=next/);
+});
