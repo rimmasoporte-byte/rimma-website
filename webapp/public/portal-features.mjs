@@ -845,6 +845,8 @@ function newPhoto(){
    await api("/business-profile",{method:"PATCH",body:JSON.stringify(payload)});
    await api("/fiscal/settings",{method:"PATCH",body:JSON.stringify(fiscalSettings)});
    close();success("Datos legales y configuración fiscal guardados.");
+  }else if(mode==="fiscal-invoice"){
+   await previewFiscalInvoice();return;
   }else if(mode==="password-change"){
    const currentPassword=get("currentPassword"),newPassword=get("newPassword");
    if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
@@ -936,6 +938,7 @@ function newPhoto(){
  }
  dlg.addEventListener("submit",e=>{e.preventDefault();void safe(save)});
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
+  if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
   if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
    const i=selected.items.find(x=>x.orderItemId===e.target.value);
    if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
@@ -972,6 +975,8 @@ function newPhoto(){
     close();await openMeasurements(clientId);success("Ficha archivada.");
    });
   }
+  if(action==="fiscal-invoice-open")return void safe(async()=>openFiscalInvoice(id||selected?.orderId));
+  if(action==="fiscal-issue")return void safe(issueFiscalInvoice);
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
   if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
@@ -1009,5 +1014,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
 }
