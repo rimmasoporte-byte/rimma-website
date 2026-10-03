@@ -47,6 +47,27 @@ function moneyRows(rows,field){
  '<strong>'+esc(money(x[field],x.currencyCode))+'</strong></div>').join(""):
  '<p class="report-empty">Sin importes registrados en este período.</p>';
 }
+function averageTicketRows(rows){
+ const items=(Array.isArray(rows)?rows:[]).filter(x=>count(x.orders)>0);
+ return items.length?items.map(x=>{
+  const average=Math.round(Number(x.totalMinor||0)/count(x.orders));
+  return '<div class="service-line"><span>'+esc(x.currencyCode||"—")+' · '+displayCount(x.orders)+' pedidos</span>'+
+   '<strong>'+esc(money(average,x.currencyCode))+'</strong></div>';
+ }).join(""):'<p class="report-empty">Todavía no hay pedidos para calcular el ticket medio.</p>';
+}
+function outstandingRows(rows){
+ const items=Array.isArray(rows)?rows:[];
+ return items.length?items.map(x=>'<div class="service-line"><span>'+esc(x.currencyCode||"—")+' · '+displayCount(x.unpaidItems)+' prendas pendientes</span>'+
+  '<strong>'+esc(money(x.remainingMinor,x.currencyCode))+'</strong></div>').join(""):
+  '<p class="report-empty">No hay saldo pendiente de cobro.</p>';
+}
+function paymentMethodRows(rows){
+ const labels={cash:"Efectivo",card:"Tarjeta",transfer:"Transferencia",bizum:"Bizum",other:"Otro"};
+ const items=Array.isArray(rows)?rows:[];
+ return items.length?items.map(x=>'<div class="service-line"><span>'+esc(labels[x.method]||x.method||"Otro")+' · '+esc(x.currencyCode||"—")+' · '+displayCount(x.payments)+' cobros</span>'+
+  '<strong>'+esc(money(x.confirmedMinor,x.currencyCode))+'</strong></div>').join(""):
+  '<p class="report-empty">Todavía no hay cobros confirmados por método.</p>';
+}
 export function renderReportSummary(report,previous=null){
  const r=report&&typeof report==="object"?report:{};
  const p=previous&&typeof previous==="object"?previous:null;
@@ -70,17 +91,27 @@ export function renderReportSummary(report,previous=null){
  const period=dateLabel(r.startDate)+' — '+dateLabel(r.endDate);
  return kpi("PEDIDOS DEL PERÍODO",o.created,p?p.orders?.created:undefined,true)+
  kpi("NUEVOS CLIENTES",clients.new,p?p.clients?.new:undefined)+
- kpi("PRENDAS PREVISTAS",o.duePeriodItems,undefined,false,true)+
+ kpi("PRENDAS PREVISTAS",o.duePeriodItems,undefined)+
+ kpi("PRENDAS ATRASADAS",o.overdueItems,p?p.orders?.overdueItems:undefined,false,true)+
  '<article class="report-panel report-range"><span class="report-value-label">PERÍODO CONSULTADO</span>'+
  '<div class="report-value">'+period+'</div>'+
  '<p class="report-note">Fechas según la zona horaria de tu taller.</p></article>'+
  '<article class="report-panel report-money"><h2>Importe de los pedidos</h2>'+
  '<p class="report-caption">Valor de los pedidos no cancelados; no equivale al dinero cobrado.</p>'+
  moneyRows(r.orderMoneyByCurrency,"totalMinor")+'</article>'+
+ '<article class="report-panel report-money"><h2>Ticket medio</h2>'+
+ '<p class="report-caption">Importe medio por pedido no cancelado durante el período.</p>'+
+ averageTicketRows(r.orderMoneyByCurrency)+'</article>'+
  '<article class="report-panel report-status"><h2>Estado de los pedidos</h2>'+
  '<p class="report-caption">Distribución real de los '+displayCount(o.created)+' pedidos creados en este período.</p>'+
  breakdown+'</article>'+
  '<article class="report-panel report-money report-payments"><h2>Cobros confirmados</h2>'+
  '<p class="report-caption">Solo pagos confirmados durante el período; por moneda.</p>'+
- moneyRows(r.paymentsByCurrency,"confirmedMinor")+'</article>';
+ moneyRows(r.paymentsByCurrency,"confirmedMinor")+'</article>'+
+ '<article class="report-panel report-money"><h2>Saldo pendiente actual</h2>'+
+ '<p class="report-caption">Deuda todavía abierta en prendas activas del taller, independientemente de cuándo se creó el pedido.</p>'+
+ outstandingRows(r.outstandingByCurrency)+'</article>'+
+ '<article class="report-panel report-money"><h2>Cómo te pagan</h2>'+
+ '<p class="report-caption">Cobros confirmados del período agrupados por método.</p>'+
+ paymentMethodRows(r.paymentMethods)+'</article>';
 }
