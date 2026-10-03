@@ -20,7 +20,8 @@ test('production portal serves V26 atelier-first shell and same-origin QR asset'
   const page=await get(app+'/app/');
   assert.equal(page.status,200);
   const html=await page.text();
-  assert.match(html,/Hoy en el taller/);
+  assert.match(html,/PARA HOY/);
+  assert.match(html,/CITAS HOY/);
   assert.match(html,/id="view-citas"/);
   assert.match(html,/id="order-branch"/);
   assert.match(html,/vendor\/qrcode\.min\.js/);
