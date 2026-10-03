@@ -203,7 +203,7 @@ function recordActions(type,id,canDelete=true) {
   const safe=esc(id);
   const label=type==="client"?"cliente":"pedido";
   return '<div class="record-actions">'+
-   (type==="order"?'<button type="button" class="record-action" data-action="download-order" data-id="'+safe+'" aria-label="Descargar pedido">Descargar</button>':'')+
+   (type==="order"?'<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'" aria-label="Abrir documentos del pedido">Documentos</button>':'')+
    (type==="order"?'<button type="button" class="record-action" data-action="order-passport" data-id="'+safe+'" aria-label="Abrir pasaporte digital del pedido">Pasaporte</button>':'')+
    '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
    (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
@@ -631,6 +631,7 @@ document.addEventListener("click",event=>{
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
   case "download-order":void downloadOrder(b.dataset.id);break;
+  case "order-documents":void featureUI.then(ui=>ui.openOrderDocuments(b.dataset.id)).catch(e=>globalError(e.message||"No se pudieron abrir los documentos."));break;
   case "order-passport":void featureUI.then(ui=>ui.openOrderPassport(b.dataset.id)).catch(e=>globalError(e.message||"No se pudo abrir el pasaporte."));break;
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
   case "delete-client":void deleteRecord("client",b.dataset.id);break;
