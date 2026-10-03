@@ -1380,3 +1380,88 @@ button:disabled,.feature-button[disabled]{
   padding:5px 8px
  }
 }
+
+
+/* V38 — integrated professional card: status top-right, actions directly under financials. */
+.garment-grid .garment-card{
+ grid-template-columns:76px minmax(0,1fr) auto;
+ align-items:start;
+ column-gap:14px
+}
+.garment-grid .garment-card-main{
+ align-self:center;
+ min-width:0
+}
+.garment-card-status{
+ align-self:start;
+ justify-self:end;
+ min-width:max-content
+}
+.garment-card-status>.status{
+ display:inline-flex;
+ width:max-content;
+ min-height:25px;
+ padding:5px 9px;
+ font-size:10px
+}
+.garment-grid .garment-card-main>.garment-quick-actions{
+ display:flex;
+ flex-wrap:nowrap;
+ align-items:center;
+ gap:6px;
+ width:max-content;
+ max-width:100%;
+ margin-top:7px;
+ padding-top:7px;
+ border-top:1px solid #ece2d5
+}
+.garment-grid .garment-card-main>.garment-quick-actions>.record-action,
+.garment-grid .garment-card-main>.garment-quick-actions>.garment-paid-action{
+ width:auto;
+ min-height:30px;
+ padding:6px 10px;
+ white-space:nowrap
+}
+.garment-grid .garment-card-main>.garment-quick-actions>.garment-more{
+ width:auto
+}
+.garment-grid .garment-card-main>.garment-quick-actions>.garment-more>summary[aria-label="Más acciones"]{
+ width:auto;
+ min-width:34px;
+ min-height:30px;
+ padding:5px 8px;
+ box-sizing:border-box
+}
+@media(max-width:900px){
+ .garment-grid .garment-card{
+  grid-template-columns:72px minmax(0,1fr) auto
+ }
+ .garment-grid .garment-card-main>.garment-quick-actions{
+  flex-wrap:wrap;
+  width:auto
+ }
+}
+@media(max-width:620px){
+ .garment-grid .garment-card{
+  grid-template-columns:62px minmax(0,1fr)
+ }
+ .garment-card-status{
+  grid-column:2;
+  grid-row:1;
+  align-self:start
+ }
+ .garment-grid .garment-card-main{
+  grid-column:2
+ }
+ .garment-grid .garment-card-main>.garment-quick-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:100%
+ }
+ .garment-grid .garment-card-main>.garment-quick-actions>.record-action,
+ .garment-grid .garment-card-main>.garment-quick-actions>.garment-paid-action,
+ .garment-grid .garment-card-main>.garment-quick-actions>.garment-more,
+ .garment-grid .garment-card-main>.garment-quick-actions>.garment-more>summary[aria-label="Más acciones"]{
+  width:100%
+ }
+}
