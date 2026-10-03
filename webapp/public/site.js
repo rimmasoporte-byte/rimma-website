@@ -312,9 +312,54 @@ async function loadOrders(){
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);
   const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
-  $("#orders-list").innerHTML=orderTable(rows,true);$("#orders-page").textContent="Página "+(ordersPage+1);
+  $("#orders-list").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
+}
+async function printGarmentLabel(orderId,itemId){
+ if(!/^[a-f0-9-]{36}$/i.test(orderId||"")||!/^[a-f0-9-]{36}$/i.test(itemId||"")){globalError("Prenda no válida.");return;}
+ const popup=window.open("about:blank","_blank","noopener,noreferrer");
+ try{
+  const data=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/label");
+  const l=data.label||{};
+  const qrHolder=document.createElement("div");qrHolder.style.position="fixed";qrHolder.style.left="-10000px";document.body.appendChild(qrHolder);
+  if(!window.QRCode)throw Error("No se pudo preparar el QR.");
+  new QRCode(qrHolder,{text:String(l.qrPayload||""),width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+  await new Promise(resolve=>setTimeout(resolve,120));
+  const canvas=qrHolder.querySelector("canvas"),img=qrHolder.querySelector("img");
+  const qrData=canvas?.toDataURL("image/png")||img?.src||"";
+  qrHolder.remove();
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font-weight:800;letter-spacing:.16em;font-size:10px}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(l.orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div><div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsable:</b> '+esc(l.assignedWorker?.name||"Sin asignar")+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div><script>addEventListener("load",()=>{print();setTimeout(()=>close(),500)})<\/script></body></html>';
+  if(!popup)throw Error("Permite ventanas emergentes para imprimir la etiqueta.");
+  popup.document.open();popup.document.write(html);popup.document.close();
+ }catch(e){try{popup?.close()}catch{}globalError(e.message||"No se pudo imprimir la etiqueta.");}
+}
+function appointmentCard(a){
+ const start=new Date(a.startsAt),end=new Date(a.endsAt);
+ return '<article class="appointment-card"><div class="appointment-time"><strong>'+esc(start.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><small>'+esc(start.toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short"}))+'</small></div><div><span class="eyebrow">'+esc((a.kind||"fitting").toUpperCase())+'</span><h3>'+esc(a.client?.name||"Cita")+'</h3><p>'+esc(a.item?.name||a.order?.orderNumber?"Pedido #"+String(a.order?.orderNumber||""):"")+'</p><small>'+esc(a.branch?.name||"")+' · '+esc(end.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</small></div><span class="status '+esc(a.status||"scheduled")+'">'+esc(a.status||"scheduled")+'</span></article>';
+}
+async function loadAppointments(){
+ const target=$("#appointments-list");if(!target)return;
+ target.innerHTML='<p class="empty">Cargando citas…</p>';
+ try{
+  const days=Number($("#appointments-range")?.value||14),from=new Date(),to=new Date(Date.now()+days*86400000);
+  const data=await api("/appointments?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString())+"&limit=200");
+  const rows=data.appointments||[];
+  target.innerHTML=rows.length?'<div class="appointments-timeline">'+rows.map(appointmentCard).join("")+'</div>':'<p class="empty">No hay citas en este periodo.</p>';
+ }catch(e){target.innerHTML='<p class="empty">No se pudieron cargar las citas.</p>';globalError(e.message);}
+}
+async function loadAtelierAccountSettings(){
+ const branches=$("#branches-summary"),rules=$("#notifications-summary");
+ try{
+  const data=await api("/branches"),rows=data.branches||[];
+  if(branches)branches.innerHTML=rows.length?'<div class="branch-chips">'+rows.map(b=>'<span class="branch-chip"><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></span>').join("")+'</div>':'<p class="small">No hay sucursales.</p>';
+ }catch(e){if(branches)branches.textContent="No se pudieron cargar las sucursales.";}
+ try{
+  const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
+  const names={order_received:"Pedido recibido",in_progress:"En proceso",ready_for_pickup:"Listo para recoger",pickup_reminder:"Recordatorio de recogida",payment_due:"Pago pendiente"};
+  const email=rows.filter(x=>x.channel==="email");
+  if(rules)rules.innerHTML='<div class="notification-rule-list">'+email.map(x=>'<label class="notification-rule"><span><strong>'+esc(names[x.eventKey]||x.eventKey)+'</strong><small>Correo automático</small></span><input type="checkbox" data-action="toggle-notification" data-event="'+esc(x.eventKey)+'" data-channel="email" '+(x.enabled?"checked":"")+'></label>').join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Configura el proveedor de correo para enviar avisos.")+' WhatsApp automático se activa cuando se conecte WhatsApp Cloud y una plantilla aprobada.</p>';
+ }catch(e){if(rules)rules.textContent="No se pudieron cargar los avisos.";}
 }
 function clientRow(c){
  return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td><div class="client-extended-actions">'+
