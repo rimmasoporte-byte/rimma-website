@@ -68,6 +68,12 @@ function paymentMethodRows(rows){
   '<strong>'+esc(money(x.confirmedMinor,x.currencyCode))+'</strong></div>').join(""):
   '<p class="report-empty">Todavía no hay cobros confirmados por método.</p>';
 }
+function topServiceRows(rows){
+ const items=Array.isArray(rows)?rows:[];
+ return items.length?items.map((x,index)=>'<div class="service-line"><span><b>'+(index+1)+'. '+esc(x.name||"Trabajo")+'</b> · '+displayCount(x.orders)+' pedidos · '+displayCount(x.lines)+' trabajos · '+esc(x.currencyCode||"—")+'</span>'+
+  '<strong>'+esc(money(x.revenueMinor,x.currencyCode))+'</strong></div>').join(""):
+  '<p class="report-empty">Todavía no hay trabajos suficientes para mostrar un ranking.</p>';
+}
 export function renderReportSummary(report,previous=null){
  const r=report&&typeof report==="object"?report:{};
  const p=previous&&typeof previous==="object"?previous:null;
@@ -91,6 +97,7 @@ export function renderReportSummary(report,previous=null){
  const period=dateLabel(r.startDate)+' — '+dateLabel(r.endDate);
  return kpi("PEDIDOS DEL PERÍODO",o.created,p?p.orders?.created:undefined,true)+
  kpi("NUEVOS CLIENTES",clients.new,p?p.clients?.new:undefined)+
+ kpi("CLIENTES QUE VUELVEN",clients.returning,p?p.clients?.returning:undefined)+
  kpi("PRENDAS PREVISTAS",o.duePeriodItems,undefined)+
  kpi("PRENDAS ATRASADAS",o.overdueItems,p?p.orders?.overdueItems:undefined,false,true)+
  '<article class="report-panel report-range"><span class="report-value-label">PERÍODO CONSULTADO</span>'+
@@ -104,7 +111,9 @@ export function renderReportSummary(report,previous=null){
  averageTicketRows(r.orderMoneyByCurrency)+'</article>'+
  '<article class="report-panel report-status"><h2>Estado de los pedidos</h2>'+
  '<p class="report-caption">Distribución real de los '+displayCount(o.created)+' pedidos creados en este período.</p>'+
- breakdown+'</article>'+
+ breakdown+'</article>'+ '<article class="report-panel report-money"><h2>Trabajos más solicitados</h2>'+
+ '<p class="report-caption">Ranking por pedidos del período. La cifra de la derecha es la facturación de ese trabajo, separada por moneda.</p>'+
+ topServiceRows(r.topServices)+'</article>'+
  '<article class="report-panel report-money report-payments"><h2>Cobros confirmados</h2>'+
  '<p class="report-caption">Solo pagos confirmados durante el período; por moneda.</p>'+
  moneyRows(r.paymentsByCurrency,"confirmedMinor")+'</article>'+
