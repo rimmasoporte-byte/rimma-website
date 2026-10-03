@@ -1,7 +1,11 @@
 import {initBotProtection,getBotToken,resetBotProtection} from '/app/bot-protection.mjs';
-const tr=(es,pt)=>window.RimmaLocale?.isPt?pt:es;
+const tr=(es,pt)=>{
+ const translated=window.RimmaLocale?.translate?window.RimmaLocale.translate(es):es;
+ if(translated!==es)return translated;
+ return window.RimmaLocale?.isPt?(pt||es):translated;
+};
 const COUNTRIES=Object.freeze([
- ['ES','España','EUR','Europe/Madrid'],['BR','Brasil','BRL','America/Sao_Paulo'],['MX','México','MXN','America/Mexico_City'],
+ ['ES','España','EUR','Europe/Madrid'],['BR','Brasil','BRL','America/Sao_Paulo'],\n ['FR','France','EUR','Europe/Paris'],['DE','Deutschland','EUR','Europe/Berlin'],\n ['IT','Italia','EUR','Europe/Rome'],['GR','Ελλάδα','EUR','Europe/Athens'],\n ['SK','Slovensko','EUR','Europe/Bratislava'],['RS','Srbija','RSD','Europe/Belgrade'],['TR','Türkiye','TRY','Europe/Istanbul'],\n ['MX','México','MXN','America/Mexico_City'],
  ['AR','Argentina','ARS','America/Argentina/Buenos_Aires'],['CL','Chile','CLP','America/Santiago'],
  ['CO','Colombia','COP','America/Bogota'],['PE','Perú','PEN','America/Lima'],
  ['EC','Ecuador','USD','America/Guayaquil'],['UY','Uruguay','UYU','America/Montevideo'],
@@ -44,12 +48,21 @@ if(form&&!config.enabled){
 if(form&&config.enabled){
  await initBotProtection(form);
  const country=form.querySelector('#signup-country');
+ let regionNames=null;
+ try{regionNames=new Intl.DisplayNames([window.RimmaLocale?.locale||'es-ES'],{type:'region'});}catch{}
  for(const [id,label] of COUNTRIES){
-  const option=document.createElement('option');option.value=id;option.textContent=label;
+  const option=document.createElement('option');option.value=id;option.textContent=regionNames?.of(id)||label;
   country.append(option);
  }
  const preferred=window.RimmaLocale?.country||'ES';
  country.value=COUNTRIES.some(([id])=>id===preferred)?preferred:'ES';
+ const currencyNote=document.getElementById('signup-currency-note');
+ const syncCurrency=()=>{
+  const region=COUNTRIES.find(x=>x[0]===country.value);
+  if(currencyNote&&region)currencyNote.textContent=tr('Moneda del taller','Moeda do ateliê')+': '+region[2];
+ };
+ country.addEventListener('change',syncCurrency);
+ syncCurrency();
  const email=form.querySelector('#signup-email');
  const website=form.querySelector('#signup-website');
  const password=form.querySelector('#signup-password');
@@ -67,7 +80,7 @@ if(form&&config.enabled){
  const submit=form.querySelector('#signup-submit');
  const startOptions=[...form.querySelectorAll('input[name="startOption"]')];
  const selectedStart=()=>form.querySelector('input[name="startOption"]:checked')?.value==='paid'?'paid':'trial';
- const updateSubmitLabel=()=>{submit.textContent=selectedStart()==='paid'?'Crear mi taller y suscribirme ahora':'Crear mi taller · 5 días gratis';};
+ const updateSubmitLabel=()=>{submit.textContent=selectedStart()==='paid'?tr('Crear mi taller y suscribirme ahora','Criar meu ateliê e assinar agora'):tr('Crear mi taller · 5 días gratis','Criar meu ateliê · 5 dias grátis');};
  startOptions.forEach(option=>option.addEventListener('change',updateSubmitLabel));
  updateSubmitLabel();
  let grant=null,busy=false,lastVerificationAttempt='';
@@ -99,7 +112,7 @@ if(form&&config.enabled){
   if(busy)return;
   setBusy(true);
   try{await work();}catch(error){
-   if(!error?.handled)announce(error.message||'Error de conexión. Inténtalo de nuevo.');
+   if(!error?.handled)announce(error.message||tr('Error de conexión. Inténtalo de nuevo.','Erro de conexão. Tente novamente.'));
   }finally{setBusy(false);}
  }
  send.addEventListener('click',()=>perform(async()=>{
@@ -118,7 +131,7 @@ if(form&&config.enabled){
   const attempt=email.value.trim().toLowerCase()+':'+value;
   if(attempt===lastVerificationAttempt)return;
   lastVerificationAttempt=attempt;
-  setCodeStatus('checking','Verificando código…');
+  setCodeStatus('checking',tr('Verificando código…','Verificando código…'));
   await perform(async()=>{
    try{
     const result=await api('/api/auth/signup/verify',{email:email.value,code:value,website:website?.value||''});
@@ -129,8 +142,8 @@ if(form&&config.enabled){
     grant=null;
     code.classList.remove('is-verified');
     code.readOnly=false;
-    setCodeStatus('error','Código incorrecto. Compruébalo e inténtalo de nuevo.');
-    announce('Código incorrecto. Compruébalo e inténtalo de nuevo.');
+    setCodeStatus('error',tr('Código incorrecto. Compruébalo e inténtalo de nuevo.','Código incorreto. Confira e tente novamente.'));
+    announce(tr('Código incorrecto. Compruébalo e inténtalo de nuevo.','Código incorreto. Confira e tente novamente.'));
     error.handled=true;
     throw error;
    }
@@ -158,7 +171,7 @@ if(form&&config.enabled){
    const data=new FormData(form);
    const startOption=selectedStart();
    const region=COUNTRIES.find(x=>x[0]===data.get('countryCode'));
-   if(!region)throw new Error('Selecciona un país válido.');
+   if(!region)throw new Error(tr('Selecciona un país válido.','Selecione um país válido.'));
    await api('/api/auth/signup/register',{
     email:normalized,password:password.value,confirmPassword:confirmPassword.value,website:website?.value||'',
     displayName:String(data.get('displayName')||'').trim(),
