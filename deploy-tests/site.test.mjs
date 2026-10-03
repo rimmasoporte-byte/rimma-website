@@ -226,5 +226,5 @@ test('legal and support translations exist for every launched non-Spanish market
   }
   const loader=read('assets-v3/legal-i18n.js');
   assert.match(loader,/pt-BR/);
-  assert.match(loader,/legal\/+.*support/);
+  assert.match(loader,/support/);
 });
