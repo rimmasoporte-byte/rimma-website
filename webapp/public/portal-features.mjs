@@ -265,6 +265,92 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     }).join(""):'<p>Esta prenda todavía no tiene fotografías.</p>')+
    '<div class="feature-bottom">'+b("+ Subir fotografía","photo-new")+'</div>',null);
  }
+
+ const passportStatusLabel=value=>({
+  accepted:tr("Recibido","Recebido"),
+  in_progress:tr("En proceso","Em andamento"),
+  ready:tr("Listo para recoger","Pronto para retirar"),
+  issued:tr("Entregado","Entregue"),
+  cancelled:tr("Cancelado","Cancelado")
+ })[value]||String(value||"—");
+ const passportEventLabel=event=>{
+  const data=event?.data||{};
+  if(event?.type==="created")return tr("Prenda recibida","Peça recebida");
+  if(event?.type==="status_changed")return tr("Estado","Status")+": "+passportStatusLabel(data.fromStatus)+" → "+passportStatusLabel(data.toStatus);
+  if(event?.type==="photo_added")return tr("Fotografía añadida","Fotografia adicionada")+": "+String(data.photoType||"");
+  if(event?.type==="payment_status_changed")return tr("Movimiento de cobro","Movimento de pagamento")+": "+money(data.amountMinor,data.currencyCode);
+  if(event?.type==="passport_updated")return tr("Pasaporte actualizado","Passaporte atualizado");
+  if(event?.type==="share_created")return tr("Enlace del cliente creado","Link do cliente criado");
+  if(event?.type==="share_revoked")return tr("Enlace del cliente revocado","Link do cliente revogado");
+  return String(event?.type||tr("Actualización","Atualização"));
+ };
+ const passportDateTime=value=>{
+  if(!value)return "—";
+  const parsed=new Date(value);
+  if(Number.isNaN(parsed.getTime()))return String(value);
+  return parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"medium",timeStyle:"short"});
+ };
+ const safePublicUrl=value=>{
+  try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null}catch{return null}
+ };
+ async function openPassport(orderId,itemId){
+  if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
+  const [passportResult,membersResult]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
+   api("/workspace/members")
+  ]);
+  const p=passportResult.passport||{};
+  if(!uuid(p.id))throw Error(tr("No se pudo cargar el pasaporte de la prenda.","Não foi possível carregar o passaporte da peça."));
+  const members=Array.isArray(membersResult.members)?membersResult.members:[];
+  selected={orderId,itemId,passport:p,members};
+  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
+   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
+    esc(member.name||member.email||tr("Miembro","Membro"))+' · '+esc(member.role||"")+'</option>').join("");
+  const history=Array.isArray(p.history)?p.history:[];
+  const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
+  layout("passport-edit",tr("Pasaporte digital de la prenda","Passaporte digital da peça"),
+   '<div class="passport-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span>'+
+    '<h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3><span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
+    '<div class="passport-balance"><small>'+tr("Pendiente","Pendente")+'</small><strong>'+esc(money(p.remainingMinor,p.currencyCode))+'</strong></div></div>'+
+   '<div class="feature-summary passport-summary"><div><small>'+tr("Total","Total")+'</small><strong>'+esc(money(p.totalMinor,p.currencyCode))+'</strong></div>'+
+    '<div><small>'+tr("Pagado","Pago")+'</small><strong>'+esc(money(p.confirmedPaidMinor,p.currencyCode))+'</strong></div>'+
+    '<div><small>'+tr("Fotografías","Fotografias")+'</small><strong>'+esc(String(photos.length))+'</strong></div></div>'+
+   '<div class="passport-section"><h4>'+tr("Identidad de la prenda","Identidade da peça")+'</h4><div class="feature-fields">'+
+    field("garmentType",tr("Tipo de prenda","Tipo de peça"),"text",'maxlength="80" placeholder="'+tr("Pantalón, vestido, chaqueta…","Calça, vestido, jaqueta…")+'" value="'+esc(p.garmentType||"")+'"')+
+    field("brand",tr("Marca","Marca"),"text",'maxlength="120" value="'+esc(p.brand||"")+'"')+
+    field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
+    field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
+    field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" placeholder="'+tr("Ej. Estante B-12","Ex. Prateleira B-12")+'" value="'+esc(p.storageLocation||"")+'"')+
+    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select></div></div>'+
+   '<div class="passport-section"><h4>'+tr("Acciones rápidas","Ações rápidas")+'</h4><div class="feature-bottom passport-actions">'+
+    b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
+    b(tr("Crear / renovar enlace y QR","Criar / renovar link e QR"),"passport-share")+
+    '<button type="button" class="feature-button" data-feature="passport-revoke">'+tr("Revocar enlace","Revogar link")+'</button></div>'+
+    '<div id="passport-share-result" class="passport-share-result" aria-live="polite"></div></div>'+
+   '<div class="passport-section"><h4>'+tr("Historial de la prenda","Histórico da peça")+'</h4>'+
+    (history.length?'<div class="passport-timeline">'+history.slice(0,80).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
+     '<p class="feature-muted">'+tr("Todavía no hay movimientos registrados.","Ainda não há movimentações registradas.")+'</p>')+'</div>');
+ }
+ async function createPassportShare(){
+  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
+  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"POST",body:"{}"});
+  const url=safePublicUrl(data.share?.shareUrl);
+  if(!url)throw Error(tr("El servidor no devolvió un enlace seguro.","O servidor não devolveu um link seguro."));
+  const target=dlg.querySelector("#passport-share-result");
+  target.innerHTML='<div class="passport-share-card"><strong>'+tr("Página del cliente lista","Página do cliente pronta")+'</strong>'+
+   '<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a>'+
+   '<small>'+tr("La página contiene el estado, el importe y un QR. No muestra el teléfono ni el correo del cliente.","A página contém status, valor e QR. Não mostra telefone nem e-mail do cliente.")+'</small></div>';
+  try{await navigator.clipboard.writeText(url);success(tr("Enlace del cliente copiado.","Link do cliente copiado."));}
+  catch{success(tr("Enlace del cliente creado.","Link do cliente criado."));}
+ }
+ async function revokePassportShare(){
+  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
+  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"DELETE",body:"{}"});
+  const target=dlg.querySelector("#passport-share-result");
+  if(target)target.innerHTML='<p class="feature-muted">'+(data.revoked?tr("El enlace anterior ya no funciona.","O link anterior não funciona mais."):tr("No había un enlace activo.","Não havia link ativo."))+'</p>';
+  success(data.revoked?tr("Enlace del cliente revocado.","Link do cliente revogado."):tr("No había ningún enlace activo.","Não havia link ativo."));
+ }
+
  async function preparePhoto(file){
   if(!file||!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size<1)throw new Error("Selecciona una fotografía JPEG, PNG o WebP.");
   const MAX=150*1024;
@@ -382,6 +468,23 @@ function newPhoto(){
     headers:{"Idempotency-Key":retry.key},body:paymentBody});
    clearPaymentRetry(retry);
    close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
+  }else if(mode==="passport-edit"){
+   if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza el pasaporte antes de guardar.","Atualize o passaporte antes de salvar."));
+   const payload={
+    expectedVersion:Number(selected.passport.version),
+    garmentType:get("garmentType").trim()||null,
+    brand:get("brand").trim()||null,
+    color:get("color").trim()||null,
+    sizeLabel:get("sizeLabel").trim()||null,
+    storageLocation:get("storageLocation").trim()||null,
+    assignedUserId:get("assignedUserId")||null
+   };
+   await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport",{
+    method:"PATCH",body:JSON.stringify(payload)});
+   const {orderId,itemId}=selected;
+   await openPassport(orderId,itemId);
+   await refreshOrders();
+   success(tr("Pasaporte de la prenda actualizado.","Passaporte da peça atualizado."));
   }else if(mode==="photo-new"){
    const file=form().elements.namedItem("file").files[0],prepared=await preparePhoto(file);
    const base64=await new Promise((resolve,reject)=>{
@@ -446,6 +549,9 @@ function newPhoto(){
     close();await openPayments(orderId);await refreshOrders();success(next==="confirmed"?"Cobro confirmado.":"Cobro pendiente cancelado.");
    });
   }
+  if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
+  if(action==="passport-share")return void safe(createPassportShare);
+  if(action==="passport-revoke")return void safe(revokePassportShare);
   if(action==="item-photos")return void safe(async()=>openPhotos(el.dataset.order,id));
   if(action==="photo-new")return newPhoto();
   if(action==="photo-archive"){
@@ -458,5 +564,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport};
 }
