@@ -346,7 +346,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
     b(tr("Crear enlace y QR","Criar link e QR"),"passport-share")+
     (p.client?.phone?b("WhatsApp","passport-whatsapp"):'<button type="button" class="feature-button" disabled title="'+tr("Añade un teléfono al cliente","Adicione um telefone ao cliente")+'">WhatsApp</button>')+
-    (p.client?.email?b(tr("Correo","E-mail"),"passport-email"):'<button type="button" class="feature-button" disabled title="'+tr("Añade un correo al cliente","Adicione um e-mail ao cliente")+'">'+tr("Correo","E-mail")+'</button>')+
+    (p.client?.email?b(tr("Enviar por correo","Enviar por e-mail"),"passport-email"):'<button type="button" class="feature-button" disabled title="'+tr("Añade un correo al cliente","Adicione um e-mail ao cliente")+'">'+tr("Enviar por correo","Enviar por e-mail")+'</button>')+
     '<button type="button" class="feature-button" data-feature="passport-revoke">'+tr("Revocar enlaces","Revogar links")+'</button></div>'+
     '<div id="passport-share-result" class="passport-share-result" aria-live="polite"></div></div>'+
    '<div class="passport-section"><h4>'+tr("Historial de la prenda","Histórico da peça")+'</h4>'+
@@ -429,15 +429,27 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    throw error;
   }
  }
- async function sendPassportEmail(){
+ async function sendPassportEmail(button){
   const p=selected?.passport||{};
   if(!String(p.client?.email||"").trim())throw Error(tr("El cliente no tiene correo electrónico.","O cliente não tem e-mail."));
-  const url=await ensurePassportShare();
-  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share/email",{
-   method:"POST",
-   body:JSON.stringify({shareUrl:url,locale:L.locale||"es-ES"})
-  });
-  success(tr("Correo enviado a ","E-mail enviado para ")+String(data.email?.recipient||p.client.email));
+  const target=dlg.querySelector("#passport-share-result");
+  const originalText=button?.textContent||tr("Enviar por correo","Enviar por e-mail");
+  if(button){button.disabled=true;button.textContent=tr("Enviando…","Enviando…");}
+  if(target)target.innerHTML='<div class="passport-share-card passport-share-pending"><strong>'+tr("Enviando correo…","Enviando e-mail…")+'</strong><small>'+tr("No cierres esta ventana hasta ver la confirmación.","Não feche esta janela até ver a confirmação.")+'</small></div>';
+  try{
+   const url=await ensurePassportShare();
+   const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share/email",{
+    method:"POST",
+    body:JSON.stringify({shareUrl:url,locale:L.locale||"es-ES"})
+   });
+   const recipient=String(data.email?.recipient||p.client.email);
+   if(target)target.innerHTML='<div class="passport-share-card passport-share-success"><strong>✓ '+tr("Correo enviado","E-mail enviado")+'</strong><small>'+tr("Enviado correctamente a ","Enviado corretamente para ")+esc(recipient)+'</small><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a></div>';
+  }catch(error){
+   if(target)target.innerHTML='<div class="passport-share-card passport-share-error"><strong>'+tr("No se pudo enviar el correo","Não foi possível enviar o e-mail")+'</strong><small>'+esc(error?.message||tr("Inténtalo de nuevo.","Tente novamente."))+'</small></div>';
+   throw error;
+  }finally{
+   if(button){button.disabled=false;button.textContent=originalText;}
+  }
  }
  async function revokePassportShare(){
   if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
@@ -650,7 +662,7 @@ function newPhoto(){
   if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-share")return void safe(createPassportShare);
   if(action==="passport-whatsapp")return void safe(sendPassportWhatsApp);
-  if(action==="passport-email")return void safe(sendPassportEmail);
+  if(action==="passport-email")return void safe(()=>sendPassportEmail(el));
   if(action==="passport-revoke")return void safe(revokePassportShare);
   if(action==="item-photos")return void safe(async()=>openPhotos(el.dataset.order,id));
   if(action==="photo-new")return newPhoto();
