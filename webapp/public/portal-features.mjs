@@ -571,7 +571,13 @@ function newPhoto(){
     select("jurisdiction","Normativa del taller",jurisdictionOptions)+
     select("documentLanguage","Idioma predeterminado",languageOptions)+
     field("estimateValidityDays","Validez del presupuesto (días)","number",'required min="1" max="365" step="1" value="'+esc(p.estimateValidityDays||30)+'"')+
-   '</div>',"Guardar datos");
+   '</div>'+
+   '<div class="passport-section fiscal-settings-section"><h4>Facturación fiscal</h4><p class="feature-muted">Configura el IVA habitual y series separadas. RIMMA no consumirá numeración hasta una emisión fiscal real.</p><div class="feature-fields">'+
+    select("defaultVatBps","IVA predeterminado",choice(String(p.defaultVatBps??2100),[["2100","21 %"],["1000","10 %"],["400","4 %"],["0","0 % / exento"]]))+
+    field("invoiceFullSeries","Serie factura completa","text",'required maxlength="12" value="'+esc(p.invoiceFullSeries||"F")+'"')+
+    field("invoiceSimplifiedSeries","Serie factura simplificada","text",'required maxlength="12" value="'+esc(p.invoiceSimplifiedSeries||"FS")+'"')+
+    field("invoiceRectificativeSeries","Serie rectificativa","text",'required maxlength="12" value="'+esc(p.invoiceRectificativeSeries||"R")+'"')+
+   '</div></div>',"Guardar datos");
  }
 
  function documentCards(order,profile,confirmedPayments){
@@ -587,7 +593,7 @@ function newPhoto(){
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="payment_receipt"'+paymentDisabled+'><strong>Recibo de pago</strong><small>Anticipo o pago parcial ya confirmado.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="delivery_receipt"'+deliveryDisabled+'><strong>Justificante de entrega</strong><small>Constancia de recogida para pedidos entregados.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="work_order"><strong>Orden de trabajo</strong><small>Documento interno para el taller y el profesional.</small></button>'+
-   '<button type="button" class="atelier-doc-card" disabled title="El módulo fiscal se implementará por separado"><strong>Factura</strong><small>Módulo fiscal — próximamente.</small></button>'+
+   '<button type="button" class="atelier-doc-card fiscal-card" data-feature="fiscal-invoice-open" data-id="'+esc(order?.id||"")+'"'+externalDisabled+'><strong>Factura fiscal</strong><small>IVA, series, datos fiscales y control VERI*FACTU.</small></button>'+
   '</div>';
  }
 
@@ -623,7 +629,7 @@ function newPhoto(){
    '<div class="atelier-doc-toolbar"><label for="fx-documentLanguage">Idioma del nuevo documento</label><select id="fx-documentLanguage" name="documentLanguage">'+choice(language,[["es","Español"],["ca","Català"]])+'</select></div>'+
    documentCards(order,profile,confirmedPayments)+paymentSelect+
    '<div class="passport-section"><h4>Documentos guardados</h4>'+history+'</div>'+
-   '<p class="feature-muted atelier-doc-fiscal-note">Las opciones de esta pantalla son documentos operativos del taller. «Factura» tendrá un módulo fiscal separado.</p>',
+   '<p class="feature-muted atelier-doc-fiscal-note">Los cinco primeros son documentos operativos. «Factura fiscal» abre el módulo fiscal separado de RIMMA.</p>',
    "");
  }
 
@@ -665,6 +671,144 @@ function newPhoto(){
   }
  }
 
+ function fiscalClientFields(profile,clientName){
+  const p=profile||{};
+  return '<div id="fiscal-client-fields" class="passport-section fiscal-client-fields">'+
+   '<h4>Datos fiscales del destinatario</h4><p class="feature-muted">Obligatorios para factura completa. Se guardan en la ficha fiscal del cliente.</p>'+
+   '<div class="feature-fields">'+
+    select("fiscalRecipientKind","Tipo de cliente",choice(p.recipientKind||"consumer",[["consumer","Particular"],["business","Empresa / profesional"]]))+
+    field("fiscalLegalName","Nombre / razón social *","text",'maxlength="180" value="'+esc(p.legalName||clientName||"")+'"')+
+    field("fiscalTaxId","NIF / CIF *","text",'maxlength="32" value="'+esc(p.taxId||"")+'"')+
+    field("fiscalAddressLine1","Dirección *","text",'maxlength="200" value="'+esc(p.addressLine1||"")+'"')+
+    field("fiscalAddressLine2","Dirección 2","text",'maxlength="200" value="'+esc(p.addressLine2||"")+'"')+
+    field("fiscalPostalCode","Código postal *","text",'maxlength="20" value="'+esc(p.postalCode||"")+'"')+
+    field("fiscalCity","Municipio *","text",'maxlength="120" value="'+esc(p.city||"")+'"')+
+    field("fiscalProvince","Provincia","text",'maxlength="120" value="'+esc(p.province||"")+'"')+
+    field("fiscalCountryCode","País (ISO) *","text",'maxlength="2" value="'+esc(p.countryCode||"ES")+'"')+
+   '</div></div>';
+ }
+
+ function fiscalInvoiceHistory(invoices){
+  if(!Array.isArray(invoices)||!invoices.length)return '<p class="feature-muted">Todavía no hay facturas fiscales emitidas para este pedido.</p>';
+  return '<div class="atelier-doc-history">'+invoices.map(inv=>
+   '<div class="atelier-doc-row"><div><strong>'+esc(inv.invoiceNumber||"Factura")+'</strong><small>'+
+   esc(String(inv.issueDate||""))+' · '+esc(money(inv.totalMinor,inv.currencyCode||"EUR"))+' · '+esc(inv.status||"")+
+   '</small></div><span class="fiscal-state">'+esc(inv.verifactuState||"")+'</span></div>'
+  ).join("")+'</div>';
+ }
+
+ function syncFiscalForm(){
+  if(mode!=="fiscal-invoice")return;
+  const kind=form().elements.namedItem("invoiceKind")?.value||"simplified";
+  const vat=form().elements.namedItem("vatRateBps")?.value||"2100";
+  const clientFields=dlg.querySelector("#fiscal-client-fields");
+  const exemption=dlg.querySelector("#fiscal-exemption-wrap");
+  if(clientFields)clientFields.hidden=kind!=="full";
+  if(exemption)exemption.hidden=vat!=="0";
+ }
+
+ function renderFiscalPreview(preview,readiness){
+  const slot=dlg.querySelector("#fiscal-preview-result");if(!slot)return;
+  const canIssue=readiness?.fiscalIssuanceEnabled===true&&readiness?.verifactuConnectorConfigured===true;
+  const b2b=preview?.electronicInvoiceApplicable===true;
+  slot.innerHTML='<div class="fiscal-preview-card">'+
+   '<div class="fiscal-preview-head"><div><small>VISTA PREVIA — NO ES FACTURA EMITIDA</small><strong>'+(preview.invoiceKind==="full"?"Factura completa (F1)":"Factura simplificada (F2)")+'</strong></div><span class="fiscal-pill">'+esc(String(preview.vatRateBps/100))+' % IVA</span></div>'+
+   '<div class="fiscal-total-grid"><div><small>Base imponible</small><strong>'+esc(money(preview.taxBaseMinor,preview.currencyCode))+'</strong></div><div><small>IVA</small><strong>'+esc(money(preview.vatMinor,preview.currencyCode))+'</strong></div><div><small>Total</small><strong>'+esc(money(preview.totalMinor,preview.currencyCode))+'</strong></div></div>'+
+   (b2b?'<p class="fiscal-info">Esta operación está dentro del ámbito B2B español de factura electrónica cuando entre en vigor su fase aplicable. RIMMA conservará la salida estructurada separada del PDF.</p>':"")+
+   '<div class="fiscal-issue-row"><div><strong>VERI*FACTU</strong><small>'+(canIssue?'Conector listo para emisión.':'Conector fiscal todavía no configurado. La numeración permanece intacta.')+'</small></div>'+
+   '<button type="button" class="primary" data-feature="fiscal-issue"'+(canIssue?'':' disabled title="Conecta VERI*FACTU antes de emitir"')+'>Emitir factura</button></div>'+
+   '</div>';
+ }
+
+ async function openFiscalInvoice(orderId){
+  if(!uuid(orderId))throw Error("Pedido inválido.");
+  const [readinessResult,orderResult,invoicesResult]=await Promise.all([
+   api("/fiscal/readiness"),
+   api("/orders/"+encodeURIComponent(orderId)),
+   api("/orders/"+encodeURIComponent(orderId)+"/invoices")
+  ]);
+  const readiness=readinessResult.readiness||{};
+  const order=orderResult.order||{};
+  if(!uuid(order?.client?.id))throw Error("El pedido no tiene un cliente válido.");
+  const clientResult=await api("/clients/"+encodeURIComponent(order.client.id)+"/fiscal-profile");
+  const clientFiscal=clientResult.profile||null;
+  const invoices=Array.isArray(invoicesResult.invoices)?invoicesResult.invoices:[];
+  const defaultKind=(clientFiscal?.recipientKind==="business"||Number(order.totalMinor)>40000)?"full":"simplified";
+  const defaultVat=String(readiness.settings?.defaultVatBps??2100);
+  selected={orderId,order,readiness,clientFiscal,invoices,previewInput:null};
+
+  layout("fiscal-invoice","Factura fiscal · pedido #"+String(order.orderNumber||""),
+   '<div class="fiscal-readiness '+(readiness.verifactuConnectorConfigured?'ready':'pending')+'"><div><strong>RIMMA Fiscal V24</strong><small>SIF: '+esc(readiness.sifMode||"VERIFACTU_ONLY")+'</small></div><span>'+(readiness.verifactuConnectorConfigured?'VERI*FACTU conectado':'VERI*FACTU pendiente')+'</span></div>'+
+   '<p class="feature-muted">Calcula primero la factura. La vista previa no recibe número fiscal y no se considera emitida.</p>'+
+   '<div class="feature-fields fiscal-main-fields">'+
+    select("invoiceKind","Tipo de factura",choice(defaultKind,[["simplified","Factura simplificada (F2)"],["full","Factura completa (F1)"]]))+
+    select("vatRateBps","IVA",choice(defaultVat,[["2100","21 %"],["1000","10 %"],["400","4 %"],["0","0 % / exento"]]))+
+    select("invoiceLanguage","Idioma",choice("es",[["es","Español"],["ca","Català"]]))+
+    field("operationDate","Fecha de operación (opcional)","date")+
+   '</div>'+
+   '<div id="fiscal-exemption-wrap" class="feature-fields" hidden>'+textarea("exemptionNote","Base legal de exención / no sujeción",500)+'</div>'+
+   fiscalClientFields(clientFiscal,order.client?.name)+
+   '<div id="fiscal-preview-result"></div>'+
+   '<div class="passport-section"><h4>Facturas emitidas</h4>'+fiscalInvoiceHistory(invoices)+'</div>'+
+   '<p class="feature-muted fiscal-legal-note">Las facturas simplificadas se limitan en este flujo a 400 € IVA incluido. Las facturas rectificativas usarán una serie R separada en la siguiente fase del módulo.</p>',
+   "Calcular factura");
+  syncFiscalForm();
+ }
+
+ async function previewFiscalInvoice(){
+  const get=name=>form().elements.namedItem(name)?.value??"";
+  const invoiceKind=get("invoiceKind");
+  if(invoiceKind==="full"){
+   const fiscalProfile={
+    recipientKind:get("fiscalRecipientKind"),
+    legalName:get("fiscalLegalName").trim(),
+    taxId:get("fiscalTaxId").trim(),
+    addressLine1:get("fiscalAddressLine1").trim(),
+    addressLine2:get("fiscalAddressLine2").trim()||null,
+    postalCode:get("fiscalPostalCode").trim(),
+    city:get("fiscalCity").trim(),
+    province:get("fiscalProvince").trim()||null,
+    countryCode:get("fiscalCountryCode").trim().toUpperCase()
+   };
+   if(!fiscalProfile.legalName||!fiscalProfile.taxId||!fiscalProfile.addressLine1||!fiscalProfile.postalCode||!fiscalProfile.city)throw Error("Completa los datos fiscales del destinatario.");
+   await api("/clients/"+encodeURIComponent(selected.order.client.id)+"/fiscal-profile",{
+    method:"PATCH",body:JSON.stringify(fiscalProfile)
+   });
+  }
+  const input={
+   invoiceKind,
+   vatRateBps:Number(get("vatRateBps")),
+   language:get("invoiceLanguage"),
+   operationDate:get("operationDate")||null,
+   exemptionNote:get("vatRateBps")==="0"?(get("exemptionNote").trim()||null):null
+  };
+  const result=await api("/orders/"+encodeURIComponent(selected.orderId)+"/invoice-preview",{
+   method:"POST",body:JSON.stringify(input)
+  });
+  selected.previewInput=input;
+  selected.preview=result.preview;
+  renderFiscalPreview(result.preview,selected.readiness);
+  submit().textContent="Recalcular";
+ }
+
+ async function issueFiscalInvoice(){
+  if(!selected?.previewInput||!selected?.orderId)throw Error("Calcula primero la factura.");
+  if(selected?.readiness?.fiscalIssuanceEnabled!==true||selected?.readiness?.verifactuConnectorConfigured!==true){
+   throw Error("La emisión fiscal seguirá bloqueada hasta conectar VERI*FACTU.");
+  }
+  if(!await confirmAction({
+   title:"Emitir factura fiscal",
+   message:"Al emitir se asignará un número fiscal correlativo y el registro pasará al conector VERI*FACTU. Esta acción no debe usarse como borrador.",
+   confirmLabel:"Emitir factura"
+  }))return;
+  await api("/orders/"+encodeURIComponent(selected.orderId)+"/invoices",{
+   method:"POST",body:JSON.stringify(selected.previewInput)
+  });
+  const orderId=selected.orderId;
+  await openFiscalInvoice(orderId);
+  success("Factura enviada al circuito fiscal.");
+ }
+
  function passwordForm(){
   selected=null;
   layout("password-change","Cambiar contraseña",'<p class="feature-muted">Al guardar, se cerrará la sesión en todos los dispositivos. Tendrás que volver a iniciar sesión.</p>'+
@@ -692,8 +836,17 @@ function newPhoto(){
     estimateValidityDays:Number(get("estimateValidityDays"))
    };
    if(!payload.legalName||!payload.taxId||!payload.addressLine1||!payload.postalCode||!payload.city)throw Error("Completa los campos obligatorios.");
+   const fiscalSettings={
+    defaultVatBps:Number(get("defaultVatBps")),
+    invoiceFullSeries:get("invoiceFullSeries").trim().toUpperCase(),
+    invoiceSimplifiedSeries:get("invoiceSimplifiedSeries").trim().toUpperCase(),
+    invoiceRectificativeSeries:get("invoiceRectificativeSeries").trim().toUpperCase()
+   };
    await api("/business-profile",{method:"PATCH",body:JSON.stringify(payload)});
-   close();success("Datos legales del taller guardados.");
+   await api("/fiscal/settings",{method:"PATCH",body:JSON.stringify(fiscalSettings)});
+   close();success("Datos legales y configuración fiscal guardados.");
+  }else if(mode==="fiscal-invoice"){
+   await previewFiscalInvoice();return;
   }else if(mode==="password-change"){
    const currentPassword=get("currentPassword"),newPassword=get("newPassword");
    if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
@@ -785,6 +938,7 @@ function newPhoto(){
  }
  dlg.addEventListener("submit",e=>{e.preventDefault();void safe(save)});
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
+  if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
   if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
    const i=selected.items.find(x=>x.orderItemId===e.target.value);
    if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
@@ -821,6 +975,8 @@ function newPhoto(){
     close();await openMeasurements(clientId);success("Ficha archivada.");
    });
   }
+  if(action==="fiscal-invoice-open")return void safe(async()=>openFiscalInvoice(id||selected?.orderId));
+  if(action==="fiscal-issue")return void safe(issueFiscalInvoice);
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
   if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
@@ -858,5 +1014,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
 }
