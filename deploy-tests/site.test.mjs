@@ -228,3 +228,19 @@ test('legal and support translations exist for every launched non-Spanish market
   assert.match(loader,/pt-BR/);
   assert.match(loader,/support/);
 });
+
+test('production landing leads with a concrete workshop value proposition and real interface capture',()=>{
+  const h=read('index.html');
+  assert.match(h,/SOFTWARE PARA TALLERES DE COSTURA Y ARREGLOS/);
+  assert.match(h,/Gestiona todo tu taller/);
+  assert.match(h,/rimma-dashboard-real\.png/);
+  assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-dashboard-real.png')));
+  assert.match(h,/¿Sigues gestionando tu taller con papel, WhatsApp y memoria\?/);
+  assert.doesNotMatch(h,/precio mostrado es orientativo|lanzamiento y la configuración de Google Play todavía se están preparando|Solicitar invitación de prueba/i);
+});
+test('localized landings no longer expose obsolete beta invitation or launch copy',()=>{
+  for(const market of ['br','fr','de','it','gr','sk','rs','tr']){
+    const h=read(market+'/index.html');
+    assert.doesNotMatch(h,/Solicitar invitación de prueba|Solicitar acceso de teste|lanzamiento y la configuración de Google Play todavía se están preparando|precio mostrado es orientativo/i);
+  }
+});
