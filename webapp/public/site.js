@@ -351,8 +351,9 @@ async function loadAppointments(){
 async function loadAtelierAccountSettings(){
  const branches=$("#branches-summary"),rules=$("#notifications-summary");
  try{
-  const data=await api("/branches"),rows=data.branches||[];
-  if(branches)branches.innerHTML=rows.length?'<div class="branch-chips">'+rows.map(b=>'<span class="branch-chip"><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></span>').join("")+'</div>':'<p class="small">No hay sucursales.</p>';
+  const [data,memberData]=await Promise.all([api("/branches"),api("/workspace/members")]),rows=data.branches||[],members=memberData.members||[];
+  if(branches)branches.innerHTML=(rows.length?'<div class="branch-chips">'+rows.map(b=>'<span class="branch-chip"><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></span>').join("")+'</div>':'<p class="small">No hay sucursales.</p>')+
+   (members.length?'<div class="team-branch-list"><h3>Equipo por sucursal</h3>'+members.map(m=>'<div class="team-branch-row" data-member-row="'+esc(m.id)+'"><span><strong>'+esc(m.name||m.email)+'</strong><small>'+esc(m.role||"staff")+'</small></span><select data-member-branch>'+rows.filter(b=>b.status==="active").map(b=>'<option value="'+esc(b.id)+'" '+(b.id===m.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select><label>Cap. <input data-member-capacity type="number" min="1" max="200" value="'+esc(String(m.dailyCapacityItems||8))+'"></label><button type="button" class="record-action" data-action="save-worker-settings" data-id="'+esc(m.id)+'">Guardar</button></div>').join("")+'</div>':"");
  }catch(e){if(branches)branches.textContent="No se pudieron cargar las sucursales.";}
  try{
   const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
@@ -753,6 +754,17 @@ document.addEventListener("click",event=>{
   case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openPassport(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
   case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
+  case "save-worker-settings":{
+   const row=document.querySelector('[data-member-row="'+CSS.escape(b.dataset.id||"")+'"]');
+   const branchId=row?.querySelector("[data-member-branch]")?.value||"";
+   const dailyCapacityItems=Number(row?.querySelector("[data-member-capacity]")?.value||8);
+   b.disabled=true;
+   void api("/workspace/members/"+encodeURIComponent(b.dataset.id)+"/atelier-settings",{method:"PATCH",body:JSON.stringify({branchId,dailyCapacityItems})})
+    .then(()=>{success("Equipo actualizado.");void loadAtelierAccountSettings();})
+    .catch(e=>globalError(e.message||"No se pudo actualizar el equipo."))
+    .finally(()=>{b.disabled=false;});
+   break;
+  }
   case "toggle-notification":{
    const checkbox=b;
    const enabled=Boolean(checkbox.checked);
