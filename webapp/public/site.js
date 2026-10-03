@@ -18,7 +18,7 @@ let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261004-v32").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261004-v33").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
@@ -273,16 +273,24 @@ function customerInitials(name) {
 }
 function garmentCardOrderActions(o,itemId,orderId){
  const safe=esc(o.id||"");
+ const number=esc(o.orderNumber||"—");
  const canDelete=o.status!=="issued";
- return '<div class="garment-actions">'+
-  '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
-  '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+
-  '<button type="button" class="record-action" data-action="edit-order" data-id="'+safe+'" aria-label="Editar pedido">Editar</button>'+
-  '<details class="garment-more"><summary>Más <span aria-hidden="true">⌄</span></summary><div class="garment-more-menu">'+
+ return '<div class="garment-action-groups">'+
+  '<div class="garment-action-group garment-action-group-prenda"><span class="garment-action-label">PRENDA</span><div class="garment-actions">'+
+   '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
+   '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Etiqueta</button>'+
+   '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar prenda</button>'+
+  '</div></div>'+
+  '<div class="garment-action-group garment-action-group-order"><span class="garment-action-label">PEDIDO</span><div class="garment-actions">'+
+   '<button type="button" class="record-action garment-order-info" data-action="order-info" data-id="'+safe+'">Pedido #'+number+'</button>'+
+   '<button type="button" class="record-action" data-action="order-payments" data-id="'+safe+'">Pago</button>'+
    '<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'">Documentos</button>'+
-   '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
-   (canDelete?'<button type="button" class="record-action danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
-  '</div></details></div>';
+   '<details class="garment-more"><summary aria-label="Más acciones del pedido">⋯</summary><div class="garment-more-menu">'+
+    '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
+    (canDelete?'<button type="button" class="record-action danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
+   '</div></details>'+
+  '</div></div>'+
+ '</div>';
 }
 function garmentCard(o,item,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
@@ -858,7 +866,10 @@ document.addEventListener("click",event=>{
   case "new-branch":openModal("branch");break;
   case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
+  case "garment-edit":void featureUI.then(ui=>ui.openGarmentEdit(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo editar la prenda."));break;
   case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
+  case "order-info":void featureUI.then(ui=>ui.openOrderInfo(b.dataset.id)).catch(e=>globalError(e.message||"No se pudo abrir el pedido."));break;
+  case "order-payments":void featureUI.then(ui=>ui.openPayments(b.dataset.id)).catch(e=>globalError(e.message||"No se pudieron abrir los pagos."));break;
   case "save-worker-settings":{
    const row=document.querySelector('[data-member-row="'+CSS.escape(b.dataset.id||"")+'"]');
    const branchId=row?.querySelector("[data-member-branch]")?.value||"";
