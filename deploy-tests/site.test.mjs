@@ -201,3 +201,30 @@ test('international demo localizes generated UI and sample business data',()=>{
   assert.match(shim,/Μαρία Παπαδοπούλου/);
   assert.match(shim,/Lucia Nováková/);
 });
+
+
+test('no public HTML page contains a literal \\n marker',()=>{
+  const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
+    const p=path.join(dir,e.name);
+    return e.isDirectory()?walk(p):[p];
+  });
+  const htmlFiles=walk(root).filter(p=>p.endsWith('.html'));
+  const offenders=htmlFiles.filter(p=>fs.readFileSync(p,'utf8').includes('\\\\n'));
+  assert.deepEqual(offenders,[]);
+});
+
+test('legal and support translations exist for every launched non-Spanish market',()=>{
+  const locales=['fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'];
+  for(const locale of locales){
+    const p=path.join(root,'assets-v3','legal',locale+'.json');
+    assert.equal(fs.existsSync(p),true,locale);
+    const pack=JSON.parse(fs.readFileSync(p,'utf8'));
+    for(const key of ['support','delete-account','aviso-legal','terms','privacy']){
+      assert.ok(pack[key],locale+' '+key);
+      assert.ok(Array.isArray(pack[key].sections)&&pack[key].sections.length>0,locale+' '+key);
+    }
+  }
+  const loader=read('assets-v3/legal-i18n.js');
+  assert.match(loader,/pt-BR/);
+  assert.match(loader,/legal\/+.*support/);
+});
