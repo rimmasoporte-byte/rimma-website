@@ -294,6 +294,55 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const safePublicUrl=value=>{
   try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null}catch{return null}
  };
+ async function openGarment(orderId,itemId){
+  if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
+  const result=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
+  const p=result.passport||{};
+  if(!uuid(p.id))throw Error(tr("No se pudo cargar la prenda.","Não foi possível carregar a peça."));
+  selected={orderId,itemId,passport:p};
+  const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
+  const history=Array.isArray(p.history)?p.history:[];
+  const measurement=p.measurementSheet;
+  const clientName=p.client?.name||tr("Cliente sin nombre","Cliente sem nome");
+  const due=String(p.dueDate||"").slice(0,10)||"—";
+  const worker=p.assignedWorker?.name||tr("Sin asignar","Sem atribuição");
+  const location=p.storageLocation||tr("Sin ubicación","Sem localização");
+  const measurementLabel=measurement
+   ? (measurement.garmentLabel||measurement.garmentType||tr("Ficha vinculada","Ficha vinculada"))
+   : tr("Sin ficha vinculada","Sem ficha vinculada");
+  layout("garment-work",tr("Ficha de la prenda","Ficha da peça"),
+   '<div class="garment-work-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span>'+
+    '<h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3><span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
+    '<div class="garment-work-due"><small>'+tr("Entrega","Entrega")+'</small><strong>'+esc(due)+'</strong></div></div>'+
+   '<div class="feature-summary garment-work-money"><div><small>'+tr("Total","Total")+'</small><strong>'+esc(money(p.totalMinor,p.currencyCode))+'</strong></div>'+
+    '<div><small>'+tr("Pagado","Pago")+'</small><strong>'+esc(money(p.confirmedPaidMinor,p.currencyCode))+'</strong></div>'+
+    '<div><small>'+tr("Pendiente","Pendente")+'</small><strong>'+esc(money(p.remainingMinor,p.currencyCode))+'</strong></div></div>'+
+   '<div class="garment-work-grid">'+
+    '<section class="garment-work-card"><small>'+tr("Cliente","Cliente")+'</small><strong>'+esc(clientName)+'</strong><span>'+esc(p.client?.phone||p.client?.email||"—")+'</span></section>'+
+    '<section class="garment-work-card"><small>'+tr("Responsable","Responsável")+'</small><strong>'+esc(worker)+'</strong><span>'+tr("Trabajo asignado a esta prenda","Trabalho atribuído a esta peça")+'</span></section>'+
+    '<section class="garment-work-card"><small>'+tr("Ubicación","Localização")+'</small><strong>'+esc(location)+'</strong><span>'+tr("Dónde está guardada la prenda","Onde a peça está guardada")+'</span></section>'+
+    '<section class="garment-work-card"><small>'+tr("Medidas","Medidas")+'</small><strong>'+esc(measurementLabel)+'</strong><span>'+(measurement?esc((measurement.measurements||[]).slice(0,4).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")).join(" · ")||tr("Ficha guardada","Ficha guardada")):tr("Puedes vincular una ficha del cliente","Você pode vincular uma ficha do cliente"))+'</span></section>'+
+   '</div>'+
+   '<div class="passport-section garment-work-section"><h4>'+tr("Trabajo","Trabalho")+'</h4>'+
+    '<div class="garment-work-details">'+
+     '<span><small>'+tr("Tipo","Tipo")+'</small><strong>'+esc(p.garmentType||"—")+'</strong></span>'+
+     '<span><small>'+tr("Marca","Marca")+'</small><strong>'+esc(p.brand||"—")+'</strong></span>'+
+     '<span><small>'+tr("Color","Cor")+'</small><strong>'+esc(p.color||"—")+'</strong></span>'+
+     '<span><small>'+tr("Talla","Tamanho")+'</small><strong>'+esc(p.sizeLabel||"—")+'</strong></span>'+
+    '</div></div>'+
+   '<div class="passport-section garment-work-section"><h4>'+tr("Herramientas de la prenda","Ferramentas da peça")+'</h4>'+
+    '<div class="garment-work-actions">'+
+     b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
+     b(tr("Cobros y pagos","Cobranças e pagamentos"),"order-payments",'data-id="'+esc(orderId)+'"')+
+     (uuid(p.client?.id)?b(tr("Ficha de medidas","Ficha de medidas"),"client-measurements",'data-id="'+esc(p.client.id)+'"'):"")+
+     b(tr("Pasaporte digital","Passaporte digital"),"garment-passport",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
+    '</div>'+
+    '<p class="passport-section-help">'+tr("El pasaporte digital sirve para compartir la información de esta prenda con el cliente y acceder a su página privada y QR.","O passaporte digital serve para compartilhar as informações desta peça com o cliente e acessar sua página privada e QR.")+'</p></div>'+
+   '<div class="passport-section garment-work-section"><h4>'+tr("Actividad reciente","Atividade recente")+'</h4>'+
+    (history.length?'<div class="passport-timeline">'+history.slice(0,6).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
+     '<p class="feature-muted">'+tr("Todavía no hay movimientos registrados.","Ainda não há movimentações registradas.")+'</p>')+'</div>',null);
+ }
+
  async function openOrderPassport(orderId){
   if(!uuid(orderId)){globalError(tr("Pedido inválido.","Pedido inválido."));return;}
   const result=await api("/orders/"+encodeURIComponent(orderId));
@@ -1027,6 +1076,7 @@ function newPhoto(){
    });
   }
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
+  if(action==="garment-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-share")return void safe(createPassportShare);
   if(action==="passport-copy")return void safe(copyPassportShare);
@@ -1046,5 +1096,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openGarment,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
 }

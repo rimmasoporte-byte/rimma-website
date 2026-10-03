@@ -143,6 +143,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-action="add-order-item"/);
  assert.match(js,/function garmentCardOrderActions\(/);
  assert.match(js,/class="garment-more"/);
+ assert.match(js,/ui\.openGarment\(b\.dataset\.order,b\.dataset\.item\)/);
+ assert.doesNotMatch(js,/garment-more-menu[\s\S]{0,500}data-action="order-passport"/);
  assert.match(js,/img\.addEventListener\("error",restoreFallback/);
  assert.doesNotMatch(js,/holder&&photo\?\.viewUrl\)holder\.innerHTML='<img/);
  assert.ok(js.indexOf('id="extra-order-items"')>js.indexOf('if(type==="order"){'),
@@ -150,6 +152,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  const clientForm=js.slice(js.indexOf('if(type==="client"){'),js.indexOf('if(type==="order"){'));
  assert.doesNotMatch(clientForm,/extra-order-items/);
  assert.match(feat,/deliveryMode|manualmente/);
+ assert.match(feat,/async function openGarment\(orderId,itemId\)/);
+ assert.match(feat,/Ficha de la prenda/);
+ assert.match(feat,/Pasaporte digital/);
+ assert.match(feat,/"garment-passport"/);
+ assert.match(feat,/action==="garment-passport"/);
+ assert.match(feat,/openGarment,openPassport,openOrderPassport/);
  assert.match(feat,/Idempotency-Key/);
  assert.match(feat,/sessionStorage/);
  assert.match(feat,/crypto\?\.randomUUID/);
@@ -162,8 +170,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
   assert.match(css,/\.garment-card-top\{[\s\S]*?align-items:flex-start/);
   assert.match(css,/\.garment-card-top>\.status\{[\s\S]*?align-self:flex-start[\s\S]*?height:auto/);
   assert.match(css,/\.garment-more-menu\{[\s\S]*?position:absolute/);
-  assert.match(html,/site\.js\?v=20261004-v31/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v31/);
+  assert.match(html,/site\.js\?v=20261004-v32/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v32/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");

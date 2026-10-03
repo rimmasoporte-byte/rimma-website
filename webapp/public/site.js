@@ -18,7 +18,7 @@ let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261003-v26").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261004-v32").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
@@ -280,7 +280,6 @@ function garmentCardOrderActions(o,itemId,orderId){
   '<button type="button" class="record-action" data-action="edit-order" data-id="'+safe+'" aria-label="Editar pedido">Editar</button>'+
   '<details class="garment-more"><summary>Más <span aria-hidden="true">⌄</span></summary><div class="garment-more-menu">'+
    '<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'">Documentos</button>'+
-   '<button type="button" class="record-action" data-action="order-passport" data-id="'+safe+'">Pasaporte</button>'+
    '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
    (canDelete?'<button type="button" class="record-action danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
   '</div></details></div>';
@@ -858,7 +857,7 @@ document.addEventListener("click",event=>{
   case "new-appointment":openModal("appointment");break;
   case "new-branch":openModal("branch");break;
   case "refresh-notifications":void loadAtelierAccountSettings();break;
-  case "garment-open":void featureUI.then(ui=>ui.openPassport(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
+  case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
   case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
   case "save-worker-settings":{
    const row=document.querySelector('[data-member-row="'+CSS.escape(b.dataset.id||"")+'"]');
