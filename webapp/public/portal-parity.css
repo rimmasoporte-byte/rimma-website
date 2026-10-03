@@ -1188,3 +1188,146 @@ button:disabled,.feature-button[disabled]{
   gap:5px
  }
 }
+
+
+/* V36 — professional horizontal garment card: information in the center, actions on the right. */
+.garment-grid .garment-card{
+ grid-template-columns:76px minmax(0,1fr) 188px;
+ gap:12px;
+ align-items:center;
+ padding:10px 12px;
+ min-height:0
+}
+.garment-grid .garment-photo{
+ width:76px;
+ height:76px;
+ border-radius:11px;
+ font-size:22px
+}
+.garment-grid .garment-card-main{
+ align-self:center
+}
+.garment-grid .garment-card-top{
+ display:block
+}
+.garment-grid .garment-card-top h3{
+ margin:1px 0 2px;
+ font-size:16px
+}
+.garment-grid .customer-avatar{
+ width:27px;
+ height:27px;
+ min-width:27px
+}
+.garment-grid .garment-facts{
+ margin:5px 0 4px
+}
+.garment-grid .garment-money{
+ margin:3px 0 0
+}
+.garment-card-rail{
+ display:grid;
+ grid-template-rows:auto 1fr;
+ gap:9px;
+ align-self:stretch;
+ justify-items:end;
+ min-width:0
+}
+.garment-card-rail>.status{
+ align-self:start;
+ width:max-content;
+ min-height:25px;
+ padding:5px 9px;
+ font-size:10px
+}
+.garment-card-rail .garment-quick-actions{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:5px;
+ width:188px;
+ margin:0;
+ padding:0;
+ border:0;
+ align-self:end
+}
+.garment-card-rail .garment-quick-actions>.record-action,
+.garment-card-rail .garment-quick-actions>.garment-paid-action{
+ display:inline-flex;
+ justify-content:center;
+ align-items:center;
+ width:100%;
+ min-height:29px;
+ padding:5px 7px;
+ font-size:10px;
+ box-sizing:border-box
+}
+.garment-card-rail .garment-more{
+ width:100%
+}
+.garment-card-rail .garment-more>summary[aria-label="Más acciones"]{
+ width:100%;
+ min-height:29px;
+ box-sizing:border-box
+}
+.garment-card-rail .garment-more-menu{
+ right:0;
+ min-width:184px
+}
+@media(max-width:980px){
+ .garment-grid .garment-card{
+  grid-template-columns:72px minmax(0,1fr);
+  align-items:start
+ }
+ .garment-grid .garment-photo{
+  width:72px;
+  height:72px
+ }
+ .garment-card-rail{
+  grid-column:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px
+ }
+ .garment-card-rail .garment-quick-actions{
+  width:auto;
+  grid-template-columns:repeat(4,auto)
+ }
+ .garment-card-rail .garment-quick-actions>.record-action,
+ .garment-card-rail .garment-quick-actions>.garment-paid-action{
+  width:auto
+ }
+ .garment-card-rail .garment-more{
+  width:auto
+ }
+ .garment-card-rail .garment-more>summary[aria-label="Más acciones"]{
+  width:auto
+ }
+}
+@media(max-width:620px){
+ .garment-grid .garment-card{
+  grid-template-columns:62px minmax(0,1fr);
+  padding:9px
+ }
+ .garment-grid .garment-photo{
+  width:62px;
+  height:62px
+ }
+ .garment-card-rail{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center
+ }
+ .garment-card-rail .garment-quick-actions{
+  justify-self:end;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  width:min(100%,260px)
+ }
+ .garment-card-rail .garment-quick-actions>.record-action,
+ .garment-card-rail .garment-quick-actions>.garment-paid-action,
+ .garment-card-rail .garment-more,
+ .garment-card-rail .garment-more>summary[aria-label="Más acciones"]{
+  width:100%
+ }
+}
