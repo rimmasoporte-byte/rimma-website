@@ -696,3 +696,44 @@ button:disabled,.feature-button[disabled]{
 .branch-overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0 18px}.branch-overview{border:1px solid #e4dbcf;border-radius:16px;background:#fbf9f6;padding:12px;display:grid;gap:10px}.branch-overview>div:first-child{display:grid}.branch-overview small{color:#756d65}.branch-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.branch-stats span{display:flex;justify-content:space-between;gap:8px;background:#fff;border-radius:10px;padding:7px 8px;font-size:11px;color:#6f675f}.branch-stats b{color:#2a2521}
 .notification-event-list{display:grid;gap:10px}.notification-event{display:grid;grid-template-columns:minmax(170px,1.2fr) minmax(110px,.5fr) minmax(260px,1fr);align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #eee7dd}.notification-event-name{display:grid}.notification-event-name small{color:#766e66}.notification-channel{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}.notification-channel input[type="checkbox"]{width:20px;height:20px}.whatsapp-channel{display:grid;grid-template-columns:auto 1fr auto}.whatsapp-channel input[type="text"]{min-width:0;border:1px solid #ddd4c8;border-radius:9px;padding:7px 8px;background:#fff}
 @media(max-width:760px){.notification-event{grid-template-columns:1fr}.whatsapp-channel{grid-template-columns:auto 1fr auto}.branch-stats{grid-template-columns:1fr 1fr}}
+
+
+/* V30 — dashboard KPI actions are text cues, not legacy circular arrow controls. */
+#view-inicio #today-cards .atelier-kpi{
+ min-width:0;overflow:hidden
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump{
+ position:static;
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-start;
+ width:max-content;
+ max-width:100%;
+ height:auto;
+ margin-top:auto;
+ padding:8px 0 0;
+ border:0;
+ border-radius:0;
+ background:transparent;
+ color:#9a713f;
+ font:700 11px/1.2 var(--font);
+ letter-spacing:.02em;
+ white-space:nowrap;
+ transform:none
+}
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump{
+ border:0;
+ background:transparent;
+ color:#e5c27f
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump:hover,
+#view-inicio #today-cards .atelier-kpi>.metric-jump:focus-visible{
+ border:0;
+ background:transparent;
+ color:#6f4f2c;
+ transform:none
+}
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:hover,
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:focus-visible{
+ color:#f1d69e
+}
