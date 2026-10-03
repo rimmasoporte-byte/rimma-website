@@ -241,10 +241,10 @@ function garmentCard(o,item,actions=false){
  const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
  return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
   '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
-  '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref">Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
+  '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
   '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span></div>'+
-  '<div class="garment-money"><span>Total <strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
-  (actions?'<div class="garment-actions"><button type="button" class="record-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button><button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button><button type="button" class="record-action" data-action="edit-order" data-id="'+orderId+'">Pedido</button></div>':"")+
+  '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
+  (actions?'<div class="garment-actions"><button type="button" class="record-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button><button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+recordActions("order",o.id,o.status!=="issued")+'</div>':"")+
   '</div></article>';
 }
 function orderTable(rows,actions=false){
@@ -291,10 +291,10 @@ function compactActionRows(rows,kind){
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando prendas…</p>';
- const [today,orders]=await Promise.allSettled([api("/dashboard/today"),api("/orders?limit=5&offset=0")]);
+ const [today,orders,week]=await Promise.allSettled([api("/dashboard/today"),api("/orders?limit=5&offset=0"),api("/dashboard/week")]);
  if(today.status==="fulfilled"){
-  const d=today.value.dashboard||{},s=d.summary||{};
-  $("#due-count").textContent=n(s.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(s.readyForPickup);
+  const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
+  $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
   $("#unpaid-count").textContent=n(s.unpaidBalance);$("#appointments-count").textContent=n(s.appointmentsToday);$("#overloaded-count").textContent=n(s.overloadedWorkers);
   const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):"Sin cobros pendientes";
   $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
@@ -303,6 +303,11 @@ async function loadToday(){
   $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">No hay citas hoy.</p>';
   $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div><strong>'+esc(w.name)+'</strong><small>'+esc(w.branch?.name||"Taller")+' · '+n(w.activeItems)+' prendas activas</small></div><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div>').join("")+'</div>':'<p class="empty">Añade responsables a las prendas para ver la carga.</p>';
  }
+ if(week.status==="fulfilled"){
+  const w=week.value.dashboard||week.value.week||{};
+  const weekly=Number(w.summary?.dueThisWeek??w.summary?.total??w.dueThisWeek??0);
+  $("#week-count").textContent=n(weekly);
+ }else $("#week-count").textContent="—";
  if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);}
  else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
@@ -329,14 +334,15 @@ async function printGarmentLabel(orderId,itemId){
   const canvas=qrHolder.querySelector("canvas"),img=qrHolder.querySelector("img");
   const qrData=canvas?.toDataURL("image/png")||img?.src||"";
   qrHolder.remove();
-  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font-weight:800;letter-spacing:.16em;font-size:10px}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(l.orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div><div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsable:</b> '+esc(l.assignedWorker?.name||"Sin asignar")+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div><script>addEventListener("load",()=>{print();setTimeout(()=>close(),500)})<\/script></body></html>';
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font-weight:800;letter-spacing:.16em;font-size:10px}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(l.orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div><div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsable:</b> '+esc(l.assignedWorker?.name||"Sin asignar")+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
   if(!popup)throw Error("Permite ventanas emergentes para imprimir la etiqueta.");
   popup.document.open();popup.document.write(html);popup.document.close();
+  setTimeout(()=>{try{popup.focus();popup.print();}catch{}},350);
  }catch(e){try{popup?.close()}catch{}globalError(e.message||"No se pudo imprimir la etiqueta.");}
 }
 function appointmentCard(a){
  const start=new Date(a.startsAt),end=new Date(a.endsAt);
- return '<article class="appointment-card"><div class="appointment-time"><strong>'+esc(start.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><small>'+esc(start.toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short"}))+'</small></div><div><span class="eyebrow">'+esc((a.kind||"fitting").toUpperCase())+'</span><h3>'+esc(a.client?.name||"Cita")+'</h3><p>'+esc(a.item?.name||a.order?.orderNumber?"Pedido #"+String(a.order?.orderNumber||""):"")+'</p><small>'+esc(a.branch?.name||"")+' · '+esc(end.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</small></div><span class="status '+esc(a.status||"scheduled")+'">'+esc(a.status||"scheduled")+'</span></article>';
+ return '<article class="appointment-card"><div class="appointment-time"><strong>'+esc(start.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><small>'+esc(start.toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short"}))+'</small></div><div><span class="eyebrow">'+esc((a.kind||"fitting").toUpperCase())+'</span><h3>'+esc(a.client?.name||"Cita")+'</h3><p>'+esc(a.item?.name || (a.order?.orderNumber ? "Pedido #"+String(a.order.orderNumber) : ""))+'</p><small>'+esc(a.branch?.name||"")+' · '+esc(end.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</small></div><span class="status '+esc(a.status||"scheduled")+'">'+esc(a.status||"scheduled")+'</span></article>';
 }
 async function loadAppointments(){
  const target=$("#appointments-list");if(!target)return;
