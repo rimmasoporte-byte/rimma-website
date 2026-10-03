@@ -6,7 +6,7 @@
   const GRANTED = 'granted';
   const DENIED = 'denied';
   const isPt = (document.documentElement.lang || '').toLowerCase().startsWith('pt');
-  const cookieCopy = isPt ? {
+  const cookieCopy = window.RIMMA_COOKIE_COPY || (isPt ? {
     aria: 'Preferências de cookies',
     title: 'Sua privacidade na RIMMA',
     body: 'Usamos o Google Analytics somente com o seu consentimento para entender visitas, países e fontes de tráfego. Não usamos esses dados para publicidade personalizada.',
@@ -20,7 +20,7 @@
     more: 'Más información',
     accept: 'Aceptar analíticas',
     reject: 'Solo necesarias'
-  };
+  });
   let loaded = false;
 
   const getChoice = () => {
@@ -142,7 +142,7 @@
     button.id = 'rimma-cookie-settings';
     button.className = 'rimma-cookie-settings';
     button.type = 'button';
-    button.textContent = 'Cookies';
+    button.textContent = cookieCopy.settings || 'Cookies';
     button.addEventListener('click', renderBanner);
     document.body.appendChild(button);
   };
