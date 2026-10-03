@@ -482,6 +482,7 @@ async function refreshBilling(button){
 }
 async function loadAccount(){
  $("#account-info").innerHTML='<p>Cargando cuenta…</p>';
+ void loadAtelierAccountSettings();
  try{
   const a=(await api("/me")).me||me||{};
   const info=[["Nombre",a.user?.displayName||"No indicado"],["Correo electrónico",a.user?.email||"—"],["Taller",a.workspace?.name||"—"],["Rol",a.workspace?.role==="owner"?"Propietario":a.workspace?.role||"Miembro"]];
@@ -521,11 +522,11 @@ function openModal(type,record=null){
  if(type==="order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Nuevo pedido";
   box.innerHTML='<p class="helper">Consultando clientes y servicios…</p>';
-  void Promise.all([api("/clients?limit=100&offset=0"),api("/price-list")]).then(([clients,catalog])=>{
+  void Promise.all([api("/clients?limit=100&offset=0"),api("/price-list"),api("/branches")]).then(([clients,catalog,branchData])=>{
    if(activeModal!=="order")return;
-   lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];
+   lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];const branches=(branchData.branches||[]).filter(b=>b.status==="active");
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div><label for="f-branchId">Sucursal *</label><select name="branchId" id="f-branchId" required>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
@@ -535,6 +536,21 @@ function openModal(type,record=null){
   }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});
  }
 
+ if(type==="appointment"){
+  $("#modal-eyebrow").textContent="AGENDA DEL TALLER";$("#modal-title").textContent="Nueva cita";
+  box.innerHTML='<p class="helper">Preparando agenda…</p>';
+  void Promise.all([api("/clients?limit=100&offset=0"),api("/branches"),api("/orders?limit=100&offset=0")]).then(([clientData,branchData,orderData])=>{
+   if(activeModal!=="appointment")return;
+   const clients=clientData.clients||[],branches=(branchData.branches||[]).filter(b=>b.status==="active"),orders=orderData.orders||[];
+   const now=new Date(Date.now()+60*60_000),start=now.toISOString().slice(0,16);
+   const finish=new Date(now.getTime()+45*60_000).toISOString().slice(0,16);
+   box.innerHTML='<div class="form-grid"><div><label for="f-kind">Tipo</label><select id="f-kind" name="kind"><option value="fitting">Prueba</option><option value="consultation">Consulta</option><option value="pickup">Recogida</option><option value="other">Otra</option></select></div><div><label for="f-branchId">Sucursal</label><select id="f-branchId" name="branchId">'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-clientId">Cliente</label><select id="f-clientId" name="clientId"><option value="">Sin cliente</option>'+clients.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-orderId">Pedido</label><select id="f-orderId" name="orderId"><option value="">Sin pedido</option>'+orders.map(o=>'<option value="'+esc(o.id)+'">#'+esc(o.orderNumber)+' · '+esc(o.client?.name||"Cliente")+'</option>').join("")+'</select></div>'+field("Inicio *","startsAt","datetime-local",'required value="'+esc(start)+'"')+field("Fin *","endsAt","datetime-local",'required value="'+esc(finish)+'"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="2000"></textarea></div></div>';
+  }).catch(e=>{box.textContent="No se pudo preparar la cita: "+e.message;});
+ }
+ if(type==="branch"){
+  $("#modal-eyebrow").textContent="MULTI-TALLER";$("#modal-title").textContent="Nueva sucursal";
+  box.innerHTML='<div class="form-grid">'+field("Nombre *","name","text",'required maxlength="120"')+field("Código *","code","text",'required maxlength="24" placeholder="CENTRO"')+field("Dirección","addressLine1","text",'maxlength="240"')+field("Código postal","postalCode","text",'maxlength="20"')+field("Ciudad","city","text",'maxlength="120"')+field("Provincia","province","text",'maxlength="120"')+field("Teléfono","phone","tel",'maxlength="40"')+'</div>';
+ }
  if(type==="edit-client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Editar cliente";
   box.textContent="Cargando cliente…";
@@ -553,12 +569,12 @@ function openModal(type,record=null){
  if(type==="edit-order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Editar pedido";
   box.textContent="Cargando pedido…";
-  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+  void Promise.all([api("/orders/"+encodeURIComponent(record.id)),api("/branches")]).then(([result,branchData])=>{
    if(activeModal!==type || activeRecord?.id!==record.id)return;
    const order=result.order; if(!order || order.id!==record.id)throw Error("Registro incorrecto");
-   activeRecord=order;
-   box.innerHTML='<p class="edit-hint">Puedes actualizar la fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón. Los importes y trabajos ya registrados permanecen intactos.</p>'+
-    '<div class="form-grid">'+field("Fecha de entrega","due","date")+
+   activeRecord=order;const branches=(branchData.branches||[]).filter(b=>b.status==="active");
+   box.innerHTML='<p class="edit-hint">Puedes actualizar sucursal, fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón.</p>'+
+    '<div class="form-grid"><div><label for="f-branchId">Sucursal</label><select id="f-branchId" name="branchId">'+branches.map(b=>'<option value="'+esc(b.id)+'" '+(b.id===order.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select></div>'+field("Fecha de entrega","due","date")+
     '<div><label for="f-reply">Seguimiento pendiente</label><select id="f-reply" name="reply"><option value="false">No</option><option value="true">Sí</option></select></div>'+
     '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="10000"></textarea></div></div>'+
     '<div class="item-edit-list"><strong>Estado de las prendas</strong>'+
@@ -604,7 +620,7 @@ async function saveModal(event){
     const pick=get("service")===""?null:options[Number(get("service"))];
     const mainPhoto=form.elements.namedItem("orderPhoto")?.files?.[0]||null;
     const extraRows=[...$("#modal-fields").querySelectorAll(".extra-order-item")],extraPhotoFiles=[];
-    const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,garmentType:get("garmentType").trim()||null,color:get("color").trim()||null,sizeLabel:get("sizeLabel").trim()||null,storageLocation:get("storageLocation").trim()||null,...(pick?{categoryId:pick.catId}:{})},
+    const payload={clientId:get("clientId"),branchId:get("branchId")||null,currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,garmentType:get("garmentType").trim()||null,color:get("color").trim()||null,sizeLabel:get("sizeLabel").trim()||null,storageLocation:get("storageLocation").trim()||null,...(pick?{categoryId:pick.catId}:{})},
      ...extraRows.map(row=>{
       const name=row.querySelector('[name="extraName"]').value.trim(),unit=Number(row.querySelector('[name="extraPrice"]').value),quantity=Number(row.querySelector('[name="extraQuantity"]').value),amount=Math.round(unit*100);
       if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
@@ -624,6 +640,13 @@ async function saveModal(event){
       await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.blob.size,fileName:file.name,contentType:file.contentType,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
     }
     $("#modal").close();activeModal=null;go("pedidos");success(files.some(Boolean)?"Pedido y fotografías guardados correctamente.":"Pedido creado correctamente.");
+  }else if(activeModal==="appointment"){
+   const startsAt=new Date(get("startsAt")).toISOString(),endsAt=new Date(get("endsAt")).toISOString();
+   await api("/appointments",{method:"POST",body:JSON.stringify({kind:get("kind"),branchId:get("branchId")||null,clientId:get("clientId")||null,orderId:get("orderId")||null,startsAt,endsAt,notes:get("notes").trim()||null})});
+   $("#modal").close();activeModal=null;go("citas");success("Cita guardada.");
+  }else if(activeModal==="branch"){
+   await api("/branches",{method:"POST",body:JSON.stringify({name:get("name").trim(),code:get("code").trim(),addressLine1:get("addressLine1").trim()||null,postalCode:get("postalCode").trim()||null,city:get("city").trim()||null,province:get("province").trim()||null,phone:get("phone").trim()||null})});
+   $("#modal").close();activeModal=null;await loadAtelierAccountSettings();success("Sucursal creada.");
   }else if(activeModal==="edit-client"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
    const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
@@ -632,7 +655,8 @@ async function saveModal(event){
   }else if(activeModal==="edit-order"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el pedido.");
    const payload={expectedVersion:Number(activeRecord.version)};
-   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true";
+   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true",branchId=get("branchId")||null;
+   if(branchId!==(activeRecord.branch?.id||null))payload.branchId=branchId;
    if(due!==(activeRecord.dueDate?String(activeRecord.dueDate).slice(0,10):null))payload.dueDate=due;
    if(notes!==(activeRecord.notes||null))payload.notes=notes;
    if(needsReply!==Boolean(activeRecord.needsReply))payload.needsReply=needsReply;
