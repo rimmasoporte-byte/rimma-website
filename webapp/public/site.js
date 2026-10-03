@@ -9,16 +9,16 @@ const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
 const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
 const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
-const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
-const businessViews=new Set(["inicio","pedidos","clientes","servicios","informes"]);
+const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",citas:tr("Citas","Citas"),clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
+const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
-let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
+let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261003-vf25").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261003-v26").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
@@ -140,7 +140,7 @@ function go(view){
  $$("[data-view]").forEach(x=>{const selected=x.dataset.view===view;x.classList.toggle("active",selected);if(x.closest(".side-nav"))selected?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current");});
  $("#breadcrumb").textContent=views[view];closeDrawer();window.scrollTo(0,0);
  requestAnimationFrame(()=>{if($("#view-"+view)?.classList.contains("active"))window.scrollTo(0,0);});
- const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
+ const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
 async function prepareOrderPhoto(file){
@@ -229,36 +229,173 @@ function customerInitials(name) {
  const words=String(name||"").trim().split(/\s+/).filter(Boolean);
  return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
 }
-function orderRow(o,actions=false){
+function garmentCard(o,item,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
- const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
- const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td class="order-number"><span class="name">#'+esc(o.orderNumber)+'</span></td>'+
- '<td><div class="customer-cell"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span><span class="customer-name">'+esc(customer)+'</span></div></td>'+
- '<td class="order-work">'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td>'+
- '<td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td>'+
- '<td class="order-amount">'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+
- (actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
+ const label=status[item.status]||item.status||"Sin estado";
+ const itemId=esc(item.id||"");
+ const orderId=esc(o.id||"");
+ const due=item.dueDate||o.dueDate;
+ const branch=o.branch?.name?'<span class="garment-meta-chip">⌂ '+esc(o.branch.name)+'</span>':"";
+ const worker=item.assignedWorker?.name?esc(item.assignedWorker.name):"Sin asignar";
+ const location=item.storageLocation?esc(item.storageLocation):"Sin ubicación";
+ const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
+ return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
+  '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
+  '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
+  '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'">📏 Sin ficha vinculada</span></div>'+
+  '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
+  (actions?'<div class="garment-actions"><button type="button" class="record-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button><button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+recordActions("order",o.id,o.status!=="issued")+'</div>':"")+
+  '</div></article>';
 }
 function orderTable(rows,actions=false){
- return rows.length?'<table><thead><tr><th scope="col">#</th><th scope="col">Cliente</th><th scope="col">Trabajo</th><th scope="col">Entrega</th><th scope="col">Estado</th><th scope="col">Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+ const cards=[];
+ for(const o of rows){
+  const items=Array.isArray(o.items)&&o.items.length?o.items:[{id:"",name:"Encargo",status:o.status,dueDate:o.dueDate,lineTotalMinor:o.totalMinor}];
+  for(const item of items)cards.push(garmentCard(o,item,actions));
+ }
+ return cards.length?'<div class="garment-grid">'+cards.join("")+'</div>':'<p class="empty">No hay prendas con esos filtros.</p>';
+}
+async function hydrateGarmentCards(rows){
+ const jobs=[];
+ let count=0;
+ for(const o of rows){
+  for(const item of (o.items||[])){
+   if(!item?.id||count>=24)continue;count++;
+   jobs.push((async()=>{
+    try{
+     const data=await api("/orders/"+encodeURIComponent(o.id)+"/items/"+encodeURIComponent(item.id)+"/passport");
+     const p=data.passport||{};
+     const photo=(p.photos||[]).find(x=>x.viewUrl);
+     const holder=document.querySelector('[data-garment-photo="'+CSS.escape(item.id)+'"]');
+     if(holder&&photo?.viewUrl)holder.innerHTML='<img src="'+esc(photo.viewUrl)+'" alt="">';
+     const worker=document.querySelector('[data-garment-worker="'+CSS.escape(item.id)+'"]');
+     if(worker)worker.textContent="👤 "+(p.assignedWorker?.name||"Sin asignar");
+     const loc=document.querySelector('[data-garment-location="'+CSS.escape(item.id)+'"]');
+     if(loc)loc.textContent="⌗ "+(p.storageLocation||"Sin ubicación");
+     const measurement=document.querySelector('[data-garment-measurement="'+CSS.escape(item.id)+'"]');
+     if(measurement)measurement.textContent="📏 "+(p.measurementSheet?.garmentLabel||p.measurementSheet?.garmentType||(p.measurementSheet?"Ficha de medidas":"Sin ficha vinculada"));
+     const paid=document.querySelector('[data-garment-paid="'+CSS.escape(item.id)+'"] strong');
+     if(paid)paid.textContent=money(p.confirmedPaidMinor,p.currencyCode);
+     const bal=document.querySelector('[data-garment-balance="'+CSS.escape(item.id)+'"] strong');
+     if(bal)bal.textContent=money(p.remainingMinor,p.currencyCode);
+    }catch{}
+   })());
+  }
+ }
+ await Promise.allSettled(jobs);
+}
+function compactActionRows(rows,kind){
+ if(!rows?.length)return '<p class="empty">Nada pendiente.</p>';
+ return '<div class="today-action-list">'+rows.slice(0,8).map(entry=>{
+  const client=entry.client?.name||"Cliente",item=entry.item?.name||"Prenda";
+  return '<button type="button" class="today-action-row" data-action="garment-open" data-order="'+esc(entry.orderId)+'" data-item="'+esc(entry.item?.id||"")+'"><span><strong>'+esc(item)+'</strong><small>#'+esc(entry.orderNumber)+' · '+esc(client)+'</small></span><span>'+esc(kind==="overdue"?"Atrasada":kind==="ready"?"Lista":date(entry.item?.dueDate))+'</span></button>';
+ }).join("")+'</div>';
 }
 async function loadToday(){
- $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
- const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
- if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);const ready=Number(today.value.dashboard?.summary?.readyForPickup);$("#topbar-alert-dot").hidden=!(Number.isFinite(ready)&&ready>0);}
- if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
- $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[],true):'<p class="empty">No se pudieron consultar los pedidos.</p>';
+ $("#recent-orders").innerHTML='<p class="empty">Cargando prendas…</p>';
+ const [today,orders,week]=await Promise.allSettled([api("/dashboard/today"),api("/orders?limit=5&offset=0"),api("/dashboard/week")]);
+ if(today.status==="fulfilled"){
+  const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
+  $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
+  $("#unpaid-count").textContent=n(s.unpaidBalance);$("#appointments-count").textContent=n(s.appointmentsToday);$("#overloaded-count").textContent=n(s.overloadedWorkers);
+  const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):"Sin cobros pendientes";
+  $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
+  const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
+  $("#today-attention").innerHTML=compactActionRows(attention,attention.length&&d.overdue?.length?"overdue":"due");
+  $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">No hay citas hoy.</p>';
+  $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div><strong>'+esc(w.name)+'</strong><small>'+esc(w.branch?.name||"Taller")+' · '+n(w.activeItems)+' prendas activas</small></div><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div>').join("")+'</div>':'<p class="empty">Añade responsables a las prendas para ver la carga.</p>';
+ }
+ if(week.status==="fulfilled"){
+  const w=week.value.dashboard||week.value.week||{};
+  const weekly=Number(w.summary?.dueThisWeek??w.summary?.total??w.dueThisWeek??0);
+  $("#week-count").textContent=n(weekly);
+ }else $("#week-count").textContent="—";
+ if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);}
+ else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
+}
+async function ensureOrderBranchFilter(){
+ if(ordersBranchesLoaded)return;
+ const select=$("#order-branch");if(!select)return;
+ try{
+  const data=await api("/branches"),rows=(data.branches||[]).filter(b=>b.status==="active");
+  select.innerHTML='<option value="">Todas las sucursales</option>'+rows.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("");
+  select.value=ordersBranch;
+  ordersBranchesLoaded=true;
+ }catch{}
 }
 async function loadOrders(){
  $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';
+ void ensureOrderBranchFilter();
  try{
-  const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);
+  const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);if(ordersBranch)q.set("branchId",ordersBranch);
   const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
-  $("#orders-list").innerHTML=orderTable(rows,true);$("#orders-page").textContent="Página "+(ordersPage+1);
+  $("#orders-list").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
+}
+async function printGarmentLabel(orderId,itemId){
+ if(!/^[a-f0-9-]{36}$/i.test(orderId||"")||!/^[a-f0-9-]{36}$/i.test(itemId||"")){globalError("Prenda no válida.");return;}
+ const popup=window.open("about:blank","_blank","noopener,noreferrer");
+ try{
+  const data=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/label");
+  const l=data.label||{};
+  const qrHolder=document.createElement("div");qrHolder.style.position="fixed";qrHolder.style.left="-10000px";document.body.appendChild(qrHolder);
+  if(!window.QRCode)throw Error("No se pudo preparar el QR.");
+  new QRCode(qrHolder,{text:String(l.qrPayload||""),width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+  await new Promise(resolve=>setTimeout(resolve,120));
+  const canvas=qrHolder.querySelector("canvas"),img=qrHolder.querySelector("img");
+  const qrData=canvas?.toDataURL("image/png")||img?.src||"";
+  qrHolder.remove();
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font-weight:800;letter-spacing:.16em;font-size:10px}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(l.orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div><div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsable:</b> '+esc(l.assignedWorker?.name||"Sin asignar")+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
+  if(!popup)throw Error("Permite ventanas emergentes para imprimir la etiqueta.");
+  popup.document.open();popup.document.write(html);popup.document.close();
+  setTimeout(()=>{try{popup.focus();popup.print();}catch{}},350);
+ }catch(e){try{popup?.close()}catch{}globalError(e.message||"No se pudo imprimir la etiqueta.");}
+}
+function appointmentCard(a){
+ const start=new Date(a.startsAt),end=new Date(a.endsAt);
+ return '<article class="appointment-card"><div class="appointment-time"><strong>'+esc(start.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><small>'+esc(start.toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short"}))+'</small></div><div><span class="eyebrow">'+esc((a.kind||"fitting").toUpperCase())+'</span><h3>'+esc(a.client?.name||"Cita")+'</h3><p>'+esc(a.item?.name || (a.order?.orderNumber ? "Pedido #"+String(a.order.orderNumber) : ""))+'</p><small>'+esc(a.branch?.name||"")+' · '+esc(end.toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</small></div><span class="status '+esc(a.status||"scheduled")+'">'+esc(a.status||"scheduled")+'</span></article>';
+}
+async function loadAppointments(){
+ const target=$("#appointments-list");if(!target)return;
+ target.innerHTML='<p class="empty">Cargando citas…</p>';
+ try{
+  const days=Number($("#appointments-range")?.value||14),from=new Date(),to=new Date(Date.now()+days*86400000);
+  const data=await api("/appointments?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString())+"&limit=200");
+  const rows=data.appointments||[];
+  target.innerHTML=rows.length?'<div class="appointments-timeline">'+rows.map(appointmentCard).join("")+'</div>':'<p class="empty">No hay citas en este periodo.</p>';
+ }catch(e){target.innerHTML='<p class="empty">No se pudieron cargar las citas.</p>';globalError(e.message);}
+}
+async function loadAtelierAccountSettings(){
+ const branches=$("#branches-summary"),rules=$("#notifications-summary");
+ try{
+  const [data,memberData]=await Promise.all([api("/branches"),api("/workspace/members")]),rows=data.branches||[],members=memberData.members||[];
+  const summaryPairs=await Promise.all(rows.map(async b=>{
+   try{const result=await api("/branches/"+encodeURIComponent(b.id)+"/summary");return [b.id,result.summary||null];}
+   catch{return [b.id,null];}
+  }));
+  const summaries=new Map(summaryPairs);
+  if(branches)branches.innerHTML=(rows.length?'<div class="branch-overview-grid">'+rows.map(b=>{
+    const s=summaries.get(b.id);
+    return '<article class="branch-overview"><div><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></div>'+(s?'<div class="branch-stats"><span>Activos <b>'+n(s.activeOrders)+'</b></span><span>Listos <b>'+n(s.readyOrders)+'</b></span><span>Atrasados <b>'+n(s.overdueOrders)+'</b></span><span>Cobrado <b>'+esc(money(s.confirmedRevenueMinor,L.currency||"EUR"))+'</b></span></div>':'<small>Resumen no disponible</small>')+'</article>';
+   }).join("")+'</div>':'<p class="small">No hay sucursales.</p>')+
+   (members.length?'<div class="team-branch-list"><h3>Equipo por sucursal</h3>'+members.map(m=>'<div class="team-branch-row" data-member-row="'+esc(m.id)+'"><span><strong>'+esc(m.name||m.email)+'</strong><small>'+esc(m.role||"staff")+'</small></span><select data-member-branch>'+rows.filter(b=>b.status==="active").map(b=>'<option value="'+esc(b.id)+'" '+(b.id===m.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select><label>Cap. <input data-member-capacity type="number" min="1" max="200" value="'+esc(String(m.dailyCapacityItems||8))+'"></label><button type="button" class="record-action" data-action="save-worker-settings" data-id="'+esc(m.id)+'">Guardar</button></div>').join("")+'</div>':"");
+ }catch(e){if(branches)branches.textContent="No se pudieron cargar las sucursales.";}
+ try{
+  const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
+  const names={order_received:"Pedido recibido",in_progress:"En proceso",ready_for_pickup:"Listo para recoger",pickup_reminder:"Recordatorio de recogida",payment_due:"Pago pendiente"};
+  const events=["order_received","in_progress","ready_for_pickup","pickup_reminder","payment_due"];
+  const byKey=new Map(rows.map(x=>[x.eventKey+":"+x.channel,x]));
+  if(rules)rules.innerHTML='<div class="notification-event-list">'+events.map(eventKey=>{
+    const email=byKey.get(eventKey+":email")||{enabled:false},wa=byKey.get(eventKey+":whatsapp")||{enabled:false,templateName:""};
+    const waDisabled=!settings.providers?.whatsappConfigured;
+    return '<article class="notification-event"><div class="notification-event-name"><strong>'+esc(names[eventKey])+'</strong><small>RIMMA avisa cuando cambia el trabajo</small></div>'+
+      '<label class="notification-channel"><span>Correo</span><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="email" '+(email.enabled?"checked":"")+' '+(!settings.providers?.emailConfigured?'disabled':'')+'></label>'+
+      '<label class="notification-channel whatsapp-channel"><span>WhatsApp</span><input type="text" data-whatsapp-template="'+esc(eventKey)+'" value="'+esc(wa.templateName||"")+'" placeholder="plantilla_aprobada" '+(waDisabled?'disabled':'')+'><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="whatsapp" '+(wa.enabled?"checked":"")+' '+(waDisabled?'disabled':'')+'></label>'+
+     '</article>';
+  }).join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Correo no configurado.")+' '+(settings.providers?.whatsappConfigured?"WhatsApp Cloud conectado; indica una plantilla aprobada para cada aviso.":"WhatsApp automático queda bloqueado hasta conectar WhatsApp Cloud.")+'</p>';
+ }catch(e){if(rules)rules.textContent="No se pudieron cargar los avisos.";}
 }
 function clientRow(c){
  return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td><div class="client-extended-actions">'+
@@ -381,6 +518,7 @@ async function refreshBilling(button){
 }
 async function loadAccount(){
  $("#account-info").innerHTML='<p>Cargando cuenta…</p>';
+ void loadAtelierAccountSettings();
  try{
   const a=(await api("/me")).me||me||{};
   const info=[["Nombre",a.user?.displayName||"No indicado"],["Correo electrónico",a.user?.email||"—"],["Taller",a.workspace?.name||"—"],["Rol",a.workspace?.role==="owner"?"Propietario":a.workspace?.role||"Miembro"]];
@@ -420,11 +558,11 @@ function openModal(type,record=null){
  if(type==="order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Nuevo pedido";
   box.innerHTML='<p class="helper">Consultando clientes y servicios…</p>';
-  void Promise.all([api("/clients?limit=100&offset=0"),api("/price-list")]).then(([clients,catalog])=>{
+  void Promise.all([api("/clients?limit=100&offset=0"),api("/price-list"),api("/branches")]).then(([clients,catalog,branchData])=>{
    if(activeModal!=="order")return;
-   lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];
+   lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];const branches=(branchData.branches||[]).filter(b=>b.status==="active");
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div><label for="f-branchId">Sucursal *</label><select name="branchId" id="f-branchId" required>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
@@ -434,6 +572,21 @@ function openModal(type,record=null){
   }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});
  }
 
+ if(type==="appointment"){
+  $("#modal-eyebrow").textContent="AGENDA DEL TALLER";$("#modal-title").textContent="Nueva cita";
+  box.innerHTML='<p class="helper">Preparando agenda…</p>';
+  void Promise.all([api("/clients?limit=100&offset=0"),api("/branches"),api("/orders?limit=100&offset=0")]).then(([clientData,branchData,orderData])=>{
+   if(activeModal!=="appointment")return;
+   const clients=clientData.clients||[],branches=(branchData.branches||[]).filter(b=>b.status==="active"),orders=orderData.orders||[];
+   const now=new Date(Date.now()+60*60_000),start=now.toISOString().slice(0,16);
+   const finish=new Date(now.getTime()+45*60_000).toISOString().slice(0,16);
+   box.innerHTML='<div class="form-grid"><div><label for="f-kind">Tipo</label><select id="f-kind" name="kind"><option value="fitting">Prueba</option><option value="consultation">Consulta</option><option value="pickup">Recogida</option><option value="other">Otra</option></select></div><div><label for="f-branchId">Sucursal</label><select id="f-branchId" name="branchId">'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-clientId">Cliente</label><select id="f-clientId" name="clientId"><option value="">Sin cliente</option>'+clients.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-orderId">Pedido</label><select id="f-orderId" name="orderId"><option value="">Sin pedido</option>'+orders.map(o=>'<option value="'+esc(o.id)+'">#'+esc(o.orderNumber)+' · '+esc(o.client?.name||"Cliente")+'</option>').join("")+'</select></div>'+field("Inicio *","startsAt","datetime-local",'required value="'+esc(start)+'"')+field("Fin *","endsAt","datetime-local",'required value="'+esc(finish)+'"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="2000"></textarea></div></div>';
+  }).catch(e=>{box.textContent="No se pudo preparar la cita: "+e.message;});
+ }
+ if(type==="branch"){
+  $("#modal-eyebrow").textContent="MULTI-TALLER";$("#modal-title").textContent="Nueva sucursal";
+  box.innerHTML='<div class="form-grid">'+field("Nombre *","name","text",'required maxlength="120"')+field("Código *","code","text",'required maxlength="24" placeholder="CENTRO"')+field("Dirección","addressLine1","text",'maxlength="240"')+field("Código postal","postalCode","text",'maxlength="20"')+field("Ciudad","city","text",'maxlength="120"')+field("Provincia","province","text",'maxlength="120"')+field("Teléfono","phone","tel",'maxlength="40"')+'</div>';
+ }
  if(type==="edit-client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Editar cliente";
   box.textContent="Cargando cliente…";
@@ -452,12 +605,12 @@ function openModal(type,record=null){
  if(type==="edit-order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Editar pedido";
   box.textContent="Cargando pedido…";
-  void api("/orders/"+encodeURIComponent(record.id)).then(result=>{
+  void Promise.all([api("/orders/"+encodeURIComponent(record.id)),api("/branches")]).then(([result,branchData])=>{
    if(activeModal!==type || activeRecord?.id!==record.id)return;
    const order=result.order; if(!order || order.id!==record.id)throw Error("Registro incorrecto");
-   activeRecord=order;
-   box.innerHTML='<p class="edit-hint">Puedes actualizar la fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón. Los importes y trabajos ya registrados permanecen intactos.</p>'+
-    '<div class="form-grid">'+field("Fecha de entrega","due","date")+
+   activeRecord=order;const branches=(branchData.branches||[]).filter(b=>b.status==="active");
+   box.innerHTML='<p class="edit-hint">Puedes actualizar sucursal, fecha, notas y seguimiento. Para cambiar el estado de una prenda, utiliza su botón.</p>'+
+    '<div class="form-grid"><div><label for="f-branchId">Sucursal</label><select id="f-branchId" name="branchId">'+branches.map(b=>'<option value="'+esc(b.id)+'" '+(b.id===order.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select></div>'+field("Fecha de entrega","due","date")+
     '<div><label for="f-reply">Seguimiento pendiente</label><select id="f-reply" name="reply"><option value="false">No</option><option value="true">Sí</option></select></div>'+
     '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="10000"></textarea></div></div>'+
     '<div class="item-edit-list"><strong>Estado de las prendas</strong>'+
@@ -503,7 +656,7 @@ async function saveModal(event){
     const pick=get("service")===""?null:options[Number(get("service"))];
     const mainPhoto=form.elements.namedItem("orderPhoto")?.files?.[0]||null;
     const extraRows=[...$("#modal-fields").querySelectorAll(".extra-order-item")],extraPhotoFiles=[];
-    const payload={clientId:get("clientId"),currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,garmentType:get("garmentType").trim()||null,color:get("color").trim()||null,sizeLabel:get("sizeLabel").trim()||null,storageLocation:get("storageLocation").trim()||null,...(pick?{categoryId:pick.catId}:{})},
+    const payload={clientId:get("clientId"),branchId:get("branchId")||null,currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,garmentType:get("garmentType").trim()||null,color:get("color").trim()||null,sizeLabel:get("sizeLabel").trim()||null,storageLocation:get("storageLocation").trim()||null,...(pick?{categoryId:pick.catId}:{})},
      ...extraRows.map(row=>{
       const name=row.querySelector('[name="extraName"]').value.trim(),unit=Number(row.querySelector('[name="extraPrice"]').value),quantity=Number(row.querySelector('[name="extraQuantity"]').value),amount=Math.round(unit*100);
       if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
@@ -523,6 +676,13 @@ async function saveModal(event){
       await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.blob.size,fileName:file.name,contentType:file.contentType,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
     }
     $("#modal").close();activeModal=null;go("pedidos");success(files.some(Boolean)?"Pedido y fotografías guardados correctamente.":"Pedido creado correctamente.");
+  }else if(activeModal==="appointment"){
+   const startsAt=new Date(get("startsAt")).toISOString(),endsAt=new Date(get("endsAt")).toISOString();
+   await api("/appointments",{method:"POST",body:JSON.stringify({kind:get("kind"),branchId:get("branchId")||null,clientId:get("clientId")||null,orderId:get("orderId")||null,startsAt,endsAt,notes:get("notes").trim()||null})});
+   $("#modal").close();activeModal=null;go("citas");success("Cita guardada.");
+  }else if(activeModal==="branch"){
+   await api("/branches",{method:"POST",body:JSON.stringify({name:get("name").trim(),code:get("code").trim(),addressLine1:get("addressLine1").trim()||null,postalCode:get("postalCode").trim()||null,city:get("city").trim()||null,province:get("province").trim()||null,phone:get("phone").trim()||null})});
+   $("#modal").close();activeModal=null;await loadAtelierAccountSettings();success("Sucursal creada.");
   }else if(activeModal==="edit-client"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
    const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
@@ -531,7 +691,8 @@ async function saveModal(event){
   }else if(activeModal==="edit-order"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el pedido.");
    const payload={expectedVersion:Number(activeRecord.version)};
-   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true";
+   const due=get("due")||null,notes=get("notes").trim()||null,needsReply=get("reply")==="true",branchId=get("branchId")||null;
+   if(branchId!==(activeRecord.branch?.id||null))payload.branchId=branchId;
    if(due!==(activeRecord.dueDate?String(activeRecord.dueDate).slice(0,10):null))payload.dueDate=due;
    if(notes!==(activeRecord.notes||null))payload.notes=notes;
    if(needsReply!==Boolean(activeRecord.needsReply))payload.needsReply=needsReply;
@@ -623,6 +784,34 @@ document.addEventListener("click",event=>{
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
   case "new-order":openModal("order");break;
+  case "new-appointment":openModal("appointment");break;
+  case "new-branch":openModal("branch");break;
+  case "refresh-notifications":void loadAtelierAccountSettings();break;
+  case "garment-open":void featureUI.then(ui=>ui.openPassport(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
+  case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
+  case "save-worker-settings":{
+   const row=document.querySelector('[data-member-row="'+CSS.escape(b.dataset.id||"")+'"]');
+   const branchId=row?.querySelector("[data-member-branch]")?.value||"";
+   const dailyCapacityItems=Number(row?.querySelector("[data-member-capacity]")?.value||8);
+   b.disabled=true;
+   void api("/workspace/members/"+encodeURIComponent(b.dataset.id)+"/atelier-settings",{method:"PATCH",body:JSON.stringify({branchId,dailyCapacityItems})})
+    .then(()=>{success("Equipo actualizado.");void loadAtelierAccountSettings();})
+    .catch(e=>globalError(e.message||"No se pudo actualizar el equipo."))
+    .finally(()=>{b.disabled=false;});
+   break;
+  }
+  case "toggle-notification":{
+   const checkbox=b;
+   const enabled=Boolean(checkbox.checked),channel=b.dataset.channel||"email",eventKey=b.dataset.event;
+   const templateName=channel==="whatsapp"?(document.querySelector('[data-whatsapp-template="'+CSS.escape(eventKey||"")+'"]')?.value||"").trim():null;
+   if(channel==="whatsapp"&&enabled&&!templateName){checkbox.checked=false;globalError("Indica primero el nombre de la plantilla de WhatsApp aprobada.");break;}
+   checkbox.disabled=true;
+   void api("/notification-settings",{method:"PATCH",body:JSON.stringify({eventKey,channel,enabled,delayMinutes:0,templateName,locale:"es"})})
+    .then(()=>success(enabled?"Aviso automático activado.":"Aviso automático desactivado."))
+    .catch(e=>{checkbox.checked=!enabled;globalError(e.message||"No se pudo cambiar el aviso.");})
+    .finally(()=>{checkbox.disabled=false;});
+   break;
+  }
   case "add-order-item":{
    const list=$("#extra-order-items .extra-order-list");if(!list||list.children.length>=30)break;
    list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><label>Fotografía <input name="extraPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><small class="helper">JPEG, PNG o WebP, hasta 150 KB.</small><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
@@ -647,7 +836,17 @@ $("#clients-next").addEventListener("click",()=>{clientsPage++;loadClients();});
 $("#orders-search").addEventListener("input",e=>{clearTimeout(searchClock);ordersSearch=e.target.value;ordersPage=0;searchClock=setTimeout(loadOrders,350);});
 $("#clients-search").addEventListener("input",e=>{clearTimeout(searchClock);clientsSearch=e.target.value;clientsPage=0;searchClock=setTimeout(loadClients,350);});
 $("#order-status").addEventListener("change",e=>{ordersStatus=e.target.value;ordersPage=0;loadOrders();});
+$("#order-branch")?.addEventListener("change",e=>{ordersBranch=e.target.value;ordersPage=0;loadOrders();});
 $("#report-period").addEventListener("change",loadReport);
+$("#appointments-range")?.addEventListener("change",loadAppointments);
+document.addEventListener("click",event=>{
+ const jump=event.target.closest("[data-dashboard-jump]");
+ if(jump){
+  const target=jump.dataset.dashboardJump;
+  const el=target==="workers"?$("#worker-load"):$("#today-attention");
+  el?.scrollIntoView({behavior:"smooth",block:"center"});
+ }
+});
 $("#modal-form").addEventListener("submit",saveModal);
 $("#modal-close").addEventListener("click",()=>$("#modal").close());
 $("#modal-cancel").addEventListener("click",()=>$("#modal").close());
