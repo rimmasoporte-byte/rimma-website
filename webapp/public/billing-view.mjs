@@ -1,6 +1,10 @@
 // Pure presentation. Payment decisions come ONLY from the authenticated RIMMA backend.
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{isPt:false,locale:'es-ES'};
-const tr=(es,pt)=>L.isPt?pt:es;
+const tr=(es,pt)=>{
+ const translated=L.translate?L.translate(es):es;
+ if(translated!==es)return translated;
+ return L.isPt?(pt||es):translated;
+};
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const testerUrl="https://play.google.com/apps/internaltest/4701506028838235389";
 const manageUrl="https://play.google.com/store/account/subscriptions";
@@ -79,7 +83,14 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
    :'<p class="billing-warning">La verificación de pagos no está disponible temporalmente. Contacta con soporte antes de realizar una compra.</p>')
    :'<p>Solo el propietario del taller puede contratar o verificar una suscripción. Pide ayuda al propietario.</p>';
  const verify=owner&&ready?'<button type="button" class="secondary billing-action" data-action="verify-billing">Comprobar compra</button>':"";
- const renewNotice=isTrial?'<p class="billing-muted">'+(L.isPt?"Brasil: preço de referência R$ 29,90/mês. O valor final e os impostos aplicáveis serão mostrados antes da confirmação.":"Plan mensual en España: 4,99 €/mes. En la compra web verás el importe final, moneda e impuestos antes de confirmar; en otros países el precio puede ser diferente.")+'</p>':"";
+ const euroMarkets=new Set(['ES','FR','DE','IT','GR','SK']);
+ const marketCurrency=L.currency||(L.country==='BR'?'BRL':euroMarkets.has(L.country)?'EUR':'EUR');
+ const priceNote=L.country==='BR'
+   ?"Brasil: preço de referência R$ 29,90/mês. O valor final e os impostos aplicáveis serão mostrados antes da confirmação."
+   :euroMarkets.has(L.country)
+     ?tr("Plan mensual: 4,99 €/mes. El importe final y los impuestos aplicables se muestran antes de confirmar el pago.")
+     :tr("El precio final se mostrará en "+marketCurrency+" antes de confirmar el pago. No aplicamos una conversión fija en la web.");
+ const renewNotice=isTrial?'<p class="billing-muted">'+esc(priceNote)+'</p>':"";
  const sandbox=b.isSandbox===true?'<p class="billing-warning">Existe una compra de prueba (sandbox). No activa una suscripción real.</p>':"";
  return '<div class="paper-panel billing-card"><span class="report-value-label">TU ACCESO</span>'+
   '<div class="report-value">'+esc(heading)+'</div><p>'+esc(short)+'</p>'+
