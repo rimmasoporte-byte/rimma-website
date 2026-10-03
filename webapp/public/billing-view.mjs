@@ -87,6 +87,10 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const marketCurrency=L.currency||(L.country==='BR'?'BRL':euroMarkets.has(L.country)?'EUR':'EUR');
  const priceNote=L.country==='BR'
    ?"Brasil: preço de referência R$ 29,90/mês. O valor final e os impostos aplicáveis serão mostrados antes da confirmação."
+   :L.country==='RS'
+     ?"Orijentaciona cena: oko 590 RSD mesečno. Konačan iznos biće prikazan pre potvrde plaćanja."
+   :L.country==='TR'
+     ?"Yaklaşık fiyat: aylık 280 ₺. Kesin tutar ödeme onayından önce gösterilir."
    :euroMarkets.has(L.country)
      ?tr("Plan mensual en España: 4,99 €/mes. El importe final y los impuestos aplicables se muestran antes de confirmar el pago.")
      :tr("El precio final se mostrará en "+marketCurrency+" antes de confirmar el pago. No aplicamos una conversión fija en la web.");
