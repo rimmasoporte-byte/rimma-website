@@ -5,7 +5,11 @@ const tr=(es,pt)=>{
  return window.RimmaLocale?.isPt?(pt||es):translated;
 };
 const COUNTRIES=Object.freeze([
- ['ES','España','EUR','Europe/Madrid'],['BR','Brasil','BRL','America/Sao_Paulo'],\n ['FR','France','EUR','Europe/Paris'],['DE','Deutschland','EUR','Europe/Berlin'],\n ['IT','Italia','EUR','Europe/Rome'],['GR','Ελλάδα','EUR','Europe/Athens'],\n ['SK','Slovensko','EUR','Europe/Bratislava'],['RS','Srbija','RSD','Europe/Belgrade'],['TR','Türkiye','TRY','Europe/Istanbul'],\n ['MX','México','MXN','America/Mexico_City'],
+ ['ES','España','EUR','Europe/Madrid'],['BR','Brasil','BRL','America/Sao_Paulo'],
+ ['FR','France','EUR','Europe/Paris'],['DE','Deutschland','EUR','Europe/Berlin'],
+ ['IT','Italia','EUR','Europe/Rome'],['GR','Ελλάδα','EUR','Europe/Athens'],
+ ['SK','Slovensko','EUR','Europe/Bratislava'],['RS','Srbija','RSD','Europe/Belgrade'],['TR','Türkiye','TRY','Europe/Istanbul'],
+ ['MX','México','MXN','America/Mexico_City'],
  ['AR','Argentina','ARS','America/Argentina/Buenos_Aires'],['CL','Chile','CLP','America/Santiago'],
  ['CO','Colombia','COP','America/Bogota'],['PE','Perú','PEN','America/Lima'],
  ['EC','Ecuador','USD','America/Guayaquil'],['UY','Uruguay','UYU','America/Montevideo'],
