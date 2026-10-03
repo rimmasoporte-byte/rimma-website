@@ -154,6 +154,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
  assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(css,/body:has\(#modal\[open\]/);
+  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?width:max-content[\s\S]*?height:auto[\s\S]*?border:0[\s\S]*?white-space:nowrap/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v30/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
