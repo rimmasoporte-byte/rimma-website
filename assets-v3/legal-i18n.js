@@ -13,7 +13,7 @@ const LABELS={
  'tr-TR':{home:'Ana sayfa',privacy:'Gizlilik',terms:'Koşullar',support:'Destek',legal:'Yasal bilgiler',delete:'Hesabı sil',back:'Geri',info:'Bilgi'}
 };
 const OPTIONS=[['es-ES','ES','ES · Español'],['pt-BR','BR','PT-BR · Português'],['fr-FR','FR','FR · Français'],['de-DE','DE','DE · Deutsch'],['it-IT','IT','IT · Italiano'],['el-GR','GR','GR · Ελληνικά'],['sk-SK','SK','SK · Slovenčina'],['sr-Latn-RS','RS','RS · Srpski'],['tr-TR','TR','TR · Türkçe']];
-const page=(location.pathname.match(/\/legal\/(support|terms|privacy|aviso-legal|delete-account)\/?$/)||[])[1];
+const page=(location.pathname.match(/\/(?:legal\/)?(support|terms|privacy|aviso-legal|delete-account)\/?$/)||[])[1];
 if(!page||!PAGES.has(page))return;
 const params=new URLSearchParams(location.search);
 let locale=params.get('locale')||'';
