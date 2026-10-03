@@ -282,6 +282,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(event?.type==="passport_updated")return tr("Pasaporte actualizado","Passaporte atualizado");
   if(event?.type==="share_created")return tr("Enlace del cliente creado","Link do cliente criado");
   if(event?.type==="share_revoked")return tr("Enlace del cliente revocado","Link do cliente revogado");
+  if(event?.type==="share_email_sent")return tr("Enlace enviado por correo","Link enviado por e-mail");
   return String(event?.type||tr("Actualización","Atualização"));
  };
  const passportDateTime=value=>{
@@ -343,31 +344,108 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select></div></div>'+
    '<div class="passport-section"><h4>'+tr("Acciones rápidas","Ações rápidas")+'</h4><div class="feature-bottom passport-actions">'+
     b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
-    b(tr("Crear / renovar enlace y QR","Criar / renovar link e QR"),"passport-share")+
-    '<button type="button" class="feature-button" data-feature="passport-revoke">'+tr("Revocar enlace","Revogar link")+'</button></div>'+
+    b(tr("Crear enlace y QR","Criar link e QR"),"passport-share")+
+    (p.client?.phone?b("WhatsApp","passport-whatsapp"):'<button type="button" class="feature-button" disabled title="'+tr("Añade un teléfono al cliente","Adicione um telefone ao cliente")+'">WhatsApp</button>')+
+    (p.client?.email?b(tr("Correo","E-mail"),"passport-email"):'<button type="button" class="feature-button" disabled title="'+tr("Añade un correo al cliente","Adicione um e-mail ao cliente")+'">'+tr("Correo","E-mail")+'</button>')+
+    '<button type="button" class="feature-button" data-feature="passport-revoke">'+tr("Revocar enlaces","Revogar links")+'</button></div>'+
     '<div id="passport-share-result" class="passport-share-result" aria-live="polite"></div></div>'+
    '<div class="passport-section"><h4>'+tr("Historial de la prenda","Histórico da peça")+'</h4>'+
     (history.length?'<div class="passport-timeline">'+history.slice(0,80).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
      '<p class="feature-muted">'+tr("Todavía no hay movimientos registrados.","Ainda não há movimentações registradas.")+'</p>')+'</div>');
  }
- async function createPassportShare(){
-  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
+ async function createPassportShareLink({announce=false}={}){
+  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))throw Error(tr("Prenda inválida.","Peça inválida."));
   const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"POST",body:"{}"});
   const url=safePublicUrl(data.share?.shareUrl);
   if(!url)throw Error(tr("El servidor no devolvió un enlace seguro.","O servidor não devolveu um link seguro."));
+  selected.shareUrl=url;
   const target=dlg.querySelector("#passport-share-result");
-  target.innerHTML='<div class="passport-share-card"><strong>'+tr("Página del cliente lista","Página do cliente pronta")+'</strong>'+
+  if(target)target.innerHTML='<div class="passport-share-card"><strong>'+tr("Página del cliente lista","Página do cliente pronta")+'</strong>'+
    '<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a>'+
-   '<small>'+tr("La página contiene el estado, el importe y un QR. No muestra el teléfono ni el correo del cliente.","A página contém status, valor e QR. Não mostra telefone nem e-mail do cliente.")+'</small></div>';
-  try{await navigator.clipboard.writeText(url);success(tr("Enlace del cliente copiado.","Link do cliente copiado."));}
-  catch{success(tr("Enlace del cliente creado.","Link do cliente criado."));}
+   '<small>'+tr("Puedes enviarla por WhatsApp o correo. La página no muestra el teléfono, el correo ni el lugar de almacenamiento.","Você pode enviá-la por WhatsApp ou e-mail. A página não mostra telefone, e-mail nem local de armazenamento.")+'</small></div>';
+  if(announce){
+   try{await navigator.clipboard.writeText(url);success(tr("Enlace copiado. Ya puedes enviarlo al cliente.","Link copiado. Agora você pode enviá-lo ao cliente."));}
+   catch{success(tr("Enlace del cliente creado.","Link do cliente criado."));}
+  }
+  return url;
+ }
+ async function createPassportShare(){
+  return createPassportShareLink({announce:true});
+ }
+ async function ensurePassportShare(){
+  const existing=safePublicUrl(selected?.shareUrl);
+  if(existing)return existing;
+  return createPassportShareLink({announce:false});
+ }
+ const callingCodes={
+  ES:"34",PT:"351",FR:"33",DE:"49",IT:"39",GR:"30",SK:"421",RS:"381",TR:"90",
+  BR:"55",MX:"52",AR:"54",CO:"57",CL:"56",PE:"51",UY:"598",PY:"595",BO:"591",
+  EC:"593",GT:"502"
+ };
+ function normalizePassportPhone(value,countryCode){
+  const raw=String(value||"").trim();
+  if(!raw)return null;
+  const hadPlus=raw.startsWith("+");
+  const had00=raw.startsWith("00");
+  let digits=raw.replace(/\D/g,"");
+  if(had00)digits=digits.slice(2);
+  if(!hadPlus&&!had00){
+   const calling=callingCodes[String(countryCode||"").toUpperCase()];
+   if(calling){
+    if(digits.startsWith("0"))digits=digits.replace(/^0+/,"");
+    if(!digits.startsWith(calling))digits=calling+digits;
+   }
+  }
+  return digits.length>=8&&digits.length<=15?digits:null;
+ }
+ function passportWhatsAppText(url){
+  const p=selected?.passport||{};
+  const name=String(p.client?.name||"").trim();
+  const pt=String(L.locale||"").toLowerCase().startsWith("pt");
+  const greeting=pt
+   ? (name?"Olá "+name+" 👋":"Olá 👋")
+   : (name?"Hola "+name+" 👋":"Hola 👋");
+  return pt
+   ? [greeting,"Você pode consultar o estado do seu pedido #"+String(p.orderNumber||"")+" aqui:",url,"RIMMA"].join("\n")
+   : [greeting,"Puedes consultar el estado de tu pedido #"+String(p.orderNumber||"")+" aquí:",url,"RIMMA"].join("\n");
+ }
+ async function sendPassportWhatsApp(){
+  const p=selected?.passport||{};
+  const phone=normalizePassportPhone(p.client?.phone,p.workspace?.countryCode);
+  if(!phone)throw Error(tr("El cliente no tiene un teléfono válido para WhatsApp.","O cliente não tem um telefone válido para WhatsApp."));
+  const popup=window.open("about:blank","_blank");
+  if(popup)try{popup.opener=null}catch{}
+  try{
+   const url=await ensurePassportShare();
+   const wa="https://wa.me/"+phone+"?text="+encodeURIComponent(passportWhatsAppText(url));
+   if(popup)popup.location.replace(wa);
+   else{
+    const link=document.createElement("a");link.href=wa;link.target="_blank";link.rel="noopener noreferrer";
+    document.body.appendChild(link);link.click();link.remove();
+   }
+   success(tr("Mensaje preparado en WhatsApp. Tú confirmas el envío.","Mensagem preparada no WhatsApp. Você confirma o envio."));
+  }catch(error){
+   try{popup?.close()}catch{}
+   throw error;
+  }
+ }
+ async function sendPassportEmail(){
+  const p=selected?.passport||{};
+  if(!String(p.client?.email||"").trim())throw Error(tr("El cliente no tiene correo electrónico.","O cliente não tem e-mail."));
+  const url=await ensurePassportShare();
+  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share/email",{
+   method:"POST",
+   body:JSON.stringify({shareUrl:url,locale:L.locale||"es-ES"})
+  });
+  success(tr("Correo enviado a ","E-mail enviado para ")+String(data.email?.recipient||p.client.email));
  }
  async function revokePassportShare(){
   if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
   const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"DELETE",body:"{}"});
+  selected.shareUrl=null;
   const target=dlg.querySelector("#passport-share-result");
-  if(target)target.innerHTML='<p class="feature-muted">'+(data.revoked?tr("El enlace anterior ya no funciona.","O link anterior não funciona mais."):tr("No había un enlace activo.","Não havia link ativo."))+'</p>';
-  success(data.revoked?tr("Enlace del cliente revocado.","Link do cliente revogado."):tr("No había ningún enlace activo.","Não havia link ativo."));
+  if(target)target.innerHTML='<p class="feature-muted">'+(data.revoked?tr("Todos los enlaces anteriores ya no funcionan.","Todos os links anteriores não funcionam mais."):tr("No había enlaces activos.","Não havia links ativos."))+'</p>';
+  success(data.revoked?tr("Enlaces del cliente revocados.","Links do cliente revogados."):tr("No había ningún enlace activo.","Não havia nenhum link ativo."));
  }
 
  async function preparePhoto(file){
@@ -571,6 +649,8 @@ function newPhoto(){
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-share")return void safe(createPassportShare);
+  if(action==="passport-whatsapp")return void safe(sendPassportWhatsApp);
+  if(action==="passport-email")return void safe(sendPassportEmail);
   if(action==="passport-revoke")return void safe(revokePassportShare);
   if(action==="item-photos")return void safe(async()=>openPhotos(el.dataset.order,id));
   if(action==="photo-new")return newPhoto();
