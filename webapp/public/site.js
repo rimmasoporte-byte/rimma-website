@@ -9,8 +9,8 @@ const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
 const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
 const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
-const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
-const businessViews=new Set(["inicio","pedidos","clientes","servicios","informes"]);
+const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",citas:tr("Citas","Citas"),clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
+const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
@@ -18,7 +18,7 @@ let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261003-vf25").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261003-v26").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
@@ -140,7 +140,7 @@ function go(view){
  $$("[data-view]").forEach(x=>{const selected=x.dataset.view===view;x.classList.toggle("active",selected);if(x.closest(".side-nav"))selected?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current");});
  $("#breadcrumb").textContent=views[view];closeDrawer();window.scrollTo(0,0);
  requestAnimationFrame(()=>{if($("#view-"+view)?.classList.contains("active"))window.scrollTo(0,0);});
- const loaders={inicio:loadToday,pedidos:loadOrders,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
+ const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
 async function prepareOrderPhoto(file){
@@ -229,26 +229,82 @@ function customerInitials(name) {
  const words=String(name||"").trim().split(/\s+/).filter(Boolean);
  return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
 }
-function orderRow(o,actions=false){
+function garmentCard(o,item,actions=false){
  const customer=o.client?.name||o.clientName||"Cliente";
- const names=Array.isArray(o.items)?o.items.map(x=>x.name).filter(Boolean).join(", "):"Encargo";
- const label=status[o.status]||o.status||"Sin estado";
- return '<tr><td class="order-number"><span class="name">#'+esc(o.orderNumber)+'</span></td>'+
- '<td><div class="customer-cell"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span><span class="customer-name">'+esc(customer)+'</span></div></td>'+
- '<td class="order-work">'+esc(names)+'</td><td>'+esc(date(o.dueDate))+'</td>'+
- '<td><span class="status '+esc(o.status)+'">'+esc(label)+'</span></td>'+
- '<td class="order-amount">'+esc(money(o.totalMinor,o.currencyCode))+'</td>'+
- (actions?'<td>'+recordActions("order",o.id,o.status!=="issued")+'</td>':"")+'</tr>';
+ const label=status[item.status]||item.status||"Sin estado";
+ const itemId=esc(item.id||"");
+ const orderId=esc(o.id||"");
+ const due=item.dueDate||o.dueDate;
+ const branch=o.branch?.name?'<span class="garment-meta-chip">⌂ '+esc(o.branch.name)+'</span>':"";
+ const worker=item.assignedWorker?.name?esc(item.assignedWorker.name):"Sin asignar";
+ const location=item.storageLocation?esc(item.storageLocation):"Sin ubicación";
+ const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
+ return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
+  '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
+  '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref">Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
+  '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span></div>'+
+  '<div class="garment-money"><span>Total <strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
+  (actions?'<div class="garment-actions"><button type="button" class="record-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button><button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button><button type="button" class="record-action" data-action="edit-order" data-id="'+orderId+'">Pedido</button></div>':"")+
+  '</div></article>';
 }
 function orderTable(rows,actions=false){
- return rows.length?'<table><thead><tr><th scope="col">#</th><th scope="col">Cliente</th><th scope="col">Trabajo</th><th scope="col">Entrega</th><th scope="col">Estado</th><th scope="col">Importe</th>'+(actions?'<th scope="col">Acciones</th>':"")+'</tr></thead><tbody>'+rows.map(o=>orderRow(o,actions)).join("")+'</tbody></table>':'<p class="empty">No hay encargos con esos filtros.</p>';
+ const cards=[];
+ for(const o of rows){
+  const items=Array.isArray(o.items)&&o.items.length?o.items:[{id:"",name:"Encargo",status:o.status,dueDate:o.dueDate,lineTotalMinor:o.totalMinor}];
+  for(const item of items)cards.push(garmentCard(o,item,actions));
+ }
+ return cards.length?'<div class="garment-grid">'+cards.join("")+'</div>':'<p class="empty">No hay prendas con esos filtros.</p>';
+}
+async function hydrateGarmentCards(rows){
+ const jobs=[];
+ let count=0;
+ for(const o of rows){
+  for(const item of (o.items||[])){
+   if(!item?.id||count>=24)continue;count++;
+   jobs.push((async()=>{
+    try{
+     const data=await api("/orders/"+encodeURIComponent(o.id)+"/items/"+encodeURIComponent(item.id)+"/passport");
+     const p=data.passport||{};
+     const photo=(p.photos||[]).find(x=>x.viewUrl);
+     const holder=document.querySelector('[data-garment-photo="'+CSS.escape(item.id)+'"]');
+     if(holder&&photo?.viewUrl)holder.innerHTML='<img src="'+esc(photo.viewUrl)+'" alt="">';
+     const worker=document.querySelector('[data-garment-worker="'+CSS.escape(item.id)+'"]');
+     if(worker)worker.textContent="👤 "+(p.assignedWorker?.name||"Sin asignar");
+     const loc=document.querySelector('[data-garment-location="'+CSS.escape(item.id)+'"]');
+     if(loc)loc.textContent="⌗ "+(p.storageLocation||"Sin ubicación");
+     const paid=document.querySelector('[data-garment-paid="'+CSS.escape(item.id)+'"] strong');
+     if(paid)paid.textContent=money(p.confirmedPaidMinor,p.currencyCode);
+     const bal=document.querySelector('[data-garment-balance="'+CSS.escape(item.id)+'"] strong');
+     if(bal)bal.textContent=money(p.remainingMinor,p.currencyCode);
+    }catch{}
+   })());
+  }
+ }
+ await Promise.allSettled(jobs);
+}
+function compactActionRows(rows,kind){
+ if(!rows?.length)return '<p class="empty">Nada pendiente.</p>';
+ return '<div class="today-action-list">'+rows.slice(0,8).map(entry=>{
+  const client=entry.client?.name||"Cliente",item=entry.item?.name||"Prenda";
+  return '<button type="button" class="today-action-row" data-action="garment-open" data-order="'+esc(entry.orderId)+'" data-item="'+esc(entry.item?.id||"")+'"><span><strong>'+esc(item)+'</strong><small>#'+esc(entry.orderNumber)+' · '+esc(client)+'</small></span><span>'+esc(kind==="overdue"?"Atrasada":kind==="ready"?"Lista":date(entry.item?.dueDate))+'</span></button>';
+ }).join("")+'</div>';
 }
 async function loadToday(){
- $("#recent-orders").innerHTML='<p class="empty">Cargando pedidos…</p>';
- const [today,week,orders]=await Promise.allSettled([api("/dashboard/today"),api("/dashboard/week"),api("/orders?limit=5&offset=0")]);
- if(today.status==="fulfilled"){$("#due-count").textContent=n(today.value.dashboard?.summary?.dueToday);$("#ready-count").textContent=n(today.value.dashboard?.summary?.readyForPickup);const ready=Number(today.value.dashboard?.summary?.readyForPickup);$("#topbar-alert-dot").hidden=!(Number.isFinite(ready)&&ready>0);}
- if(week.status==="fulfilled")$("#week-count").textContent=n(week.value.dashboard?.summary?.items);
- $("#recent-orders").innerHTML=orders.status==="fulfilled"?orderTable(orders.value.orders||[],true):'<p class="empty">No se pudieron consultar los pedidos.</p>';
+ $("#recent-orders").innerHTML='<p class="empty">Cargando prendas…</p>';
+ const [today,orders]=await Promise.allSettled([api("/dashboard/today"),api("/orders?limit=5&offset=0")]);
+ if(today.status==="fulfilled"){
+  const d=today.value.dashboard||{},s=d.summary||{};
+  $("#due-count").textContent=n(s.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(s.readyForPickup);
+  $("#unpaid-count").textContent=n(s.unpaidBalance);$("#appointments-count").textContent=n(s.appointmentsToday);$("#overloaded-count").textContent=n(s.overloadedWorkers);
+  const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):"Sin cobros pendientes";
+  $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
+  const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
+  $("#today-attention").innerHTML=compactActionRows(attention,attention.length&&d.overdue?.length?"overdue":"due");
+  $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">No hay citas hoy.</p>';
+  $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div><strong>'+esc(w.name)+'</strong><small>'+esc(w.branch?.name||"Taller")+' · '+n(w.activeItems)+' prendas activas</small></div><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div>').join("")+'</div>':'<p class="empty">Añade responsables a las prendas para ver la carga.</p>';
+ }
+ if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);}
+ else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
 }
 async function loadOrders(){
