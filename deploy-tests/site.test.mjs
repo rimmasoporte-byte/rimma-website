@@ -170,3 +170,34 @@ test('Brazilian demo localization observer is stable',()=>{
   assert.match(locale,/if\(next!==root\.nodeValue\)root\.nodeValue=next/);
   assert.match(locale,/if\(next!==node\.nodeValue\)node\.nodeValue=next/);
 });
+
+
+test('interactive demo supports every launched market language and local currency',()=>{
+  const html=read('demo/index.html');
+  const intl=read('demo/locale-intl.js');
+  const shim=read('demo/demo-shim.js');
+  assert.match(html,/locale-intl\.js/);
+  assert.match(html,/demo-locale-select/);
+  for(const locale of ['fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']){
+    assert.match(intl,new RegExp(locale.replaceAll('-','\\-')),locale);
+  }
+  for(const code of ['FR','DE','IT','GR','SK','RS','TR']) assert.match(shim,new RegExp('country:"'+code+'"'),code);
+  assert.match(shim,/currency:"RSD"/);
+  assert.match(shim,/currency:"TRY"/);
+  assert.match(shim,/currency:"EUR"/);
+  assert.doesNotMatch(intl,/he-IL|עברית|Hebrew/i);
+  assert.doesNotMatch(html,/he-IL|עברית|Hebrew/i);
+});
+
+test('international demo localizes generated UI and sample business data',()=>{
+  const site=read('demo/site.js');
+  const shim=read('demo/demo-shim.js');
+  assert.match(site,/L\.translate/);
+  assert.match(shim,/Ayşe Yılmaz/);
+  assert.match(shim,/Milica Jovanović/);
+  assert.match(shim,/Camille Martin/);
+  assert.match(shim,/Anna Müller/);
+  assert.match(shim,/Giulia Rossi/);
+  assert.match(shim,/Μαρία Παπαδοπούλου/);
+  assert.match(shim,/Lucia Nováková/);
+});
