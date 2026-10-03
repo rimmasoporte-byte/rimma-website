@@ -14,7 +14,7 @@ const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
-let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
+let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
@@ -242,7 +242,7 @@ function garmentCard(o,item,actions=false){
  return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
   '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
   '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
-  '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span></div>'+
+  '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'">📏 Sin ficha vinculada</span></div>'+
   '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
   (actions?'<div class="garment-actions"><button type="button" class="record-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button><button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+recordActions("order",o.id,o.status!=="issued")+'</div>':"")+
   '</div></article>';
@@ -272,6 +272,8 @@ async function hydrateGarmentCards(rows){
      if(worker)worker.textContent="👤 "+(p.assignedWorker?.name||"Sin asignar");
      const loc=document.querySelector('[data-garment-location="'+CSS.escape(item.id)+'"]');
      if(loc)loc.textContent="⌗ "+(p.storageLocation||"Sin ubicación");
+     const measurement=document.querySelector('[data-garment-measurement="'+CSS.escape(item.id)+'"]');
+     if(measurement)measurement.textContent="📏 "+(p.measurementSheet?.garmentLabel||p.measurementSheet?.garmentType||(p.measurementSheet?"Ficha de medidas":"Sin ficha vinculada"));
      const paid=document.querySelector('[data-garment-paid="'+CSS.escape(item.id)+'"] strong');
      if(paid)paid.textContent=money(p.confirmedPaidMinor,p.currencyCode);
      const bal=document.querySelector('[data-garment-balance="'+CSS.escape(item.id)+'"] strong');
@@ -312,10 +314,21 @@ async function loadToday(){
  else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
 }
+async function ensureOrderBranchFilter(){
+ if(ordersBranchesLoaded)return;
+ const select=$("#order-branch");if(!select)return;
+ try{
+  const data=await api("/branches"),rows=(data.branches||[]).filter(b=>b.status==="active");
+  select.innerHTML='<option value="">Todas las sucursales</option>'+rows.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("");
+  select.value=ordersBranch;
+  ordersBranchesLoaded=true;
+ }catch{}
+}
 async function loadOrders(){
  $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';
+ void ensureOrderBranchFilter();
  try{
-  const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);
+  const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);if(ordersBranch)q.set("branchId",ordersBranch);
   const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
   $("#orders-list").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
@@ -805,6 +818,7 @@ $("#clients-next").addEventListener("click",()=>{clientsPage++;loadClients();});
 $("#orders-search").addEventListener("input",e=>{clearTimeout(searchClock);ordersSearch=e.target.value;ordersPage=0;searchClock=setTimeout(loadOrders,350);});
 $("#clients-search").addEventListener("input",e=>{clearTimeout(searchClock);clientsSearch=e.target.value;clientsPage=0;searchClock=setTimeout(loadClients,350);});
 $("#order-status").addEventListener("change",e=>{ordersStatus=e.target.value;ordersPage=0;loadOrders();});
+$("#order-branch")?.addEventListener("change",e=>{ordersBranch=e.target.value;ordersPage=0;loadOrders();});
 $("#report-period").addEventListener("change",loadReport);
 $("#appointments-range")?.addEventListener("change",loadAppointments);
 document.addEventListener("click",event=>{
