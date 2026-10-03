@@ -12,6 +12,11 @@ const disposableDomains=new Set([
   'yopmail.com','yopmail.fr','yopmail.net'
 ]);
 const plain=o=>o&&typeof o==='object'&&!Array.isArray(o);
+const SUPPORTED_SIGNUP_LOCALES=new Set(['es-ES','pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']);
+function localeOf(value){
+  const locale=typeof value==='string'?value.trim():'';
+  return SUPPORTED_SIGNUP_LOCALES.has(locale)?locale:'es-ES';
+}
 export function isDisposableEmail(value){
   const email=typeof value==='string'?value.trim().toLowerCase():'';
   const at=email.lastIndexOf('@');
@@ -28,7 +33,7 @@ function emailOf(value){
 export function validateSignupStep(step,input){
   if(!plain(input))fail();
   const email=emailOf(input.email);
-  if(step==='send')return {email};
+  if(step==='send')return {email,locale:localeOf(input.locale)};
   if(step==='verify'){
     const code=typeof input.code==='string'?input.code.trim():'';
     if(!/^\d{6}$/.test(code))fail();
