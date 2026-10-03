@@ -18,7 +18,7 @@ let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261003-passport1").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
