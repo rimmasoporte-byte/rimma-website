@@ -15,7 +15,6 @@
   <script src="/app/locale.js?v=20261003a"></script>
 <script src="/app/locale-intl.js?v=20261003d"></script>
 <script src="/app/locale-picker.js?v=20261003b"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script src="/app/site.js?v=20261003-v26" defer></script>
   <script src="/app/signup-client.mjs?v=20261003b" type="module"></script>
   <script src="/app/password-toggle.mjs?v=20261001a" type="module"></script>
@@ -98,9 +97,9 @@
         <section class="view active" id="view-inicio" aria-labelledby="heading-inicio">
           <div class="page-intro"><div><span class="eyebrow">HOY EN TU TALLER</span><h1 id="heading-inicio">Tu taller,<br><em>al día.</em></h1><p>Un lugar para cuidar cada detalle y no perder de vista la siguiente entrega.</p></div><button type="button" class="primary intro-action" data-action="new-order">+ Nuevo pedido</button></div>
           <div class="atelier-today-grid" id="today-cards">
-            <button type="button" class="atelier-kpi dark" data-dashboard-jump="due"><span>PARA HOY</span><strong id="due-count">—</strong><small>Prendas con entrega hoy</small></button>
-            <button type="button" class="atelier-kpi danger" data-dashboard-jump="overdue"><span>ATRASADAS</span><strong id="overdue-count">—</strong><small>Requieren atención</small></button>
-            <button type="button" class="atelier-kpi" data-dashboard-jump="ready"><span>LISTAS</span><strong id="ready-count">—</strong><small>Para recoger</small></button>
+            <button type="button" class="atelier-kpi dark metric-jump" data-dashboard-jump="due"><span class="metric-icon" aria-hidden="true">◷</span><span>PARA HOY</span><strong id="due-count">—</strong><small>Prendas con entrega hoy · <b id="week-count">—</b> esta semana</small></button>
+            <button type="button" class="atelier-kpi danger metric-jump" data-dashboard-jump="overdue"><span class="metric-icon" aria-hidden="true">!</span><span>ATRASADAS</span><strong id="overdue-count">—</strong><small>Requieren atención</small></button>
+            <button type="button" class="atelier-kpi metric-jump" data-dashboard-jump="ready"><span class="metric-icon" aria-hidden="true">✓</span><span>LISTAS</span><strong id="ready-count">—</strong><small>Para recoger</small></button>
             <button type="button" class="atelier-kpi" data-dashboard-jump="unpaid"><span>SALDO PENDIENTE</span><strong id="unpaid-count">—</strong><small id="unpaid-money">Cobros pendientes</small></button>
             <button type="button" class="atelier-kpi" data-view="citas"><span>CITAS HOY</span><strong id="appointments-count">—</strong><small>Pruebas y recogidas</small></button>
             <button type="button" class="atelier-kpi" data-dashboard-jump="workers"><span>CARGA DEL EQUIPO</span><strong id="overloaded-count">—</strong><small>Profesionales sobrecargados</small></button>
