@@ -90,16 +90,25 @@ test("mobile API parity features render real catalog/measurements/payments/photo
   assert.ok(h.calls.every(c=>c.method==="GET"),"rendering must never send or mutate");
  }finally{globalThis.document=oldDoc;}
 });
-test("reports render numeric, CSP-safe order status tiles with no decorative bars",()=>{
+test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>{
  const html=renderReportSummary({startDate:"2026-09-01",endDate:"2026-09-30",
-  orders:{created:3,accepted:2,issued:1},clients:{new:1},
-  orderMoneyByCurrency:[{currencyCode:"EUR",totalMinor:5500}],
-  paymentsByCurrency:[{currencyCode:"EUR",confirmedMinor:2000}]});
+  orders:{created:3,accepted:2,issued:1,duePeriodItems:4,overdueItems:2},clients:{new:1},
+  orderMoneyByCurrency:[{currencyCode:"EUR",orders:3,totalMinor:5500}],
+  paymentsByCurrency:[{currencyCode:"EUR",confirmedMinor:2000}],
+  outstandingByCurrency:[{currencyCode:"EUR",unpaidItems:2,remainingMinor:2500}],
+  paymentMethods:[{currencyCode:"EUR",method:"cash",payments:2,confirmedMinor:1500}]});
+ assert.match(html,/PRENDAS ATRASADAS/);
+ assert.match(html,/Ticket medio/);
+ assert.match(html,/3 pedidos/);
+ assert.match(html,/Saldo pendiente actual/);
+ assert.match(html,/2 prendas pendientes/);
+ assert.match(html,/Cómo te pagan/);
+ assert.match(html,/Efectivo/);
  assert.match(html,/feature-status-grid/);
  assert.match(html,/feature-status-label">Recibidos/);
  assert.match(html,/feature-status-count">2/);
  assert.match(html,/67% del período/);
- assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width/);
+ assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
  const [server,html,js,css,feat]=await Promise.all([
