@@ -343,6 +343,68 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      '<p class="feature-muted">'+tr("Todavía no hay movimientos registrados.","Ainda não há movimentações registradas.")+'</p>')+'</div>',null);
  }
 
+ async function openGarmentEdit(orderId,itemId){
+  if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
+  const [passportResult,membersResult]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
+   api("/workspace/members")
+  ]);
+  const p=passportResult.passport||{};
+  if(!uuid(p.id))throw Error(tr("No se pudo cargar la prenda.","Não foi possível carregar a peça."));
+  const members=Array.isArray(membersResult.members)?membersResult.members:[];
+  let measurements=[];
+  if(uuid(p.client?.id)){
+   try{
+    const measurementResult=await api("/clients/"+encodeURIComponent(p.client.id)+"/measurements?limit=100&offset=0");
+    measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
+   }catch{measurements=[];}
+  }
+  selected={orderId,itemId,passport:p,members,measurements};
+  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
+   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
+    esc(member.name||member.email||tr("Miembro","Membro"))+'</option>').join("");
+  const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
+   measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
+  layout("garment-edit",tr("Editar prenda","Editar peça"),
+   '<div class="garment-edit-head"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3></div>'+
+    '<span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
+   '<p class="feature-muted">'+tr("Edita únicamente los datos propios de esta prenda. Los pagos y documentos pertenecen al pedido.","Edite apenas os dados desta peça. Pagamentos e documentos pertencem ao pedido.")+'</p>'+
+   '<div class="feature-fields">'+
+    field("garmentType",tr("Tipo de prenda","Tipo de peça"),"text",'maxlength="80" placeholder="'+tr("Pantalón, vestido, chaqueta…","Calça, vestido, jaqueta…")+'" value="'+esc(p.garmentType||"")+'"')+
+    field("brand",tr("Marca","Marca"),"text",'maxlength="120" value="'+esc(p.brand||"")+'"')+
+    field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
+    field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
+    field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" value="'+esc(p.storageLocation||"")+'"')+
+    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
+    '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select>'+
+   '</div>',tr("Guardar cambios","Salvar alterações"));
+ }
+
+ async function openOrderInfo(orderId){
+  if(!uuid(orderId)){globalError(tr("Pedido inválido.","Pedido inválido."));return;}
+  const result=await api("/orders/"+encodeURIComponent(orderId));
+  const o=result.order||{};
+  if(!uuid(o.id))throw Error(tr("No se pudo cargar el pedido.","Não foi possível carregar o pedido."));
+  selected={orderId,order:o};
+  const items=Array.isArray(o.items)?o.items:[];
+  const customer=o.client?.name||tr("Cliente sin nombre","Cliente sem nome");
+  const branch=o.branch?.name||tr("Sin sucursal","Sem filial");
+  const due=String(o.dueDate||"").slice(0,10)||"—";
+  layout("order-info",tr("Información del pedido","Informações do pedido")+" #"+esc(o.orderNumber||""),
+   '<div class="order-info-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(o.orderNumber||"")+'</span><h3>'+esc(customer)+'</h3>'+
+    '<span class="status '+esc(o.status||"accepted")+'">'+esc(passportStatusLabel(o.status))+'</span></div>'+
+    '<div class="order-info-total"><small>'+tr("Total","Total")+'</small><strong>'+esc(money(o.totalMinor,o.currencyCode))+'</strong></div></div>'+
+   '<div class="feature-summary order-info-summary"><div><small>'+tr("Entrega","Entrega")+'</small><strong>'+esc(due)+'</strong></div>'+
+    '<div><small>'+tr("Sucursal","Filial")+'</small><strong>'+esc(branch)+'</strong></div>'+
+    '<div><small>'+tr("Prendas","Peças")+'</small><strong>'+esc(String(items.length))+'</strong></div></div>'+
+   (o.notes?'<div class="passport-section"><h4>'+tr("Notas del pedido","Notas do pedido")+'</h4><p class="order-info-notes">'+esc(o.notes)+'</p></div>':"")+
+   '<div class="passport-section"><h4>'+tr("Prendas del pedido","Peças do pedido")+'</h4>'+
+    (items.length?'<div class="order-info-items">'+items.map((item,index)=>'<div class="order-info-item"><div><strong>'+esc(item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(String(item.dueDate).slice(0,10)):'')+'</small></div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>').join("")+'</div>':
+     '<p class="feature-muted">'+tr("No hay prendas en este pedido.","Não há peças neste pedido.")+'</p>')+
+   '</div>',null);
+ }
+
  async function openOrderPassport(orderId){
   if(!uuid(orderId)){globalError(tr("Pedido inválido.","Pedido inválido."));return;}
   const result=await api("/orders/"+encodeURIComponent(orderId));
@@ -986,8 +1048,8 @@ function newPhoto(){
     headers:{"Idempotency-Key":retry.key},body:paymentBody});
    clearPaymentRetry(retry);
    close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
-  }else if(mode==="passport-edit"){
-   if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza el pasaporte antes de guardar.","Atualize o passaporte antes de salvar."));
+  }else if(mode==="passport-edit"||mode==="garment-edit"){
+   if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
    const payload={
     expectedVersion:Number(selected.passport.version),
     garmentType:get("garmentType").trim()||null,
@@ -998,12 +1060,14 @@ function newPhoto(){
     assignedUserId:get("assignedUserId")||null,
     measurementSetId:get("measurementSetId")||null
    };
+   const nextMode=mode;
    await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport",{
     method:"PATCH",body:JSON.stringify(payload)});
    const {orderId,itemId}=selected;
-   await openPassport(orderId,itemId);
+   if(nextMode==="garment-edit")await openGarment(orderId,itemId);
+   else await openPassport(orderId,itemId);
    await refreshOrders();
-   success(tr("Pasaporte de la prenda actualizado.","Passaporte da peça atualizado."));
+   success(nextMode==="garment-edit"?tr("Prenda actualizada.","Peça atualizada."):tr("Pasaporte de la prenda actualizado.","Passaporte da peça atualizado."));
   }else if(mode==="photo-new"){
    const file=form().elements.namedItem("file").files[0],prepared=await preparePhoto(file);
    const base64=await new Promise((resolve,reject)=>{
@@ -1096,5 +1160,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openGarment,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openGarment,openGarmentEdit,openOrderInfo,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
 }
