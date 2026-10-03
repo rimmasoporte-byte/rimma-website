@@ -113,7 +113,7 @@ function applySubscriptionLockUi(locked){
 }
 async function resolveSubscriptionGate(){
  try{
-  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261003a")]);
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261003b")]);
   const billing=data.billing||{};
   applySubscriptionLockUi(view.billingAccessLocked(billing));
   return billing;
@@ -304,7 +304,7 @@ async function loadReport(){
 async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
  try{
-  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261003a")]);
+  const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261003b")]);
   const b=data.billing||{};
   let webCheckoutUrl=null;
   // Never build a web-payment URL in browser JS: rely on server verification.
@@ -349,7 +349,7 @@ async function verifyBilling(button){
   await request("/api/billing/sync",{method:"POST",body:"{}"});
   const current=await loadBilling();
   if(!current)return; // loadBilling has already rendered an error.
-  const view=await import("/app/billing-view.mjs?v=20261003a");
+  const view=await import("/app/billing-view.mjs?v=20261003b");
   showBillingFeedback(view.describeBillingSyncOutcome(current));
  }catch(e){
   const unavailable=e.status===503
@@ -371,7 +371,7 @@ async function refreshBilling(button){
  try{
   const current=await loadBilling();
   if(!current)return;
-  const view=await import("/app/billing-view.mjs?v=20261003a");
+  const view=await import("/app/billing-view.mjs?v=20261003b");
   showBillingFeedback("Estado actualizado. "+view.describeBillingSyncOutcome(current)
     .replace(/^Comprobación completada: /,""));
  }finally{
