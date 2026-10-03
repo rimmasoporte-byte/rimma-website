@@ -22,3 +22,4 @@ jobs:
           node --check assets-v3/site.js
           node --check demo/site.js
           node --check demo/demo-shim.js
+          node --check demo/locale-intl.js
