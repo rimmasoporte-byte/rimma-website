@@ -51,7 +51,7 @@ async function api(url,payload){
 const config=await api('/api/auth/signup-config').catch(()=>({enabled:false}));
 if(link)link.hidden=!config.enabled;
 if(form&&!config.enabled){
- announce('El registro web aún no está disponible. Solicita una invitación a soporte@rimmaapp.com.');
+ announce(tr('El registro web aún no está disponible. Solicita una invitación a soporte@rimmaapp.com.','O cadastro web ainda não está disponível. Solicite um convite em suporte@rimmaapp.com.'));
  for(const el of form.elements)el.disabled=true;
 }
 if(form&&config.enabled){
@@ -108,7 +108,7 @@ if(form&&config.enabled){
  const setVerified=value=>{
   code.classList.toggle('is-verified',value);
   code.readOnly=value;
-  setCodeStatus(value?'verified':'idle',value?'Correo verificado':'');
+  setCodeStatus(value?'verified':'idle',value?tr('Correo verificado','E-mail verificado'):'');
   submit.disabled=busy||!grant;
  };
  const resetVerification=()=>{
@@ -133,8 +133,8 @@ if(form&&config.enabled){
   if(!email.validity.valid){email.reportValidity();return;}
   resetVerification();
   code.value='';
-  await api('/api/auth/signup/send',{email:email.value,website:website?.value||''});
-  announce('Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.');
+  await api('/api/auth/signup/send',{email:email.value,website:website?.value||'',locale:window.RimmaLocale?.locale||'es-ES',countryCode:country.value});
+  announce(tr('Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.','Código enviado. Verifique seu e-mail e, se necessário, a pasta de spam.'));
   code.focus();
  }));
  async function verifyCodeAutomatically(){
@@ -151,7 +151,7 @@ if(form&&config.enabled){
     const result=await api('/api/auth/signup/verify',{email:email.value,code:value,website:website?.value||''});
     grant={email:email.value.trim().toLowerCase(),token:result.emailVerificationToken};
     setVerified(true);
-    announce('Correo verificado. Ya puedes crear tu taller.');
+    announce(tr('Correo verificado. Ya puedes crear tu taller.','E-mail verificado. Agora você pode criar seu ateliê.'));
    }catch(error){
     grant=null;
     code.classList.remove('is-verified');
@@ -179,9 +179,9 @@ if(form&&config.enabled){
   perform(async()=>{
    syncPasswordMatch();
    if(!form.reportValidity())return;
-   if(password.value!==confirmPassword.value){announce('Las contraseñas no coinciden.');confirmPassword.focus();return;}
+   if(password.value!==confirmPassword.value){announce(tr('Las contraseñas no coinciden.','As senhas não coincidem.'));confirmPassword.focus();return;}
    const normalized=email.value.trim().toLowerCase();
-   if(!grant||grant.email!==normalized){announce('Primero verifica este correo electrónico.');return;}
+   if(!grant||grant.email!==normalized){announce(tr('Primero verifica este correo electrónico.','Primeiro verifique este e-mail.'));return;}
    const data=new FormData(form);
    const startOption=selectedStart();
    const region=COUNTRIES.find(x=>x[0]===data.get('countryCode'));
@@ -194,13 +194,13 @@ if(form&&config.enabled){
     emailVerificationToken:grant.token,acceptsTerms:data.get('consent')==='on'
    });
    resetVerification();
-   announce('¡Cuenta creada! Estamos abriendo tu taller…');
+   announce(tr('¡Cuenta creada! Estamos abriendo tu taller…','Conta criada! Estamos abrindo seu ateliê…'));
    try{
     await api('/api/auth/login',{email:normalized,password:password.value});
     const target=startOption==='paid'?'/app/?view=suscripcion&checkout=1':'/app/';
     window.location.assign(window.RimmaLocale?.withLocale?window.RimmaLocale.withLocale(target):target);
    }catch{
-    announce('Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.');
+    announce(tr('Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.','Conta criada com sucesso. Agora você pode entrar pela página de login.'));
     submit.disabled=true;
    }
   });
