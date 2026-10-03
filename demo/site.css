@@ -46,3 +46,15 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
 .locale-switch a:hover{text-decoration:underline;text-underline-offset:3px}
 .sidebar-bottom .portal-locale{justify-content:flex-start;margin:0 0 8px;color:inherit}
 .sidebar-bottom .portal-locale a{color:inherit}
+
+.locale-switch-select{display:flex;justify-content:flex-end;align-items:center}
+.demo-locale-select{
+ min-height:34px;max-width:230px;border:1px solid #d7c8ae;border-radius:999px;
+ background:#fffdf9;color:#4f483e;padding:6px 30px 6px 12px;
+ font:600 11px/1.2 "DM Sans",sans-serif;letter-spacing:.02em;cursor:pointer
+}
+.demo-locale-select:focus{outline:2px solid rgba(132,103,54,.22);outline-offset:2px}
+.sidebar-bottom .portal-locale .demo-locale-select{
+ width:100%;max-width:none;background:rgba(255,255,255,.07);color:#e9dfc9;border-color:rgba(255,255,255,.24)
+}
+.sidebar-bottom .portal-locale .demo-locale-select option{background:#fffdf9;color:#2f2b25}
