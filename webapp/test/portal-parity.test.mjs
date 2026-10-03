@@ -155,7 +155,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/async function openGarment\(orderId,itemId\)/);
  assert.match(feat,/Ficha de la prenda/);
  assert.match(feat,/Pasaporte digital/);
- assert.match(feat,/data-feature="garment-passport"/);
+ assert.match(feat,/"garment-passport"/);
+ assert.match(feat,/action==="garment-passport"/);
  assert.match(feat,/openGarment,openPassport,openOrderPassport/);
  assert.match(feat,/Idempotency-Key/);
  assert.match(feat,/sessionStorage/);
