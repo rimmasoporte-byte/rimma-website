@@ -209,6 +209,8 @@ export const server=http.createServer(async(req,res)=>{
       return staticFile(res,'register.html','text/html; charset=utf-8');
     }
     if(method==='GET'&&pathname==='/app/locale.js')return staticFile(res,'locale.js','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/locale-intl.js')return staticFile(res,'locale-intl.js','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/locale-picker.js')return staticFile(res,'locale-picker.js','text/javascript; charset=utf-8');
   if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/password-toggle.mjs')return staticFile(res,'password-toggle.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
