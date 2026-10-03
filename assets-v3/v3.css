@@ -331,3 +331,49 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
  .v3-problems-close{align-items:flex-start;flex-direction:column;padding-top:24px}
  .v3-problems-close b{font-size:23px}
 }
+
+/* Spain positioning: the garment journey is the product story */
+.v3-journey{padding:108px 0 98px;background:#f6f2eb;border-bottom:1px solid #e7dfd4}
+.v3-journey-head{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr);gap:56px;align-items:end;margin:18px 0 46px}
+.v3-journey-head h2{font:500 clamp(42px,4vw,64px)/1.1 Playfair,Georgia,serif;letter-spacing:-1.8px;margin:0;color:#202119}
+.v3-journey-head h2 em{font-style:italic;color:#8c6d3e}
+.v3-journey-head p{font:500 14px/1.8 var(--sans);color:#6f6d65;margin:0 0 6px}
+.v3-journey-line{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #ddd3c4;border-radius:14px;overflow:hidden;background:#fffefb}
+.v3-journey-line article{position:relative;min-height:210px;padding:26px 20px 28px}
+.v3-journey-line article+article{border-left:1px solid #e8e0d4}
+.v3-journey-line article:not(:last-child)::after{content:"→";position:absolute;right:-10px;top:50%;z-index:2;width:20px;height:20px;display:grid;place-items:center;transform:translateY(-50%);border:1px solid #ddd3c4;border-radius:50%;background:#fffefb;color:#9b7b4e;font:700 10px var(--sans)}
+.v3-journey-line span{display:block;margin-bottom:35px;font:800 9px var(--sans);letter-spacing:1.5px;color:#a17d4c}
+.v3-journey-line strong{display:block;margin-bottom:12px;font:500 25px/1.1 Playfair,Georgia,serif;color:#24251e}
+.v3-journey-line p{margin:0;font:500 11px/1.65 var(--sans);color:#747168}
+.v3-journey-close{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:30px 2px 0}
+.v3-journey-close b{font:500 25px Playfair,Georgia,serif;color:#24251e}
+.v3-journey-close a{display:inline-flex;align-items:center;gap:10px;color:#7d613b;text-decoration:none;font:750 12px var(--sans)}
+.v3-journey-close a:hover{text-decoration:underline;text-underline-offset:4px}
+.v3-journey-close svg{width:16px;height:16px}
+@media(max-width:1180px){
+ .v3-journey-line{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .v3-journey-line article:nth-child(4){border-left:0}
+ .v3-journey-line article:nth-child(n+4){border-top:1px solid #e8e0d4}
+ .v3-journey-line article:nth-child(3)::after{display:none}
+}
+@media(max-width:780px){
+ .v3-journey{padding:74px 0 70px}
+ .v3-journey-head{grid-template-columns:1fr;gap:18px;margin:15px 0 31px}
+ .v3-journey-head h2{font-size:clamp(39px,10vw,52px)}
+ .v3-journey-line{grid-template-columns:1fr 1fr}
+ .v3-journey-line article{min-height:178px}
+ .v3-journey-line article:nth-child(3),.v3-journey-line article:nth-child(5){border-left:0}
+ .v3-journey-line article:nth-child(4){border-left:1px solid #e8e0d4}
+ .v3-journey-line article:nth-child(n+3){border-top:1px solid #e8e0d4}
+ .v3-journey-line article:nth-child(2)::after,.v3-journey-line article:nth-child(4)::after{display:none}
+ .v3-journey-line article:nth-child(3)::after{display:grid}
+ .v3-journey-close{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:520px){
+ .v3-journey-line{grid-template-columns:1fr}
+ .v3-journey-line article{min-height:0;padding:23px 22px}
+ .v3-journey-line article+article,.v3-journey-line article:nth-child(4){border-left:0;border-top:1px solid #e8e0d4}
+ .v3-journey-line article::after{display:none!important}
+ .v3-journey-line span{margin-bottom:17px}
+ .v3-journey-close b{font-size:22px}
+}
