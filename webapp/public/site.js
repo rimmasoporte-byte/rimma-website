@@ -371,14 +371,30 @@ async function loadAtelierAccountSettings(){
  const branches=$("#branches-summary"),rules=$("#notifications-summary");
  try{
   const [data,memberData]=await Promise.all([api("/branches"),api("/workspace/members")]),rows=data.branches||[],members=memberData.members||[];
-  if(branches)branches.innerHTML=(rows.length?'<div class="branch-chips">'+rows.map(b=>'<span class="branch-chip"><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></span>').join("")+'</div>':'<p class="small">No hay sucursales.</p>')+
+  const summaryPairs=await Promise.all(rows.map(async b=>{
+   try{const result=await api("/branches/"+encodeURIComponent(b.id)+"/summary");return [b.id,result.summary||null];}
+   catch{return [b.id,null];}
+  }));
+  const summaries=new Map(summaryPairs);
+  if(branches)branches.innerHTML=(rows.length?'<div class="branch-overview-grid">'+rows.map(b=>{
+    const s=summaries.get(b.id);
+    return '<article class="branch-overview"><div><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></div>'+(s?'<div class="branch-stats"><span>Activos <b>'+n(s.activeOrders)+'</b></span><span>Listos <b>'+n(s.readyOrders)+'</b></span><span>Atrasados <b>'+n(s.overdueOrders)+'</b></span><span>Cobrado <b>'+esc(money(s.confirmedRevenueMinor,L.currency||"EUR"))+'</b></span></div>':'<small>Resumen no disponible</small>')+'</article>';
+   }).join("")+'</div>':'<p class="small">No hay sucursales.</p>')+
    (members.length?'<div class="team-branch-list"><h3>Equipo por sucursal</h3>'+members.map(m=>'<div class="team-branch-row" data-member-row="'+esc(m.id)+'"><span><strong>'+esc(m.name||m.email)+'</strong><small>'+esc(m.role||"staff")+'</small></span><select data-member-branch>'+rows.filter(b=>b.status==="active").map(b=>'<option value="'+esc(b.id)+'" '+(b.id===m.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select><label>Cap. <input data-member-capacity type="number" min="1" max="200" value="'+esc(String(m.dailyCapacityItems||8))+'"></label><button type="button" class="record-action" data-action="save-worker-settings" data-id="'+esc(m.id)+'">Guardar</button></div>').join("")+'</div>':"");
  }catch(e){if(branches)branches.textContent="No se pudieron cargar las sucursales.";}
  try{
   const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
   const names={order_received:"Pedido recibido",in_progress:"En proceso",ready_for_pickup:"Listo para recoger",pickup_reminder:"Recordatorio de recogida",payment_due:"Pago pendiente"};
-  const email=rows.filter(x=>x.channel==="email");
-  if(rules)rules.innerHTML='<div class="notification-rule-list">'+email.map(x=>'<label class="notification-rule"><span><strong>'+esc(names[x.eventKey]||x.eventKey)+'</strong><small>Correo automático</small></span><input type="checkbox" data-action="toggle-notification" data-event="'+esc(x.eventKey)+'" data-channel="email" '+(x.enabled?"checked":"")+'></label>').join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Configura el proveedor de correo para enviar avisos.")+' WhatsApp automático se activa cuando se conecte WhatsApp Cloud y una plantilla aprobada.</p>';
+  const events=["order_received","in_progress","ready_for_pickup","pickup_reminder","payment_due"];
+  const byKey=new Map(rows.map(x=>[x.eventKey+":"+x.channel,x]));
+  if(rules)rules.innerHTML='<div class="notification-event-list">'+events.map(eventKey=>{
+    const email=byKey.get(eventKey+":email")||{enabled:false},wa=byKey.get(eventKey+":whatsapp")||{enabled:false,templateName:""};
+    const waDisabled=!settings.providers?.whatsappConfigured;
+    return '<article class="notification-event"><div class="notification-event-name"><strong>'+esc(names[eventKey])+'</strong><small>RIMMA avisa cuando cambia el trabajo</small></div>'+
+      '<label class="notification-channel"><span>Correo</span><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="email" '+(email.enabled?"checked":"")+' '+(!settings.providers?.emailConfigured?'disabled':'')+'></label>'+
+      '<label class="notification-channel whatsapp-channel"><span>WhatsApp</span><input type="text" data-whatsapp-template="'+esc(eventKey)+'" value="'+esc(wa.templateName||"")+'" placeholder="plantilla_aprobada" '+(waDisabled?'disabled':'')+'><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="whatsapp" '+(wa.enabled?"checked":"")+' '+(waDisabled?'disabled':'')+'></label>'+
+     '</article>';
+  }).join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Correo no configurado.")+' '+(settings.providers?.whatsappConfigured?"WhatsApp Cloud conectado; indica una plantilla aprobada para cada aviso.":"WhatsApp automático queda bloqueado hasta conectar WhatsApp Cloud.")+'</p>';
  }catch(e){if(rules)rules.textContent="No se pudieron cargar los avisos.";}
 }
 function clientRow(c){
@@ -786,9 +802,11 @@ document.addEventListener("click",event=>{
   }
   case "toggle-notification":{
    const checkbox=b;
-   const enabled=Boolean(checkbox.checked);
+   const enabled=Boolean(checkbox.checked),channel=b.dataset.channel||"email",eventKey=b.dataset.event;
+   const templateName=channel==="whatsapp"?(document.querySelector('[data-whatsapp-template="'+CSS.escape(eventKey||"")+'"]')?.value||"").trim():null;
+   if(channel==="whatsapp"&&enabled&&!templateName){checkbox.checked=false;globalError("Indica primero el nombre de la plantilla de WhatsApp aprobada.");break;}
    checkbox.disabled=true;
-   void api("/notification-settings",{method:"PATCH",body:JSON.stringify({eventKey:b.dataset.event,channel:b.dataset.channel||"email",enabled,delayMinutes:0,locale:"es"})})
+   void api("/notification-settings",{method:"PATCH",body:JSON.stringify({eventKey,channel,enabled,delayMinutes:0,templateName,locale:"es"})})
     .then(()=>success(enabled?"Aviso automático activado.":"Aviso automático desactivado."))
     .catch(e=>{checkbox.checked=!enabled;globalError(e.message||"No se pudo cambiar el aviso.");})
     .finally(()=>{checkbox.disabled=false;});
