@@ -45,7 +45,9 @@ test('live KPI counts and client/order data are not replaced by mock numbers',as
  assert.match(js,/dashboard\?\.summary\?\.readyForPickup/);
  assert.match(js,/topbar-alert-dot/);
  assert.match(js,/orders\.value\.orders\|\|\[\]/);
- assert.match(js,/recordActions\("order",o\.id,o\.status!=="issued"\)/);
+ assert.match(js,/function garmentCardOrderActions\(/);
+ assert.match(js,/actions\?garmentCardOrderActions\(o,itemId,orderId\)/);
+ assert.match(js,/class="garment-more"/);
  assert.match(js,/data-action="edit-/);
  assert.match(js,/data-action="delete-/);
 });
