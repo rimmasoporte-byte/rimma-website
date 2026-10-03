@@ -161,3 +161,21 @@ test('subscription gate iterates all navigation controls safely',()=>{
  assert.match(js,/\$\$\("\[data-view\]"\)\.forEach/);
  assert.doesNotMatch(js,/(?<!\$)\$\("\[data-view\]"\)\.forEach/);
 });
+
+
+test('repeat order creates a clean new atelier job without historical state',()=>{
+ const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="repeat-order"/);
+ const start=js.indexOf('async function repeatOrder(id)');
+ const end=js.indexOf('function customerInitials',start);
+ assert.ok(start>=0&&end>start,'repeat-order workflow is present');
+ const flow=js.slice(start,end);
+ assert.match(flow,/status!=="cancelled"/);
+ assert.match(flow,/dueDate:null/);
+ assert.match(flow,/notes:null/);
+ assert.match(flow,/needsReply:false/);
+ assert.match(flow,/storageLocation:null/);
+ assert.match(flow,/clientId:order\.client\.id/);
+ assert.match(flow,/unitPriceMinor:Number\(item\.unitPriceMinor\|\|0\)/);
+ assert.doesNotMatch(flow,/photos\/upload|\/payments|assignedUserId|measurementSetId|passport\/share/);
+});

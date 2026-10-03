@@ -205,6 +205,7 @@ function recordActions(type,id,canDelete=true) {
   return '<div class="record-actions">'+
    (type==="order"?'<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'" aria-label="Abrir documentos del pedido">Documentos</button>':'')+
    (type==="order"?'<button type="button" class="record-action" data-action="order-passport" data-id="'+safe+'" aria-label="Abrir pasaporte digital del pedido">Pasaporte</button>':'')+
+   (type==="order"?'<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'" aria-label="Crear un nuevo pedido a partir de este">Repetir pedido</button>':'')+
    '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
    (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
    '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
@@ -224,6 +225,47 @@ async function downloadOrder(id){
     a.href=url;a.download="RIMMA-pedido-"+String(order.orderNumber||id)+".html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
     success("Pedido descargado.");
   }catch(e){globalError(e.message||"No se pudo descargar el pedido.");}
+}
+async function repeatOrder(id){
+  if(!/^[a-f0-9-]{36}$/i.test(id||"")){globalError("El pedido seleccionado no es válido.");return;}
+  try{
+    const result=await api("/orders/"+encodeURIComponent(id)),order=result.order;
+    if(!order||order.id!==id||!order.client?.id)throw Error("No se pudo cargar el pedido original.");
+    const sourceItems=(order.items||[]).filter(item=>item&&item.status!=="cancelled");
+    if(!sourceItems.length)throw Error("Este pedido no tiene prendas activas que se puedan repetir.");
+    const approved=await confirmAction({
+      title:"Repetir pedido",
+      message:"Se creará un pedido nuevo para "+(order.client.name||"este cliente")+" con las mismas prendas y precios. No se copiarán pagos, fotografías, fechas, ubicación, responsable ni historial.",
+      confirmLabel:"Crear nuevo pedido"
+    });
+    if(!approved)return;
+    const payload={
+      clientId:order.client.id,
+      branchId:order.branch?.id||null,
+      currencyCode:order.currencyCode||"EUR",
+      dueDate:null,
+      notes:null,
+      needsReply:false,
+      items:sourceItems.map((item,index)=>({
+        categoryId:item.categoryId||null,
+        name:item.name,
+        description:item.description||null,
+        quantity:Number(item.quantity||1),
+        unitPriceMinor:Number(item.unitPriceMinor||0),
+        dueDate:null,
+        sortOrder:index,
+        garmentType:item.garmentType||null,
+        brand:item.brand||null,
+        color:item.color||null,
+        sizeLabel:item.sizeLabel||null,
+        storageLocation:null
+      }))
+    };
+    const created=await api("/orders",{method:"POST",body:JSON.stringify(payload)});
+    const number=created.order?.orderNumber;
+    go("pedidos");
+    success(number?"Pedido #"+number+" creado a partir del anterior. Añade ahora la nueva fecha de entrega.":"Nuevo pedido creado. Añade ahora la fecha de entrega.");
+  }catch(e){globalError(e.message||"No se pudo repetir el pedido.");}
 }
 function customerInitials(name) {
  const words=String(name||"").trim().split(/\s+/).filter(Boolean);
@@ -820,6 +862,7 @@ document.addEventListener("click",event=>{
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
   case "download-order":void downloadOrder(b.dataset.id);break;
+  case "repeat-order":void repeatOrder(b.dataset.id);break;
   case "order-documents":void featureUI.then(ui=>ui.openOrderDocuments(b.dataset.id)).catch(e=>globalError(e.message||"No se pudieron abrir los documentos."));break;
   case "order-passport":void featureUI.then(ui=>ui.openOrderPassport(b.dataset.id)).catch(e=>globalError(e.message||"No se pudo abrir el pasaporte."));break;
   case "edit-item":openModal("edit-item",{id:b.dataset.id,itemId:b.dataset.item});break;
