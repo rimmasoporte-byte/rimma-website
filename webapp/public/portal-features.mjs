@@ -402,9 +402,12 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const p=selected?.passport||{};
   const name=String(p.client?.name||"").trim();
   const pt=String(L.locale||"").toLowerCase().startsWith("pt");
+  const greeting=pt
+   ? (name?"Olá "+name+" 👋":"Olá 👋")
+   : (name?"Hola "+name+" 👋":"Hola 👋");
   return pt
-   ? ["Olá "+(name||"👋")+" 👋","Você pode consultar o estado do seu pedido #"+String(p.orderNumber||"")+" aqui:",url,"RIMMA"].join("\n")
-   : ["Hola "+(name||"👋")+" 👋","Puedes consultar el estado de tu pedido #"+String(p.orderNumber||"")+" aquí:",url,"RIMMA"].join("\n");
+   ? [greeting,"Você pode consultar o estado do seu pedido #"+String(p.orderNumber||"")+" aqui:",url,"RIMMA"].join("\n")
+   : [greeting,"Puedes consultar el estado de tu pedido #"+String(p.orderNumber||"")+" aquí:",url,"RIMMA"].join("\n");
  }
  async function sendPassportWhatsApp(){
   const p=selected?.passport||{};
