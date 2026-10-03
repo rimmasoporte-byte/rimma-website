@@ -571,7 +571,13 @@ function newPhoto(){
     select("jurisdiction","Normativa del taller",jurisdictionOptions)+
     select("documentLanguage","Idioma predeterminado",languageOptions)+
     field("estimateValidityDays","Validez del presupuesto (días)","number",'required min="1" max="365" step="1" value="'+esc(p.estimateValidityDays||30)+'"')+
-   '</div>',"Guardar datos");
+   '</div>'+
+   '<div class="passport-section fiscal-settings-section"><h4>Facturación fiscal</h4><p class="feature-muted">Configura el IVA habitual y series separadas. RIMMA no consumirá numeración hasta una emisión fiscal real.</p><div class="feature-fields">'+
+    select("defaultVatBps","IVA predeterminado",choice(String(p.defaultVatBps??2100),[["2100","21 %"],["1000","10 %"],["400","4 %"],["0","0 % / exento"]]))+
+    field("invoiceFullSeries","Serie factura completa","text",'required maxlength="12" value="'+esc(p.invoiceFullSeries||"F")+'"')+
+    field("invoiceSimplifiedSeries","Serie factura simplificada","text",'required maxlength="12" value="'+esc(p.invoiceSimplifiedSeries||"FS")+'"')+
+    field("invoiceRectificativeSeries","Serie rectificativa","text",'required maxlength="12" value="'+esc(p.invoiceRectificativeSeries||"R")+'"')+
+   '</div></div>',"Guardar datos");
  }
 
  function documentCards(order,profile,confirmedPayments){
@@ -692,8 +698,15 @@ function newPhoto(){
     estimateValidityDays:Number(get("estimateValidityDays"))
    };
    if(!payload.legalName||!payload.taxId||!payload.addressLine1||!payload.postalCode||!payload.city)throw Error("Completa los campos obligatorios.");
+   const fiscalSettings={
+    defaultVatBps:Number(get("defaultVatBps")),
+    invoiceFullSeries:get("invoiceFullSeries").trim().toUpperCase(),
+    invoiceSimplifiedSeries:get("invoiceSimplifiedSeries").trim().toUpperCase(),
+    invoiceRectificativeSeries:get("invoiceRectificativeSeries").trim().toUpperCase()
+   };
    await api("/business-profile",{method:"PATCH",body:JSON.stringify(payload)});
-   close();success("Datos legales del taller guardados.");
+   await api("/fiscal/settings",{method:"PATCH",body:JSON.stringify(fiscalSettings)});
+   close();success("Datos legales y configuración fiscal guardados.");
   }else if(mode==="password-change"){
    const currentPassword=get("currentPassword"),newPassword=get("newPassword");
    if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
