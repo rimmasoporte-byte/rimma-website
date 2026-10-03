@@ -4,7 +4,11 @@ const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const L=window.RimmaLocale||{isPt:false,locale:"es-ES",currency:"EUR"};
-const tr=(es,pt)=>L.isPt?pt:es;
+const tr=(es,pt)=>{
+ const translated=L.translate?L.translate(es):es;
+ if(translated!==es)return translated;
+ return L.isPt?pt:es;
+};
 const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency}).format(Number(value||0)/100);
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
 const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
@@ -53,7 +57,7 @@ function go(view){
 }
 function customerInitials(name){
  const words=String(name||"").trim().split(/\s+/).filter(Boolean);
- return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
+ return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase(L.locale||"es-ES")||"").join("")||"C";
 }
 function orderRow(o){
  const customer=o.client?.name||o.clientName||"Cliente";
