@@ -141,6 +141,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
  assert.match(js,/data-action="add-order-item"/);
+ assert.match(js,/function garmentCardOrderActions\(/);
+ assert.match(js,/class="garment-more"/);
+ assert.match(js,/img\.addEventListener\("error",restoreFallback/);
+ assert.doesNotMatch(js,/holder&&photo\?\.viewUrl\)holder\.innerHTML='<img/);
  assert.ok(js.indexOf('id="extra-order-items"')>js.indexOf('if(type==="order"){'),
   "multi-garment selector must be on order form");
  const clientForm=js.slice(js.indexOf('if(type==="client"){'),js.indexOf('if(type==="order"){'));
@@ -155,7 +159,11 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(css,/body:has\(#modal\[open\]/);
   assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?width:max-content[\s\S]*?height:auto[\s\S]*?border:0[\s\S]*?white-space:nowrap/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v30/);
+  assert.match(css,/\.garment-card-top\{[\s\S]*?align-items:flex-start/);
+  assert.match(css,/\.garment-card-top>\.status\{[\s\S]*?align-self:flex-start[\s\S]*?height:auto/);
+  assert.match(css,/\.garment-more-menu\{[\s\S]*?position:absolute/);
+  assert.match(html,/site\.js\?v=20261004-v31/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v31/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
