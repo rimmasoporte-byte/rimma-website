@@ -302,8 +302,9 @@ function garmentCard(o,item,actions=false){
   '<div class="garment-card-main"><div class="garment-card-top"><div><button type="button" class="garment-order-ref garment-order-link" data-action="order-info" data-id="'+orderId+'"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</button><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div></div>'+
   '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'">📏 Sin ficha vinculada</span></div>'+
   '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
+  (actions?garmentCardOrderActions(o,itemId,orderId):"")+
   '</div>'+
-  '<aside class="garment-card-rail"><span class="status '+esc(item.status)+'">'+esc(label)+'</span>'+(actions?garmentCardOrderActions(o,itemId,orderId):"")+'</aside>'+
+  '<aside class="garment-card-status"><span class="status '+esc(item.status)+'">'+esc(label)+'</span></aside>'+
   '</article>';
 }
 function orderTable(rows,actions=false){
