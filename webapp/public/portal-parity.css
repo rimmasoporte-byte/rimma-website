@@ -1090,3 +1090,101 @@ button:disabled,.feature-button[disabled]{
   box-sizing:border-box
  }
 }
+
+
+/* V35 — compact professional garment cards for dense atelier work. */
+.garment-grid{
+ gap:9px
+}
+.garment-grid .garment-card{
+ grid-template-columns:88px minmax(0,1fr);
+ gap:13px;
+ padding:12px 14px;
+ border-radius:14px;
+ box-shadow:0 4px 14px rgba(49,40,32,.035)
+}
+.garment-grid .garment-photo{
+ width:88px;
+ height:88px;
+ border-radius:12px;
+ font-size:24px
+}
+.garment-grid .garment-card-top{
+ gap:10px
+}
+.garment-grid .garment-card-top h3{
+ margin:2px 0 2px;
+ font-size:16px;
+ line-height:1.2
+}
+.garment-grid .garment-order-ref{
+ font-size:10px;
+ letter-spacing:.025em
+}
+.garment-grid .customer-avatar{
+ width:30px;
+ height:30px;
+ min-width:30px;
+ font-size:10px
+}
+.garment-grid .garment-facts{
+ gap:5px;
+ margin:7px 0 6px
+}
+.garment-grid .garment-meta-chip{
+ padding:3px 7px;
+ font-size:10px;
+ line-height:1.35
+}
+.garment-grid .garment-money{
+ gap:14px;
+ margin:5px 0;
+ font-size:11px
+}
+.garment-grid .garment-card-top>.status{
+ min-height:26px;
+ padding:5px 9px;
+ font-size:10px
+}
+.garment-grid .garment-quick-actions{
+ gap:6px;
+ margin-top:8px;
+ padding-top:8px
+}
+.garment-grid .garment-quick-actions>.record-action,
+.garment-grid .garment-quick-actions>.garment-paid-action{
+ min-height:31px;
+ padding:6px 10px;
+ font-size:10px
+}
+.garment-grid .garment-more>summary[aria-label="Más acciones"]{
+ min-width:34px;
+ min-height:31px;
+ padding:5px 8px;
+ font-size:16px
+}
+.garment-grid .garment-more-menu{
+ bottom:calc(100% + 5px)
+}
+@media(max-width:720px){
+ .garment-grid{
+  gap:8px
+ }
+ .garment-grid .garment-card{
+  grid-template-columns:68px minmax(0,1fr);
+  gap:10px;
+  padding:10px;
+  border-radius:12px
+ }
+ .garment-grid .garment-photo{
+  width:68px;
+  height:68px;
+  border-radius:10px
+ }
+ .garment-grid .garment-card-top h3{
+  font-size:15px
+ }
+ .garment-grid .garment-quick-actions{
+  gap:5px
+ }
+}

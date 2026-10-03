@@ -190,8 +190,11 @@ test("website only proxies explicitly authenticated mobile-compatible operations
   assert.match(css,/\.garment-card-top\{[\s\S]*?align-items:flex-start/);
   assert.match(css,/\.garment-card-top>\.status\{[\s\S]*?align-self:flex-start[\s\S]*?height:auto/);
   assert.match(css,/\.garment-more-menu\{[\s\S]*?position:absolute/);
+ assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
+ assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
+ assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v34/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v34/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v35/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
