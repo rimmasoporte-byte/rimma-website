@@ -92,11 +92,18 @@ test("mobile API parity features render real catalog/measurements/payments/photo
 });
 test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>{
  const html=renderReportSummary({startDate:"2026-09-01",endDate:"2026-09-30",
-  orders:{created:3,accepted:2,issued:1,duePeriodItems:4,overdueItems:2},clients:{new:1},
+  orders:{created:3,accepted:2,issued:1,duePeriodItems:4,overdueItems:2},clients:{new:1,returning:2},
   orderMoneyByCurrency:[{currencyCode:"EUR",orders:3,totalMinor:5500}],
   paymentsByCurrency:[{currencyCode:"EUR",confirmedMinor:2000}],
   outstandingByCurrency:[{currencyCode:"EUR",unpaidItems:2,remainingMinor:2500}],
-  paymentMethods:[{currencyCode:"EUR",method:"cash",payments:2,confirmedMinor:1500}]});
+  paymentMethods:[{currencyCode:"EUR",method:"cash",payments:2,confirmedMinor:1500}],
+  topServices:[{name:"Bajo de pantalón",currencyCode:"EUR",orders:3,lines:4,revenueMinor:4200}]});
+ assert.match(html,/CLIENTES QUE VUELVEN/);
+ assert.match(html,/feature-status-grid|Trabajos más solicitados/);
+ assert.match(html,/Trabajos más solicitados/);
+ assert.match(html,/Bajo de pantalón/);
+ assert.match(html,/3 pedidos/);
+ assert.match(html,/4 trabajos/);
  assert.match(html,/PRENDAS ATRASADAS/);
  assert.match(html,/Ticket medio/);
  assert.match(html,/3 pedidos/);
