@@ -293,6 +293,25 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const safePublicUrl=value=>{
   try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null}catch{return null}
  };
+ async function openOrderPassport(orderId){
+  if(!uuid(orderId)){globalError(tr("Pedido inválido.","Pedido inválido."));return;}
+  const result=await api("/orders/"+encodeURIComponent(orderId));
+  const order=result.order||{};
+  const items=Array.isArray(order.items)?order.items.filter(item=>uuid(item?.id)):[];
+  if(!items.length)throw Error(tr("Este pedido no contiene prendas disponibles.","Este pedido não contém peças disponíveis."));
+  if(items.length===1)return openPassport(orderId,items[0].id);
+
+  selected={orderId,items};
+  layout("passport-picker",tr("Selecciona una prenda","Selecione uma peça"),
+   '<p class="feature-muted">'+tr("Este pedido contiene varias prendas. Elige cuál quieres abrir.","Este pedido contém várias peças. Escolha qual deseja abrir.")+'</p>'+
+   items.map((item,index)=>
+    '<div class="feature-ledger passport-picker-row"><strong>'+esc(item.name||tr("Prenda","Peça")+' '+(index+1))+'</strong>'+
+    '<small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(item.dueDate):'')+'</small>'+
+    b(tr("Abrir pasaporte","Abrir passaporte"),"passport-open",'data-order="'+esc(orderId)+'" data-id="'+esc(item.id)+'"')+
+    '</div>'
+   ).join(""),null);
+ }
+
  async function openPassport(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
   const [passportResult,membersResult]=await Promise.all([
@@ -550,6 +569,7 @@ function newPhoto(){
    });
   }
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
+  if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-share")return void safe(createPassportShare);
   if(action==="passport-revoke")return void safe(revokePassportShare);
   if(action==="item-photos")return void safe(async()=>openPhotos(el.dataset.order,id));
@@ -564,5 +584,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport};
 }
