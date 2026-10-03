@@ -82,3 +82,14 @@
  border-color:#6e9a7c!important;background:#f7fbf8!important;
  box-shadow:0 0 0 2px rgba(47,107,73,.10)
 }
+
+.locale-switch-select{display:flex;justify-content:flex-end;margin-bottom:12px}
+.app-locale-select{
+ min-height:34px;max-width:230px;border:1px solid #d7c8ae;border-radius:999px;
+ background:#fffdf9;color:#4f483e;padding:6px 30px 6px 12px;font:600 11px/1.2 "DM Sans",sans-serif;
+ letter-spacing:.02em;cursor:pointer
+}
+.app-locale-select:focus{outline:2px solid rgba(132,103,54,.22);outline-offset:2px}
+.signup-currency-note{
+ display:block;margin:-2px 0 5px;color:#756a5d;font-size:11px;line-height:1.45
+}
