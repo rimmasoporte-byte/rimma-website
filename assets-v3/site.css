@@ -366,3 +366,11 @@ em{font-style:italic;font-weight:400}
 .closing-demo-link{font:650 12px/1.4 var(--sans);color:#eadfc8;text-decoration:none;border-bottom:1px solid rgba(234,223,200,.42);padding:8px 2px}
 .closing-demo-link:hover{color:#fff7e8;border-bottom-color:#d9bc84}
 @media(max-width:630px){.closing-actions{gap:14px;flex-direction:column}.closing-demo-link{padding:5px 2px}}
+
+.legal-locale-select{
+ min-height:34px;max-width:190px;border:1px solid #d7c8ae;border-radius:999px;
+ background:#fffdf9;color:#4f483e;padding:6px 30px 6px 12px;
+ font:600 11px/1.2 "DM Sans",sans-serif;letter-spacing:.02em;cursor:pointer
+}
+.legal-locale-select:focus{outline:2px solid rgba(132,103,54,.22);outline-offset:2px}
+@media(max-width:720px){.legal-locale-select{max-width:128px;min-height:32px;padding:5px 24px 5px 9px;font-size:10px}}
