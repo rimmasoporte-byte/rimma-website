@@ -91,6 +91,7 @@ walk();
 const locale=bodyLocale,country=C.country;
 document.querySelectorAll('a[href*="app.rimmaapp.com"]').forEach(a=>{try{const u=new URL(a.href);u.searchParams.set('locale',locale);u.searchParams.set('country',country);a.href=u.toString();}catch{}});
 document.querySelectorAll('a[href*="/demo/"]').forEach(a=>{try{const u=new URL(a.href,location.origin);u.searchParams.set('locale',locale);u.searchParams.set('country',country);a.href=u.pathname+u.search+u.hash;}catch{}});
+document.querySelectorAll('a[href^="/legal/"]').forEach(a=>{try{const u=new URL(a.href,location.origin);u.searchParams.set('locale',locale);u.searchParams.set('country',country);a.href=u.pathname+u.search+u.hash;}catch{}});
 const lang=document.querySelector('.header-lang');if(lang){lang.textContent='ES';lang.href='/';lang.setAttribute('aria-label','Español');}
 const amount=document.querySelector('.v3-amount');if(amount){amount.firstChild.nodeValue=C.price+' ';const span=amount.querySelector('span');if(span)span.textContent=C.month;}
 })();
