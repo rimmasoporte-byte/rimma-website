@@ -335,7 +335,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
      b(tr("Cobros y pagos","Cobranças e pagamentos"),"order-payments",'data-id="'+esc(orderId)+'"')+
      (uuid(p.client?.id)?b(tr("Ficha de medidas","Ficha de medidas"),"client-measurements",'data-id="'+esc(p.client.id)+'"'):"")+
-     b(tr("Pasaporte digital","Passaporte digital"),"garment-passport",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"','class="garment-passport-button"')+
+     b(tr("Pasaporte digital","Passaporte digital"),"garment-passport",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
     '</div>'+
     '<p class="passport-section-help">'+tr("El pasaporte digital sirve para compartir la información de esta prenda con el cliente y acceder a su página privada y QR.","O passaporte digital serve para compartilhar as informações desta peça com o cliente e acessar sua página privada e QR.")+'</p></div>'+
    '<div class="passport-section garment-work-section"><h4>'+tr("Actividad reciente","Atividade recente")+'</h4>'+
