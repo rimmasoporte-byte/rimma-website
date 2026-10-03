@@ -1,5 +1,5 @@
 // Pure presentation. Payment decisions come ONLY from the authenticated RIMMA backend.
-const L=(typeof window!=='undefined'&&window.RimmaLocale)||{isPt:false,locale:'es-ES'};
+const L=(typeof window!=='undefined'&&window.RimmaLocale)||{isPt:false,locale:'es-ES',country:'ES',currency:'EUR'};
 const tr=(es,pt)=>{
  const translated=L.translate?L.translate(es):es;
  if(translated!==es)return translated;
@@ -88,7 +88,7 @@ export function renderBilling(billing,{now=Date.now(),webCheckoutUrl=null}={}){
  const priceNote=L.country==='BR'
    ?"Brasil: preço de referência R$ 29,90/mês. O valor final e os impostos aplicáveis serão mostrados antes da confirmação."
    :euroMarkets.has(L.country)
-     ?tr("Plan mensual: 4,99 €/mes. El importe final y los impuestos aplicables se muestran antes de confirmar el pago.")
+     ?tr("Plan mensual en España: 4,99 €/mes. El importe final y los impuestos aplicables se muestran antes de confirmar el pago.")
      :tr("El precio final se mostrará en "+marketCurrency+" antes de confirmar el pago. No aplicamos una conversión fija en la web.");
  const renewNotice=isTrial?'<p class="billing-muted">'+esc(priceNote)+'</p>':"";
  const sandbox=b.isSandbox===true?'<p class="billing-warning">Existe una compra de prueba (sandbox). No activa una suscripción real.</p>':"";
