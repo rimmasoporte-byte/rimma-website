@@ -707,6 +707,24 @@ function newPhoto(){
   if(exemption)exemption.hidden=vat!=="0";
  }
 
+ function fiscalReadinessChecklist(readiness){
+  const missing=new Set(Array.isArray(readiness?.connector?.missing)?readiness.connector.missing:[]);
+  const certificateReady=!missing.has("AEAT_VERIFACTU_CERT_PEM_B64")&&!missing.has("AEAT_VERIFACTU_KEY_PEM_B64");
+  const sifReady=readiness?.connector?.sif?.producerConfigured===true&&
+   !missing.has("RIMMA_SIF_ID")&&!missing.has("RIMMA_SIF_INSTALLATION_NO");
+  const declarationReady=readiness?.responsibleDeclarationReady===true;
+  const authorityReady=readiness?.connector?.authorityReady===true;
+  const environmentReady=["test","production"].includes(readiness?.connector?.environment);
+  const row=(ok,title,detail)=>'<div class="verifactu-check '+(ok?'ok':'pending')+'><span aria-hidden="true">'+(ok?'✓':'•')+'</span><div><strong>'+esc(title)+'</strong><small>'+esc(detail)+'</small></div></div>';
+  return '<div class="verifactu-checklist"><h4>Preparación VERI*FACTU</h4>'+
+   row(certificateReady,"Certificado electrónico",certificateReady?"Certificado y clave instalados de forma segura.":"Pendiente de instalar el certificado para la conexión mTLS con AEAT.")+
+   row(sifReady,"Datos del sistema SIF",sifReady?"Productor, ID del sistema e instalación configurados.":"Faltan datos obligatorios del productor/sistema RIMMA.")+
+   row(declarationReady,"Declaración responsable",declarationReady?"Marcada como formalizada.":"Pendiente de formalizar la declaración responsable de esta versión del SIF.")+
+   row(authorityReady,"Autorización para transmitir",authorityReady?"Representación/colaboración confirmada.":"Pendiente de acreditar representación o colaboración social para enviar por terceros.")+
+   row(environmentReady,"Entorno AEAT",environmentReady?(readiness.connector.environment==="production"?"Producción":"Pruebas"):"Pendiente de seleccionar entorno de pruebas o producción")+
+   '</div>';
+ }
+
  function renderFiscalPreview(preview,readiness){
   const slot=dlg.querySelector("#fiscal-preview-result");if(!slot)return;
   const canIssue=readiness?.fiscalIssuanceEnabled===true&&readiness?.verifactuConnectorConfigured===true;
@@ -738,7 +756,8 @@ function newPhoto(){
   selected={orderId,order,readiness,clientFiscal,invoices,previewInput:null};
 
   layout("fiscal-invoice","Factura fiscal · pedido #"+String(order.orderNumber||""),
-   '<div class="fiscal-readiness '+(readiness.verifactuConnectorConfigured?'ready':'pending')+'"><div><strong>RIMMA Fiscal V24</strong><small>SIF: '+esc(readiness.sifMode||"VERIFACTU_ONLY")+'</small></div><span>'+(readiness.verifactuConnectorConfigured?'VERI*FACTU conectado':'VERI*FACTU pendiente')+'</span></div>'+
+   '<div class="fiscal-readiness '+(readiness.verifactuConnectorConfigured?'ready':'pending')+'"><div><strong>RIMMA Fiscal V25</strong><small>SIF: '+esc(readiness.sifMode||"VERIFACTU_ONLY")+' · '+esc(readiness?.connector?.provider||"AEAT directo")+'</small></div><span>'+(readiness.verifactuConnectorConfigured?'VERI*FACTU conectado':'VERI*FACTU pendiente')+'</span></div>'+
+   fiscalReadinessChecklist(readiness)+
    '<p class="feature-muted">Calcula primero la factura. La vista previa no recibe número fiscal y no se considera emitida.</p>'+
    '<div class="feature-fields fiscal-main-fields">'+
     select("invoiceKind","Tipo de factura",choice(defaultKind,[["simplified","Factura simplificada (F2)"],["full","Factura completa (F1)"]]))+
