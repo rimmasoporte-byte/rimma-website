@@ -748,6 +748,21 @@ document.addEventListener("click",event=>{
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
   case "new-order":openModal("order");break;
+  case "new-appointment":openModal("appointment");break;
+  case "new-branch":openModal("branch");break;
+  case "refresh-notifications":void loadAtelierAccountSettings();break;
+  case "garment-open":void featureUI.then(ui=>ui.openPassport(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
+  case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
+  case "toggle-notification":{
+   const checkbox=b;
+   const enabled=Boolean(checkbox.checked);
+   checkbox.disabled=true;
+   void api("/notification-settings",{method:"PATCH",body:JSON.stringify({eventKey:b.dataset.event,channel:b.dataset.channel||"email",enabled,delayMinutes:0,locale:"es"})})
+    .then(()=>success(enabled?"Aviso automático activado.":"Aviso automático desactivado."))
+    .catch(e=>{checkbox.checked=!enabled;globalError(e.message||"No se pudo cambiar el aviso.");})
+    .finally(()=>{checkbox.disabled=false;});
+   break;
+  }
   case "add-order-item":{
    const list=$("#extra-order-items .extra-order-list");if(!list||list.children.length>=30)break;
    list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><label>Fotografía <input name="extraPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><small class="helper">JPEG, PNG o WebP, hasta 150 KB.</small><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
@@ -773,6 +788,15 @@ $("#orders-search").addEventListener("input",e=>{clearTimeout(searchClock);order
 $("#clients-search").addEventListener("input",e=>{clearTimeout(searchClock);clientsSearch=e.target.value;clientsPage=0;searchClock=setTimeout(loadClients,350);});
 $("#order-status").addEventListener("change",e=>{ordersStatus=e.target.value;ordersPage=0;loadOrders();});
 $("#report-period").addEventListener("change",loadReport);
+$("#appointments-range")?.addEventListener("change",loadAppointments);
+document.addEventListener("click",event=>{
+ const jump=event.target.closest("[data-dashboard-jump]");
+ if(jump){
+  const target=jump.dataset.dashboardJump;
+  const el=target==="workers"?$("#worker-load"):$("#today-attention");
+  el?.scrollIntoView({behavior:"smooth",block:"center"});
+ }
+});
 $("#modal-form").addEventListener("submit",saveModal);
 $("#modal-close").addEventListener("click",()=>$("#modal").close());
 $("#modal-cancel").addEventListener("click",()=>$("#modal").close());
