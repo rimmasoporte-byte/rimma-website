@@ -657,6 +657,8 @@ function newPhoto(){
    popup.document.open();
    popup.document.write(renderer.renderAtelierDocument(result.document));
    popup.document.close();
+   const printButton=popup.document.getElementById("rimma-document-print");
+   if(printButton)printButton.addEventListener("click",()=>popup.print());
   }catch(error){
    try{popup?.close()}catch{}
    throw error;
