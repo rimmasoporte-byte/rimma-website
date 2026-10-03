@@ -322,10 +322,20 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const p=passportResult.passport||{};
   if(!uuid(p.id))throw Error(tr("No se pudo cargar el pasaporte de la prenda.","Não foi possível carregar o passaporte da peça."));
   const members=Array.isArray(membersResult.members)?membersResult.members:[];
-  selected={orderId,itemId,passport:p,members};
+  let measurements=[];
+  if(uuid(p.client?.id)){
+    try{
+      const measurementResult=await api("/clients/"+encodeURIComponent(p.client.id)+"/measurements?limit=100&offset=0");
+      measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
+    }catch{measurements=[];}
+  }
+  selected={orderId,itemId,passport:p,members,measurements};
   const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
    members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
     esc(member.name||member.email||tr("Miembro","Membro"))+' · '+esc(member.role||"")+'</option>').join("");
+  const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
+   measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
   const history=Array.isArray(p.history)?p.history:[];
   const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
   layout("passport-edit",tr("Pasaporte digital de la prenda","Passaporte digital da peça"),
@@ -341,7 +351,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
     field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
     field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" placeholder="'+tr("Ej. Estante B-12","Ex. Prateleira B-12")+'" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select></div></div>'+
+    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
+    '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select></div>'+
+    (p.measurementSheet?'<div class="measurement-linked"><strong>'+tr("Medidas vinculadas","Medidas vinculadas")+'</strong><span>'+esc((p.measurementSheet.measurements||[]).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")+" "+String(p.measurementSheet.unit||"")).join(" · ")||tr("Ficha guardada","Ficha guardada"))+'</span></div>':'')+'</div>'+
    '<div class="passport-section passport-photo-section"><h4>'+tr("Fotos de la prenda","Fotos da peça")+'</h4>'+
     '<p class="passport-section-help">'+tr("Guarda fotos de recepción, detalles y resultado final.","Guarde fotos do recebimento, detalhes e resultado final.")+'</p>'+
     '<div class="passport-single-action">'+b(tr("Ver / añadir fotografías","Ver / adicionar fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+'</div></div>'+
@@ -934,7 +946,8 @@ function newPhoto(){
     color:get("color").trim()||null,
     sizeLabel:get("sizeLabel").trim()||null,
     storageLocation:get("storageLocation").trim()||null,
-    assignedUserId:get("assignedUserId")||null
+    assignedUserId:get("assignedUserId")||null,
+    measurementSetId:get("measurementSetId")||null
    };
    await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport",{
     method:"PATCH",body:JSON.stringify(payload)});
