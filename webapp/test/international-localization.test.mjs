@@ -44,3 +44,18 @@ test('market billing distinguishes EUR, RSD and TRY',()=>{
   assert.match(locale,/country:'RS',currency:'RSD'/);
   assert.match(locale,/country:'TR',currency:'TRY'/);
 });
+
+
+test('BFF serves international locale assets used by registration',()=>{
+  const server=read('../webapp/server.mjs');
+  assert.match(server,/\/app\/locale-intl\.js/);
+  assert.match(server,/\/app\/locale-picker\.js/);
+});
+
+test('signup sends selected locale to email verification backend',()=>{
+  const client=read('public/signup-client.mjs');
+  const signup=read('signup.mjs');
+  assert.match(client,/locale:window\.RimmaLocale\?\.locale/);
+  assert.match(signup,/SUPPORTED_SIGNUP_LOCALES/);
+  assert.match(signup,/locale:localeOf\(input\.locale\)/);
+});
