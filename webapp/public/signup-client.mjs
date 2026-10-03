@@ -21,6 +21,11 @@ const COUNTRIES=Object.freeze([
  ['CU','Cuba','CUP','America/Havana'],['PR','Puerto Rico','USD','America/Puerto_Rico'],
  ['US','Estados Unidos','USD','America/New_York'],['GQ','Guinea Ecuatorial','XAF','Africa/Malabo']
 ]);
+const APPROX_MONTHLY_PRICE=Object.freeze({
+ ES:'4,99 €/mes',FR:'4,99 €/mois',DE:'4,99 €/Monat',IT:'4,99 €/mese',
+ GR:'4,99 €/μήνα',SK:'4,99 €/mesiac',BR:'R$ 29,90/mês',
+ RS:'≈ 590 RSD/mesec',TR:'≈ 280 ₺/ay'
+});
 const banner=document.getElementById('signup-status');
 const form=document.getElementById('signup-form');
 const link=document.getElementById('signup-invite');
@@ -63,7 +68,12 @@ if(form&&config.enabled){
  const currencyNote=document.getElementById('signup-currency-note');
  const syncCurrency=()=>{
   const region=COUNTRIES.find(x=>x[0]===country.value);
-  if(currencyNote&&region)currencyNote.textContent=tr('Moneda del taller','Moeda do ateliê')+': '+region[2];
+  if(currencyNote&&region){
+   const approx=APPROX_MONTHLY_PRICE[region[0]];
+   currencyNote.textContent=approx
+     ? tr('Precio aproximado de la suscripción','Preço aproximado da assinatura')+': '+approx+' · '+tr('importe final antes de pagar','valor final antes do pagamento')
+     : tr('Moneda del taller','Moeda do ateliê')+': '+region[2];
+  }
  };
  country.addEventListener('change',syncCurrency);
  syncCurrency();
