@@ -540,6 +540,129 @@ function newPhoto(){
    select("photoType","Tipo",choice("intake",photoTypes))+textarea("caption","Comentario",500)+'</div>');
   selected={orderId,itemId};
  }
+ const docTypeLabel=type=>({
+  estimate:"Presupuesto",
+  deposit_receipt:"Resguardo de depósito",
+  payment_receipt:"Recibo de pago",
+  delivery_receipt:"Justificante de entrega",
+  work_order:"Orden de trabajo"
+ })[type]||type;
+
+ async function openBusinessProfile(){
+  const data=await api("/business-profile");
+  const p=data.profile||{};
+  selected={profile:p};
+  const jurisdictionOptions=choice(p.jurisdiction||"ES",[["ES","España"],["ES-CT","Cataluña / Catalunya"]]);
+  const languageOptions=choice(p.documentLanguage||"es",[["es","Español"],["ca","Català"]]);
+  layout("business-profile","Datos legales del taller",
+   '<p class="feature-muted">Estos datos aparecerán en presupuestos, resguardos y recibos. Si el taller opera en Cataluña, selecciona «Cataluña / Catalunya» y podrás emitir los documentos en catalán.</p>'+
+   '<div class="feature-fields">'+
+    field("legalName","Nombre / razón social *","text",'required maxlength="180" value="'+esc(p.legalName||"")+'"')+
+    field("tradeName","Nombre comercial","text",'maxlength="180" value="'+esc(p.tradeName||"")+'"')+
+    field("taxId","NIF / CIF *","text",'required maxlength="32" value="'+esc(p.taxId||"")+'"')+
+    field("addressLine1","Dirección *","text",'required maxlength="200" value="'+esc(p.addressLine1||"")+'"')+
+    field("addressLine2","Dirección 2","text",'maxlength="200" value="'+esc(p.addressLine2||"")+'"')+
+    field("postalCode","Código postal *","text",'required maxlength="20" value="'+esc(p.postalCode||"")+'"')+
+    field("city","Municipio *","text",'required maxlength="120" value="'+esc(p.city||"")+'"')+
+    field("province","Provincia","text",'maxlength="120" value="'+esc(p.province||"")+'"')+
+    field("countryCode","País (código ISO) *","text",'required maxlength="2" value="'+esc(p.countryCode||"ES")+'"')+
+    field("phone","Teléfono del taller","tel",'maxlength="40" value="'+esc(p.phone||"")+'"')+
+    field("email","Correo del taller","email",'maxlength="254" value="'+esc(p.email||"")+'"')+
+    select("jurisdiction","Normativa del taller",jurisdictionOptions)+
+    select("documentLanguage","Idioma predeterminado",languageOptions)+
+    field("estimateValidityDays","Validez del presupuesto (días)","number",'required min="1" max="365" step="1" value="'+esc(p.estimateValidityDays||30)+'"')+
+   '</div>',"Guardar datos");
+ }
+
+ function documentCards(order,profile,confirmedPayments){
+  const profileReady=profile?.complete===true;
+  const externalDisabled=profileReady?"":' disabled title="Completa primero los datos legales del taller"';
+  const deliveryDisabled=profileReady&&order?.status==="issued"?"":' disabled title="'+
+   esc(profileReady?"Disponible cuando el pedido esté entregado":"Completa primero los datos legales del taller")+'"';
+  const paymentDisabled=profileReady&&confirmedPayments.length?"":' disabled title="'+
+   esc(!profileReady?"Completa primero los datos legales del taller":"No hay pagos confirmados")+'"';
+  return '<div class="atelier-doc-grid">'+
+   '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="estimate"'+externalDisabled+'><strong>Presupuesto</strong><small>Precio, trabajos, validez y aceptación del cliente.</small></button>'+
+   '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="deposit_receipt"'+externalDisabled+'><strong>Resguardo de depósito</strong><small>Constancia de las prendas que quedan en el taller.</small></button>'+
+   '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="payment_receipt"'+paymentDisabled+'><strong>Recibo de pago</strong><small>Anticipo o pago parcial ya confirmado.</small></button>'+
+   '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="delivery_receipt"'+deliveryDisabled+'><strong>Justificante de entrega</strong><small>Constancia de recogida para pedidos entregados.</small></button>'+
+   '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="work_order"><strong>Orden de trabajo</strong><small>Documento interno para el taller y el profesional.</small></button>'+
+   '<button type="button" class="atelier-doc-card" disabled title="El módulo fiscal se implementará por separado"><strong>Factura</strong><small>Módulo fiscal — próximamente.</small></button>'+
+  '</div>';
+ }
+
+ async function openOrderDocuments(orderId){
+  if(!uuid(orderId))throw Error("Pedido inválido.");
+  const [orderResult,payResult,profileResult,docsResult]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)),
+   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
+   api("/business-profile"),
+   api("/orders/"+encodeURIComponent(orderId)+"/documents")
+  ]);
+  const order=orderResult.order||{};
+  const payments=Array.isArray(payResult.payments)?payResult.payments:[];
+  const confirmedPayments=payments.filter(payment=>payment.status==="confirmed");
+  const profile=profileResult.profile||{};
+  const docs=Array.isArray(docsResult.documents)?docsResult.documents:[];
+  selected={orderId,order,profile,confirmedPayments};
+
+  const payOptions=confirmedPayments.map(payment=>[
+   payment.id,
+   money(payment.amountMinor,payment.currencyCode)+" · "+String(payment.method||"")+" · "+String(payment.confirmedAt||payment.createdAt||"").slice(0,10)
+  ]);
+  const paymentSelect=payOptions.length
+   ? '<div class="atelier-doc-payment"><label for="fx-documentPaymentId">Pago para el recibo</label><select id="fx-documentPaymentId" name="documentPaymentId">'+choice(payOptions[0][0],payOptions)+'</select></div>'
+   : '<p class="feature-muted">No hay pagos confirmados para emitir un recibo.</p>';
+  const language=profile.documentLanguage||"es";
+  const history=docs.length
+   ? '<div class="atelier-doc-history">'+docs.map(doc=>'<div class="atelier-doc-row"><div><strong>'+esc(docTypeLabel(doc.documentType))+'</strong><small>'+esc(doc.documentNumber)+' · '+esc(String(doc.createdAt||"").slice(0,16).replace("T"," "))+'</small></div><button type="button" class="feature-button" data-feature="document-open" data-id="'+esc(doc.id)+'">Ver / imprimir</button></div>').join("")+'</div>'
+   : '<p class="feature-muted">Todavía no hay documentos guardados para este pedido.</p>';
+
+  layout("order-documents","Documentos del pedido #"+String(order.orderNumber||""),
+   (!profile.complete?'<div class="feature-message atelier-doc-warning"><strong>Faltan datos legales del taller.</strong><p>Completa NIF y dirección antes de emitir documentos para el cliente.</p><button type="button" class="feature-button" data-feature="business-profile">Completar datos legales</button></div>':"")+
+   '<div class="atelier-doc-toolbar"><label for="fx-documentLanguage">Idioma del nuevo documento</label><select id="fx-documentLanguage" name="documentLanguage">'+choice(language,[["es","Español"],["ca","Català"]])+'</select></div>'+
+   documentCards(order,profile,confirmedPayments)+paymentSelect+
+   '<div class="passport-section"><h4>Documentos guardados</h4>'+history+'</div>'+
+   '<p class="feature-muted atelier-doc-fiscal-note">Las opciones de esta pantalla son documentos operativos del taller. «Factura» tendrá un módulo fiscal separado.</p>',
+   "");
+ }
+
+ async function createOrderDocument(type){
+  if(!selected?.orderId)throw Error("Vuelve a abrir los documentos del pedido.");
+  const language=form().elements.namedItem("documentLanguage")?.value||"es";
+  const payload={documentType:type,language};
+  if(type==="payment_receipt"){
+   const paymentId=form().elements.namedItem("documentPaymentId")?.value||"";
+   if(!uuid(paymentId))throw Error("Selecciona un pago confirmado.");
+   payload.paymentId=paymentId;
+  }
+  const result=await api("/orders/"+encodeURIComponent(selected.orderId)+"/documents",{
+   method:"POST",body:JSON.stringify(payload)
+  });
+  const orderId=selected.orderId;
+  await openOrderDocuments(orderId);
+  success(docTypeLabel(result.document?.documentType||type)+" guardado.");
+ }
+
+ async function openDocumentPrint(documentId){
+  if(!selected?.orderId||!uuid(documentId))throw Error("Documento inválido.");
+  const popup=window.open("about:blank","_blank");
+  if(popup)try{popup.opener=null}catch{}
+  try{
+   const [result,renderer]=await Promise.all([
+    api("/orders/"+encodeURIComponent(selected.orderId)+"/documents/"+encodeURIComponent(documentId)),
+    import("/app/atelier-document-print.mjs?v=20261003-doc1")
+   ]);
+   if(!popup)throw Error("El navegador bloqueó la ventana del documento. Permite ventanas emergentes para RIMMA.");
+   popup.document.open();
+   popup.document.write(renderer.renderAtelierDocument(result.document));
+   popup.document.close();
+  }catch(error){
+   try{popup?.close()}catch{}
+   throw error;
+  }
+ }
+
  function passwordForm(){
   selected=null;
   layout("password-change","Cambiar contraseña",'<p class="feature-muted">Al guardar, se cerrará la sesión en todos los dispositivos. Tendrás que volver a iniciar sesión.</p>'+
@@ -549,7 +672,27 @@ function newPhoto(){
  }
  async function save(){
   const get=name=>form().elements.namedItem(name)?.value??"";
-  if(mode==="password-change"){
+  if(mode==="business-profile"){
+   const payload={
+    legalName:get("legalName").trim(),
+    tradeName:get("tradeName").trim()||null,
+    taxId:get("taxId").trim(),
+    addressLine1:get("addressLine1").trim(),
+    addressLine2:get("addressLine2").trim()||null,
+    postalCode:get("postalCode").trim(),
+    city:get("city").trim(),
+    province:get("province").trim()||null,
+    countryCode:get("countryCode").trim().toUpperCase(),
+    phone:get("phone").trim()||null,
+    email:get("email").trim()||null,
+    jurisdiction:get("jurisdiction"),
+    documentLanguage:get("documentLanguage"),
+    estimateValidityDays:Number(get("estimateValidityDays"))
+   };
+   if(!payload.legalName||!payload.taxId||!payload.addressLine1||!payload.postalCode||!payload.city)throw Error("Completa los campos obligatorios.");
+   await api("/business-profile",{method:"PATCH",body:JSON.stringify(payload)});
+   close();success("Datos legales del taller guardados.");
+  }else if(mode==="password-change"){
    const currentPassword=get("currentPassword"),newPassword=get("newPassword");
    if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
    if(newPassword.length<8||newPassword.length>200||currentPassword===newPassword)throw Error("Introduce una contraseña nueva de 8 a 200 caracteres, diferente de la actual.");
@@ -652,6 +795,7 @@ function newPhoto(){
   const action=el.dataset.feature;
   if(action==="close"){close();return;}
   const id=el.dataset.id||"",version=Number(el.dataset.version);
+  if(action==="business-profile")return void safe(openBusinessProfile);
   if(action==="password-change")return passwordForm();
   if(action==="category-new")return categoryForm();
   if(action==="category-edit"){const c=findCat(id);if(c)categoryForm(c);return;}
@@ -675,6 +819,9 @@ function newPhoto(){
     close();await openMeasurements(clientId);success("Ficha archivada.");
    });
   }
+  if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
+  if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
+  if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
   if(action==="order-payments")return void safe(async()=>openPayments(id));
   if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
   if(action==="payment-new")return void safe(newPayment);
@@ -709,5 +856,5 @@ function newPhoto(){
    });
   }
  });
- return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport};
+ return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile};
 }
