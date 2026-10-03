@@ -160,6 +160,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/@media\(min-width:981px\)\{[\s\S]*?grid-template-columns:76px minmax\(0,1fr\) auto/);
  assert.match(css,/\.garment-grid \.garment-card-main>\.garment-quick-actions\{[\s\S]*?display:flex[\s\S]*?flex-wrap:nowrap/);
  assert.match(css,/\.garment-card-status\{[\s\S]*?justify-self:end/);
+ assert.match(css,/@media\(min-width:1100px\)\{[\s\S]*?grid-template-columns:76px minmax\(0,560px\) auto 1fr/);
+ assert.match(css,/\.garment-grid \.garment-card-main>\.garment-quick-actions::before\{[\s\S]*?width:62%[\s\S]*?background:#f2eadf/);
  assert.match(js,/class="garment-more"/);
  assert.match(js,/ui\.openGarment\(b\.dataset\.order,b\.dataset\.item\)/);
  assert.match(js,/ui\.openGarmentEdit\(b\.dataset\.order,b\.dataset\.item\)/);
@@ -199,7 +201,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v38/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v38/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v39/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
