@@ -58,3 +58,16 @@ dialog{border:1px solid #CBBAA0;background:#FDFBF7;color:var(--ink);padding:0;wi
  width:100%;max-width:none;background:rgba(255,255,255,.07);color:#e9dfc9;border-color:rgba(255,255,255,.24)
 }
 .sidebar-bottom .portal-locale .demo-locale-select option{background:#fffdf9;color:#2f2b25}
+
+/* Keep demo language selection visible in the top navigation. */
+.topbar-locale{margin:0 3px 0 2px;flex:0 0 auto}
+.topbar-locale .demo-locale-select{min-width:126px;max-width:150px;height:34px;background:#fffdf9}
+@media(max-width:900px){
+ .topbar-locale .demo-locale-select{min-width:112px;max-width:124px}
+}
+@media(max-width:630px){
+ .topbar-locale{margin:0}
+ .topbar-locale .demo-locale-select{min-width:96px;max-width:108px;min-height:32px;height:32px;padding:5px 24px 5px 9px;font-size:10px}
+ .demo-trial-cta{display:none}
+ .profile-arrow{display:none}
+}
