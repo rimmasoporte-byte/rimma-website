@@ -273,23 +273,18 @@ function customerInitials(name) {
 }
 function garmentCardOrderActions(o,itemId,orderId){
  const safe=esc(o.id||"");
- const number=esc(o.orderNumber||"—");
  const canDelete=o.status!=="issued";
- return '<div class="garment-action-groups">'+
-  '<div class="garment-action-group garment-action-group-prenda"><span class="garment-action-label">PRENDA</span><div class="garment-actions">'+
-   '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
-   '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Etiqueta</button>'+
-   '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar prenda</button>'+
-  '</div></div>'+
-  '<div class="garment-action-group garment-action-group-order"><span class="garment-action-label">PEDIDO</span><div class="garment-actions">'+
-   '<button type="button" class="record-action garment-order-info" data-action="order-info" data-id="'+safe+'">Pedido #'+number+'</button>'+
-   '<button type="button" class="record-action" data-action="order-payments" data-id="'+safe+'">Pago</button>'+
+ return '<div class="garment-quick-actions">'+
+  '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
+  '<button type="button" class="record-action garment-pay-action" data-action="order-payments" data-id="'+safe+'" data-garment-pay-action="'+itemId+'">Cobrar</button>'+
+  '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar</button>'+
+  '<details class="garment-more"><summary aria-label="Más acciones">⋯</summary><div class="garment-more-menu">'+
+   '<button type="button" class="record-action" data-action="order-info" data-id="'+safe+'">Información del pedido</button>'+
    '<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'">Documentos</button>'+
-   '<details class="garment-more"><summary aria-label="Más acciones del pedido">⋯</summary><div class="garment-more-menu">'+
-    '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
-    (canDelete?'<button type="button" class="record-action danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
-   '</div></details>'+
-  '</div></div>'+
+   '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+
+   '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
+   (canDelete?'<button type="button" class="record-action danger garment-menu-danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger garment-menu-danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
+  '</div></details>'+
  '</div>';
 }
 function garmentCard(o,item,actions=false){
@@ -304,7 +299,7 @@ function garmentCard(o,item,actions=false){
  const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
  return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
   '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
-  '<div class="garment-card-main"><div class="garment-card-top"><div><span class="garment-order-ref"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</span><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
+  '<div class="garment-card-main"><div class="garment-card-top"><div><button type="button" class="garment-order-ref garment-order-link" data-action="order-info" data-id="'+orderId+'"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</button><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div><span class="status '+esc(item.status)+'">'+esc(label)+'</span></div>'+
   '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'">📏 Sin ficha vinculada</span></div>'+
   '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
   (actions?garmentCardOrderActions(o,itemId,orderId):"")+
@@ -356,6 +351,14 @@ async function hydrateGarmentCards(rows){
      if(paid)paid.textContent=money(p.confirmedPaidMinor,p.currencyCode);
      const bal=document.querySelector('[data-garment-balance="'+CSS.escape(item.id)+'"] strong');
      if(bal)bal.textContent=money(p.remainingMinor,p.currencyCode);
+     const payAction=document.querySelector('[data-garment-pay-action="'+CSS.escape(item.id)+'"]');
+     if(payAction&&Number(p.remainingMinor||0)<=0){
+      const settled=document.createElement("span");
+      settled.className="garment-paid-action";
+      settled.textContent="✓ Pagado";
+      settled.setAttribute("aria-label","Pedido pagado");
+      payAction.replaceWith(settled);
+     }
     }catch{}
    })());
   }
