@@ -208,6 +208,8 @@ export const server=http.createServer(async(req,res)=>{
       if(!signupEnabled(process.env))return send(res,404,{error:'Registro no disponible.'});
       return staticFile(res,'register.html','text/html; charset=utf-8');
     }
+    if(method==='GET'&&pathname==='/app/vendor/qrcode.min.js')return staticFile(res,'vendor/qrcode.min.js','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/vendor/qrcode.LICENSE.txt')return staticFile(res,'vendor/qrcode.LICENSE.txt','text/plain; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale.js')return staticFile(res,'locale.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale-intl.js')return staticFile(res,'locale-intl.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale-picker.js')return staticFile(res,'locale-picker.js','text/javascript; charset=utf-8');
