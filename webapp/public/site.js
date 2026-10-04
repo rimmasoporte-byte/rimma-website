@@ -760,7 +760,7 @@ function openModal(type,record=null,options={}){
 }
 async function saveModal(event){
  event.preventDefault();
- if(activeModal==="order"){
+ if(activeModal==="order"||$("#modal").classList.contains("order-wizard-modal")){
   modalError("");
   try{await (await orderWizard).submit();}
   catch(e){modalError(e.message||"No se pudo continuar con el pedido.");}
@@ -958,6 +958,8 @@ $("#modal").addEventListener("close",()=>{
   returnToOrderAfterClient=false;
   pendingOrderClientId="";
   if(resumeOrder){
+   activeModal="order";
+   activeRecord=null;
    queueMicrotask(()=>void orderWizard.then(wizard=>wizard.open(preferredClientId)));
   }
  }
