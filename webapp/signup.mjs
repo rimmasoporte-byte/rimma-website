@@ -12,7 +12,7 @@ const disposableDomains=new Set([
   'yopmail.com','yopmail.fr','yopmail.net'
 ]);
 const plain=o=>o&&typeof o==='object'&&!Array.isArray(o);
-const SUPPORTED_SIGNUP_LOCALES=new Set(['es-ES','pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']);
+const SUPPORTED_SIGNUP_LOCALES=new Set(['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES']);
 function localeOf(value){
   const locale=typeof value==='string'?value.trim():'';
   return SUPPORTED_SIGNUP_LOCALES.has(locale)?locale:'es-ES';

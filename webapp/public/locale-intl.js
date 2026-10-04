@@ -1,72 +1,308 @@
 (()=>{'use strict';
-const params=new URLSearchParams(location.search);
-const rawLocale=(params.get('locale')||'').trim();
-const rawCountry=(params.get('country')||'').trim().toUpperCase();
-const configs={
- 'fr-FR':{country:'FR',currency:'EUR',lang:'fr',t:{
- 'Mi taller — RIMMA':'Mon atelier — RIMMA','Crea tu taller — RIMMA':'Créez votre atelier — RIMMA','Ir al contenido':'Aller au contenu','TU TALLER, A TU RITMO':'VOTRE ATELIER, À VOTRE RYTHME','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Vos vêtements, clients et comptes d’atelier organisés depuis n’importe quel écran.','COSTURA Y ARREGLOS':'COUTURE ET RETOUCHES','ACCEDE A TU ESPACIO':'ACCÉDEZ À VOTRE ESPACE','Qué bueno':'Ravi de','tenerte aquí.':'vous retrouver.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Connectez-vous avec le même compte que dans l’application Android.','Correo electrónico':'E-mail','Sitio web':'Site web','Contraseña':'Mot de passe','Tu contraseña':'Votre mot de passe','Entrar a mi taller':'Entrer dans mon atelier','¿Aún no tienes cuenta?':'Vous n’avez pas encore de compte ?','Empieza 5 días gratis':'Commencez avec 5 jours gratuits','¿Necesitas ayuda?':'Besoin d’aide ?','Escribe a soporte':'Écrire au support','Privacidad':'Confidentialité','Términos':'Conditions','Abriendo tu taller…':'Ouverture de votre atelier…',
- 'ELIGE CÓMO EMPEZAR':'CHOISISSEZ COMMENT COMMENCER','Tu taller,':'Votre atelier,','tu':'votre','espacio.':'espace.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Essayez RIMMA 5 jours gratuitement sans carte, ou activez votre abonnement maintenant avec paiement immédiat.','VERIFICA TU CORREO':'VÉRIFIEZ VOTRE E-MAIL','Bienvenido':'Bienvenue','a RIMMA.':'sur RIMMA.','Nombre y apellidos':'Nom et prénom','Nombre del taller':"Nom de l’atelier",'Contraseña (8 caracteres como mínimo)':'Mot de passe (8 caractères minimum)','Repetir contraseña':'Répéter le mot de passe','País':'Pays','¿Cómo quieres empezar?':'Comment voulez-vous commencer ?','Probar 5 días gratis':'Essayer 5 jours gratuitement','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'Accès complet pendant 5 jours. Sans carte et sans prélèvement automatique.','Suscribirme ahora':'S’abonner maintenant','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Paiement immédiat. Abonnement mensuel ; le prix final sera affiché avant confirmation.','Enviarme un código por correo':'M’envoyer un code par e-mail','Código de seis cifras':'Code à six chiffres','Correo verificado':'E-mail vérifié','Antes de continuar':'Avant de continuer','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Lisez les conditions d’utilisation de RIMMA et la manière dont nous traitons vos données.','Leer Términos de uso →':'Lire les conditions d’utilisation →','Leer Política de privacidad →':'Lire la politique de confidentialité →','Ver Aviso legal →':'Voir les mentions légales →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'J’ai lu et j’accepte les conditions d’utilisation et je confirme avoir lu la politique de confidentialité.','Crear mi taller · 5 días gratis':'Créer mon atelier · 5 jours gratuits','Crear mi taller y suscribirme ahora':'Créer mon atelier et m’abonner maintenant','← Volver al inicio de sesión':'← Retour à la connexion','Volver al inicio de sesión':'Retour à la connexion','Las contraseñas no coinciden.':'Les mots de passe ne correspondent pas.','Moneda del taller':'Devise de l’atelier',
- 'El registro web aún no está disponible. Solicita una invitación a soporte@rimmaapp.com.':'L’inscription web n’est pas encore disponible. Demandez une invitation à soporte@rimmaapp.com.','Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Code envoyé. Vérifiez votre e-mail et, si nécessaire, le dossier spam.','Correo verificado. Ya puedes crear tu taller.':'E-mail vérifié. Vous pouvez maintenant créer votre atelier.','Primero verifica este correo electrónico.':'Vérifiez d’abord cette adresse e-mail.','¡Cuenta creada! Estamos abriendo tu taller…':'Compte créé ! Ouverture de votre atelier…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Compte créé. Vous pouvez maintenant vous connecter depuis la page d’accès.'
- }},
- 'de-DE':{country:'DE',currency:'EUR',lang:'de',t:{
- 'Mi taller — RIMMA':'Meine Werkstatt — RIMMA','Crea tu taller — RIMMA':'Werkstatt erstellen — RIMMA','Ir al contenido':'Zum Inhalt','TU TALLER, A TU RITMO':'IHRE WERKSTATT, IHR RHYTHMUS','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Kleidungsstücke, Kunden und Werkstattzahlen – auf jedem Bildschirm geordnet.','COSTURA Y ARREGLOS':'SCHNEIDEREI UND ÄNDERUNGEN','ACCEDE A TU ESPACIO':'ZU IHREM BEREICH','Qué bueno':'Schön,','tenerte aquí.':'Sie hier zu haben.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Melden Sie sich mit demselben Konto wie in der Android-App an.','Correo electrónico':'E-Mail','Sitio web':'Website','Contraseña':'Passwort','Tu contraseña':'Ihr Passwort','Entrar a mi taller':'Zu meiner Werkstatt','¿Aún no tienes cuenta?':'Noch kein Konto?','Empieza 5 días gratis':'5 Tage kostenlos starten','¿Necesitas ayuda?':'Brauchen Sie Hilfe?','Escribe a soporte':'Support kontaktieren','Privacidad':'Datenschutz','Términos':'Bedingungen','Abriendo tu taller…':'Werkstatt wird geöffnet…',
- 'ELIGE CÓMO EMPEZAR':'WÄHLEN SIE IHREN START','Tu taller,':'Ihre Werkstatt,','tu':'Ihr','espacio.':'Bereich.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Testen Sie RIMMA 5 Tage kostenlos ohne Karte oder aktivieren Sie Ihr Abo sofort mit direkter Zahlung.','VERIFICA TU CORREO':'E-MAIL BESTÄTIGEN','Bienvenido':'Willkommen','a RIMMA.':'bei RIMMA.','Nombre y apellidos':'Vor- und Nachname','Nombre del taller':'Name der Werkstatt','Contraseña (8 caracteres como mínimo)':'Passwort (mindestens 8 Zeichen)','Repetir contraseña':'Passwort wiederholen','País':'Land','¿Cómo quieres empezar?':'Wie möchten Sie starten?','Probar 5 días gratis':'5 Tage kostenlos testen','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'5 Tage voller Zugriff. Ohne Karte und ohne automatische Abbuchung.','Suscribirme ahora':'Jetzt abonnieren','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Sofortige Zahlung. Monatsabo; der Endpreis wird vor der Bestätigung angezeigt.','Enviarme un código por correo':'Code per E-Mail senden','Código de seis cifras':'Sechsstelliger Code','Correo verificado':'E-Mail bestätigt','Antes de continuar':'Bevor Sie fortfahren','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Lesen Sie die Bedingungen zur Nutzung von RIMMA und zum Umgang mit Ihren Daten.','Leer Términos de uso →':'Nutzungsbedingungen lesen →','Leer Política de privacidad →':'Datenschutzrichtlinie lesen →','Ver Aviso legal →':'Impressum ansehen →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Ich habe die Nutzungsbedingungen gelesen und akzeptiere sie und bestätige, die Datenschutzrichtlinie gelesen zu haben.','Crear mi taller · 5 días gratis':'Werkstatt erstellen · 5 Tage kostenlos','Crear mi taller y suscribirme ahora':'Werkstatt erstellen und jetzt abonnieren','← Volver al inicio de sesión':'← Zurück zur Anmeldung','Volver al inicio de sesión':'Zurück zur Anmeldung','Las contraseñas no coinciden.':'Die Passwörter stimmen nicht überein.','Moneda del taller':'Werkstattwährung',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Code gesendet. Prüfen Sie Ihre E-Mail und gegebenenfalls den Spam-Ordner.','Correo verificado. Ya puedes crear tu taller.':'E-Mail bestätigt. Sie können jetzt Ihre Werkstatt erstellen.','Primero verifica este correo electrónico.':'Bestätigen Sie zuerst diese E-Mail-Adresse.','¡Cuenta creada! Estamos abriendo tu taller…':'Konto erstellt! Ihre Werkstatt wird geöffnet…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Konto erfolgreich erstellt. Sie können sich jetzt anmelden.'
- }},
- 'it-IT':{country:'IT',currency:'EUR',lang:'it',t:{
- 'Mi taller — RIMMA':'Il mio laboratorio — RIMMA','Crea tu taller — RIMMA':'Crea il tuo laboratorio — RIMMA','Ir al contenido':'Vai al contenuto','TU TALLER, A TU RITMO':'IL TUO LABORATORIO, AL TUO RITMO','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Capi, clienti e conti del laboratorio organizzati da qualsiasi schermata.','COSTURA Y ARREGLOS':'SARTORIA E RIPARAZIONI','ACCEDE A TU ESPACIO':'ACCEDI AL TUO SPAZIO','Qué bueno':'Che bello','tenerte aquí.':'averti qui.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Accedi con lo stesso account che utilizzi nell’app Android.','Correo electrónico':'E-mail','Sitio web':'Sito web','Contraseña':'Password','Tu contraseña':'La tua password','Entrar a mi taller':'Entra nel mio laboratorio','¿Aún no tienes cuenta?':'Non hai ancora un account?','Empieza 5 días gratis':'Inizia con 5 giorni gratis','¿Necesitas ayuda?':'Hai bisogno di aiuto?','Escribe a soporte':'Scrivi al supporto','Privacidad':'Privacy','Términos':'Termini','Abriendo tu taller…':'Apertura del laboratorio…',
- 'ELIGE CÓMO EMPEZAR':'SCEGLI COME INIZIARE','Tu taller,':'Il tuo laboratorio,','tu':'il tuo','espacio.':'spazio.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Prova RIMMA gratis per 5 giorni senza carta oppure attiva subito l’abbonamento con pagamento immediato.','VERIFICA TU CORREO':'VERIFICA LA TUA E-MAIL','Bienvenido':'Benvenuto','a RIMMA.':'su RIMMA.','Nombre y apellidos':'Nome e cognome','Nombre del taller':'Nome del laboratorio','Contraseña (8 caracteres como mínimo)':'Password (minimo 8 caratteri)','Repetir contraseña':'Ripeti la password','País':'Paese','¿Cómo quieres empezar?':'Come vuoi iniziare?','Probar 5 días gratis':'Prova 5 giorni gratis','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'Accesso completo per 5 giorni. Senza carta e senza addebito automatico.','Suscribirme ahora':'Abbonati ora','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Addebito immediato. Piano mensile; vedrai il prezzo finale prima della conferma.','Enviarme un código por correo':'Inviami un codice via e-mail','Código de seis cifras':'Codice a sei cifre','Correo verificado':'E-mail verificata','Antes de continuar':'Prima di continuare','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Leggi le condizioni d’uso di RIMMA e come trattiamo i tuoi dati.','Leer Términos de uso →':'Leggi i Termini d’uso →','Leer Política de privacidad →':'Leggi la Privacy Policy →','Ver Aviso legal →':'Vedi note legali →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Ho letto e accetto i Termini d’uso e confermo di aver letto la Privacy Policy.','Crear mi taller · 5 días gratis':'Crea il mio laboratorio · 5 giorni gratis','Crear mi taller y suscribirme ahora':'Crea il mio laboratorio e abbonati ora','← Volver al inicio de sesión':'← Torna all’accesso','Volver al inicio de sesión':'Torna all’accesso','Las contraseñas no coinciden.':'Le password non coincidono.','Moneda del taller':'Valuta del laboratorio',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Codice inviato. Controlla la tua e-mail e, se necessario, la cartella spam.','Correo verificado. Ya puedes crear tu taller.':'E-mail verificata. Ora puoi creare il tuo laboratorio.','Primero verifica este correo electrónico.':'Verifica prima questo indirizzo e-mail.','¡Cuenta creada! Estamos abriendo tu taller…':'Account creato! Stiamo aprendo il tuo laboratorio…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Account creato correttamente. Ora puoi accedere.'
- }},
- 'el-GR':{country:'GR',currency:'EUR',lang:'el',t:{
- 'Mi taller — RIMMA':'Το εργαστήριό μου — RIMMA','Crea tu taller — RIMMA':'Δημιουργήστε το εργαστήριό σας — RIMMA','Ir al contenido':'Μετάβαση στο περιεχόμενο','TU TALLER, A TU RITMO':'ΤΟ ΕΡΓΑΣΤΗΡΙΟ ΣΑΣ, ΣΤΟΝ ΡΥΘΜΟ ΣΑΣ','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Ενδύματα, πελάτες και οικονομικά στοιχεία του εργαστηρίου οργανωμένα από κάθε οθόνη.','COSTURA Y ARREGLOS':'ΡΑΠΤΙΚΗ ΚΑΙ ΕΠΙΔΙΟΡΘΩΣΕΙΣ','ACCEDE A TU ESPACIO':'ΜΠΕΙΤΕ ΣΤΟΝ ΧΩΡΟ ΣΑΣ','Qué bueno':'Χαιρόμαστε','tenerte aquí.':'που είστε εδώ.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Συνδεθείτε με τον ίδιο λογαριασμό που χρησιμοποιείτε στην εφαρμογή Android.','Correo electrónico':'E-mail','Sitio web':'Ιστότοπος','Contraseña':'Κωδικός πρόσβασης','Tu contraseña':'Ο κωδικός σας','Entrar a mi taller':'Είσοδος στο εργαστήριό μου','¿Aún no tienes cuenta?':'Δεν έχετε ακόμη λογαριασμό;','Empieza 5 días gratis':'Ξεκινήστε με 5 δωρεάν ημέρες','¿Necesitas ayuda?':'Χρειάζεστε βοήθεια;','Escribe a soporte':'Γράψτε στην υποστήριξη','Privacidad':'Απόρρητο','Términos':'Όροι','Abriendo tu taller…':'Άνοιγμα εργαστηρίου…',
- 'ELIGE CÓMO EMPEZAR':'ΕΠΙΛΕΞΤΕ ΠΩΣ ΘΑ ΞΕΚΙΝΗΣΕΤΕ','Tu taller,':'Το εργαστήριό σας,','tu':'ο','espacio.':'χώρος σας.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Δοκιμάστε τη RIMMA δωρεάν για 5 ημέρες χωρίς κάρτα ή ενεργοποιήστε τώρα τη συνδρομή με άμεση χρέωση.','VERIFICA TU CORREO':'ΕΠΙΒΕΒΑΙΩΣΤΕ ΤΟ E-MAIL','Bienvenido':'Καλώς ήρθατε','a RIMMA.':'στη RIMMA.','Nombre y apellidos':'Ονοματεπώνυμο','Nombre del taller':'Όνομα εργαστηρίου','Contraseña (8 caracteres como mínimo)':'Κωδικός πρόσβασης (τουλάχιστον 8 χαρακτήρες)','Repetir contraseña':'Επανάληψη κωδικού','País':'Χώρα','¿Cómo quieres empezar?':'Πώς θέλετε να ξεκινήσετε;','Probar 5 días gratis':'Δοκιμή 5 ημερών δωρεάν','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'Πλήρης πρόσβαση για 5 ημέρες. Χωρίς κάρτα και χωρίς αυτόματη χρέωση.','Suscribirme ahora':'Εγγραφή τώρα','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Άμεση χρέωση. Μηνιαίο πλάνο· θα δείτε την τελική τιμή πριν από την επιβεβαίωση.','Enviarme un código por correo':'Αποστολή κωδικού με e-mail','Código de seis cifras':'Εξαψήφιος κωδικός','Correo verificado':'Το e-mail επιβεβαιώθηκε','Antes de continuar':'Πριν συνεχίσετε','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Διαβάστε τους όρους χρήσης της RIMMA και τον τρόπο επεξεργασίας των δεδομένων σας.','Leer Términos de uso →':'Διαβάστε τους Όρους χρήσης →','Leer Política de privacidad →':'Διαβάστε την Πολιτική απορρήτου →','Ver Aviso legal →':'Δείτε τις νομικές πληροφορίες →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Έχω διαβάσει και αποδέχομαι τους Όρους χρήσης και επιβεβαιώνω ότι διάβασα την Πολιτική απορρήτου.','Crear mi taller · 5 días gratis':'Δημιουργία εργαστηρίου · 5 ημέρες δωρεάν','Crear mi taller y suscribirme ahora':'Δημιουργία εργαστηρίου και εγγραφή τώρα','← Volver al inicio de sesión':'← Επιστροφή στη σύνδεση','Volver al inicio de sesión':'Επιστροφή στη σύνδεση','Las contraseñas no coinciden.':'Οι κωδικοί δεν ταιριάζουν.','Moneda del taller':'Νόμισμα εργαστηρίου',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Ο κωδικός στάλθηκε. Ελέγξτε το e-mail και, αν χρειάζεται, τον φάκελο ανεπιθύμητης αλληλογραφίας.','Correo verificado. Ya puedes crear tu taller.':'Το e-mail επιβεβαιώθηκε. Μπορείτε να δημιουργήσετε το εργαστήριό σας.','Primero verifica este correo electrónico.':'Επιβεβαιώστε πρώτα αυτή τη διεύθυνση e-mail.','¡Cuenta creada! Estamos abriendo tu taller…':'Ο λογαριασμός δημιουργήθηκε! Ανοίγουμε το εργαστήριό σας…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Ο λογαριασμός δημιουργήθηκε. Μπορείτε τώρα να συνδεθείτε.'
- }},
- 'sk-SK':{country:'SK',currency:'EUR',lang:'sk',t:{
- 'Mi taller — RIMMA':'Moja dielňa — RIMMA','Crea tu taller — RIMMA':'Vytvorte si dielňu — RIMMA','Ir al contenido':'Prejsť na obsah','TU TALLER, A TU RITMO':'VAŠA DIELŇA, VAŠE TEMPO','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Odevy, klienti a účty dielne usporiadané z každej obrazovky.','COSTURA Y ARREGLOS':'ŠITIE A OPRAVY','ACCEDE A TU ESPACIO':'VSTÚPTE DO SVOJHO PRIESTORU','Qué bueno':'Sme radi,','tenerte aquí.':'že ste tu.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Prihláste sa rovnakým účtom ako v aplikácii Android.','Correo electrónico':'E-mail','Sitio web':'Webstránka','Contraseña':'Heslo','Tu contraseña':'Vaše heslo','Entrar a mi taller':'Vstúpiť do mojej dielne','¿Aún no tienes cuenta?':'Ešte nemáte účet?','Empieza 5 días gratis':'Začnite s 5 dňami zdarma','¿Necesitas ayuda?':'Potrebujete pomoc?','Escribe a soporte':'Napísať podpore','Privacidad':'Súkromie','Términos':'Podmienky','Abriendo tu taller…':'Otvárame vašu dielňu…',
- 'ELIGE CÓMO EMPEZAR':'VYBERTE SI, AKO ZAČNETE','Tu taller,':'Vaša dielňa,','tu':'váš','espacio.':'priestor.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Vyskúšajte RIMMA 5 dní zdarma bez karty alebo si aktivujte predplatné hneď s okamžitou platbou.','VERIFICA TU CORREO':'OVERTE SVOJ E-MAIL','Bienvenido':'Vitajte','a RIMMA.':'v RIMMA.','Nombre y apellidos':'Meno a priezvisko','Nombre del taller':'Názov dielne','Contraseña (8 caracteres como mínimo)':'Heslo (minimálne 8 znakov)','Repetir contraseña':'Zopakovať heslo','País':'Krajina','¿Cómo quieres empezar?':'Ako chcete začať?','Probar 5 días gratis':'Vyskúšať 5 dní zdarma','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'Plný prístup na 5 dní. Bez karty a bez automatickej platby.','Suscribirme ahora':'Predplatiť teraz','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Okamžitá platba. Mesačný plán; konečnú cenu uvidíte pred potvrdením.','Enviarme un código por correo':'Poslať kód e-mailom','Código de seis cifras':'Šesťmiestny kód','Correo verificado':'E-mail overený','Antes de continuar':'Pred pokračovaním','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Prečítajte si podmienky používania RIMMA a spôsob spracovania vašich údajov.','Leer Términos de uso →':'Prečítať Podmienky používania →','Leer Política de privacidad →':'Prečítať Zásady ochrany súkromia →','Ver Aviso legal →':'Zobraziť právne informácie →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Prečítal(a) som si a prijímam Podmienky používania a potvrdzujem, že som si prečítal(a) Zásady ochrany súkromia.','Crear mi taller · 5 días gratis':'Vytvoriť dielňu · 5 dní zdarma','Crear mi taller y suscribirme ahora':'Vytvoriť dielňu a predplatiť teraz','← Volver al inicio de sesión':'← Späť na prihlásenie','Volver al inicio de sesión':'Späť na prihlásenie','Las contraseñas no coinciden.':'Heslá sa nezhodujú.','Moneda del taller':'Mena dielne',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Kód bol odoslaný. Skontrolujte e-mail a prípadne priečinok spam.','Correo verificado. Ya puedes crear tu taller.':'E-mail je overený. Teraz môžete vytvoriť dielňu.','Primero verifica este correo electrónico.':'Najprv overte túto e-mailovú adresu.','¡Cuenta creada! Estamos abriendo tu taller…':'Účet vytvorený! Otvárame vašu dielňu…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Účet bol úspešne vytvorený. Teraz sa môžete prihlásiť.'
- }},
- 'sr-Latn-RS':{country:'RS',currency:'RSD',lang:'sr-Latn',t:{
- 'Mi taller — RIMMA':'Moja radionica — RIMMA','Crea tu taller — RIMMA':'Kreirajte radionicu — RIMMA','Ir al contenido':'Pređi na sadržaj','TU TALLER, A TU RITMO':'VAŠA RADIONICA, VAŠ RITAM','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Odeća, klijenti i računi radionice organizovani na svakom ekranu.','COSTURA Y ARREGLOS':'KROJENJE I PREPRAVKE','ACCEDE A TU ESPACIO':'UĐITE U SVOJ PROSTOR','Qué bueno':'Drago nam je','tenerte aquí.':'što ste ovde.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Prijavite se istim nalogom koji koristite u Android aplikaciji.','Correo electrónico':'E-mail','Sitio web':'Veb-sajt','Contraseña':'Lozinka','Tu contraseña':'Vaša lozinka','Entrar a mi taller':'Uđi u moju radionicu','¿Aún no tienes cuenta?':'Još nemate nalog?','Empieza 5 días gratis':'Počnite sa 5 besplatnih dana','¿Necesitas ayuda?':'Treba vam pomoć?','Escribe a soporte':'Pišite podršci','Privacidad':'Privatnost','Términos':'Uslovi','Abriendo tu taller…':'Otvaramo vašu radionicu…',
- 'ELIGE CÓMO EMPEZAR':'IZABERITE KAKO DA POČNETE','Tu taller,':'Vaša radionica,','tu':'vaš','espacio.':'prostor.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'Isprobajte RIMMA 5 dana besplatno bez kartice ili odmah aktivirajte pretplatu sa trenutnom naplatom.','VERIFICA TU CORREO':'POTVRDITE E-MAIL','Bienvenido':'Dobro došli','a RIMMA.':'u RIMMA.','Nombre y apellidos':'Ime i prezime','Nombre del taller':'Naziv radionice','Contraseña (8 caracteres como mínimo)':'Lozinka (najmanje 8 znakova)','Repetir contraseña':'Ponovite lozinku','País':'Država','¿Cómo quieres empezar?':'Kako želite da počnete?','Probar 5 días gratis':'Isprobajte 5 dana besplatno','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'Pun pristup 5 dana. Bez kartice i bez automatske naplate.','Suscribirme ahora':'Pretplati se sada','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Trenutna naplata. Mesečni plan; konačna cena biće prikazana pre potvrde.','Enviarme un código por correo':'Pošalji mi kod e-mailom','Código de seis cifras':'Šestocifreni kod','Correo verificado':'E-mail potvrđen','Antes de continuar':'Pre nego što nastavite','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'Pročitajte uslove korišćenja RIMMA i način obrade vaših podataka.','Leer Términos de uso →':'Pročitaj Uslove korišćenja →','Leer Política de privacidad →':'Pročitaj Politiku privatnosti →','Ver Aviso legal →':'Pogledaj pravne informacije →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Pročitao/la sam i prihvatam Uslove korišćenja i potvrđujem da sam pročitao/la Politiku privatnosti.','Crear mi taller · 5 días gratis':'Kreiraj radionicu · 5 dana besplatno','Crear mi taller y suscribirme ahora':'Kreiraj radionicu i pretplati se sada','← Volver al inicio de sesión':'← Nazad na prijavu','Volver al inicio de sesión':'Nazad na prijavu','Las contraseñas no coinciden.':'Lozinke se ne podudaraju.','Moneda del taller':'Valuta radionice',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Kod je poslat. Proverite e-mail i po potrebi spam folder.','Correo verificado. Ya puedes crear tu taller.':'E-mail je potvrđen. Sada možete kreirati radionicu.','Primero verifica este correo electrónico.':'Prvo potvrdite ovu e-mail adresu.','¡Cuenta creada! Estamos abriendo tu taller…':'Nalog je kreiran! Otvaramo vašu radionicu…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Nalog je uspešno kreiran. Sada možete da se prijavite.'
- }},
- 'tr-TR':{country:'TR',currency:'TRY',lang:'tr',t:{
- 'Mi taller — RIMMA':'Atölyem — RIMMA','Crea tu taller — RIMMA':'Atölyeni oluştur — RIMMA','Ir al contenido':'İçeriğe geç','TU TALLER, A TU RITMO':'ATÖLYENİZ, KENDİ RİTMİNİZ','Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.':'Ürünler, müşteriler ve atölye hesapları her ekranda düzenli.','COSTURA Y ARREGLOS':'TERZİLİK VE TADİLAT','ACCEDE A TU ESPACIO':'ALANINIZA GİRİN','Qué bueno':'Sizi burada görmek','tenerte aquí.':'çok güzel.','Inicia sesión con la misma cuenta que utilizas en la aplicación Android.':'Android uygulamasında kullandığınız aynı hesapla giriş yapın.','Correo electrónico':'E-posta','Sitio web':'Web sitesi','Contraseña':'Şifre','Tu contraseña':'Şifreniz','Entrar a mi taller':'Atölyeme gir','¿Aún no tienes cuenta?':'Henüz hesabınız yok mu?','Empieza 5 días gratis':'5 gün ücretsiz başlayın','¿Necesitas ayuda?':'Yardıma mı ihtiyacınız var?','Escribe a soporte':'Desteğe yazın','Privacidad':'Gizlilik','Términos':'Koşullar','Abriendo tu taller…':'Atölyeniz açılıyor…',
- 'ELIGE CÓMO EMPEZAR':'NASIL BAŞLAYACAĞINIZI SEÇİN','Tu taller,':'Atölyeniz,','tu':'sizin','espacio.':'alanınız.','Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.':'RIMMA’yı kart olmadan 5 gün ücretsiz deneyin veya aboneliği şimdi anında ödeme ile etkinleştirin.','VERIFICA TU CORREO':'E-POSTANIZI DOĞRULAYIN','Bienvenido':'Hoş geldiniz','a RIMMA.':'RIMMA’ya.','Nombre y apellidos':'Ad ve soyad','Nombre del taller':'Atölye adı','Contraseña (8 caracteres como mínimo)':'Şifre (en az 8 karakter)','Repetir contraseña':'Şifreyi tekrar girin','País':'Ülke','¿Cómo quieres empezar?':'Nasıl başlamak istiyorsunuz?','Probar 5 días gratis':'5 gün ücretsiz dene','Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.':'5 gün tam erişim. Kart yok, otomatik ödeme yok.','Suscribirme ahora':'Şimdi abone ol','Cobro inmediato. Plan mensual; verás el precio final antes de confirmar el pago.':'Anında ödeme. Aylık plan; onaylamadan önce son fiyatı göreceksiniz.','Enviarme un código por correo':'E-posta ile kod gönder','Código de seis cifras':'Altı haneli kod','Correo verificado':'E-posta doğrulandı','Antes de continuar':'Devam etmeden önce','Lee las condiciones que regulan el uso de RIMMA y cómo tratamos tus datos.':'RIMMA kullanım koşullarını ve verilerinizi nasıl işlediğimizi okuyun.','Leer Términos de uso →':'Kullanım Koşullarını oku →','Leer Política de privacidad →':'Gizlilik Politikasını oku →','Ver Aviso legal →':'Yasal bilgileri gör →','He leído y acepto los Términos de uso y confirmo que he leído la Política de privacidad.':'Kullanım Koşullarını okudum ve kabul ediyorum; Gizlilik Politikasını okuduğumu onaylıyorum.','Crear mi taller · 5 días gratis':'Atölyemi oluştur · 5 gün ücretsiz','Crear mi taller y suscribirme ahora':'Atölyemi oluştur ve şimdi abone ol','← Volver al inicio de sesión':'← Girişe dön','Volver al inicio de sesión':'Girişe dön','Las contraseñas no coinciden.':'Şifreler eşleşmiyor.','Moneda del taller':'Atölye para birimi',
- 'Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.':'Kod gönderildi. E-postanızı ve gerekirse spam klasörünü kontrol edin.','Correo verificado. Ya puedes crear tu taller.':'E-posta doğrulandı. Artık atölyenizi oluşturabilirsiniz.','Primero verifica este correo electrónico.':'Önce bu e-posta adresini doğrulayın.','¡Cuenta creada! Estamos abriendo tu taller…':'Hesap oluşturuldu! Atölyeniz açılıyor…','Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.':'Hesap başarıyla oluşturuldu. Artık giriş yapabilirsiniz.'
- }}
-};
-const runtimeExtras={
-'fr-FR':{'Un lugar':'Un espace','para':'pour','crear':'créer','con calma.':'en toute sérénité.','Verificando código…':'Vérification du code…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Code incorrect. Vérifiez-le et réessayez.','Error de conexión. Inténtalo de nuevo.':'Erreur de connexion. Réessayez.','Selecciona un país válido.':'Sélectionnez un pays valide.','No se ha podido completar la solicitud.':"La demande n’a pas pu être traitée."},
-'de-DE':{'Un lugar':'Ein Ort','para':'zum','crear':'Gestalten','con calma.':'in Ruhe.','Verificando código…':'Code wird geprüft…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Falscher Code. Prüfen Sie ihn und versuchen Sie es erneut.','Error de conexión. Inténtalo de nuevo.':'Verbindungsfehler. Versuchen Sie es erneut.','Selecciona un país válido.':'Wählen Sie ein gültiges Land.','No se ha podido completar la solicitud.':'Die Anfrage konnte nicht abgeschlossen werden.'},
-'it-IT':{'Un lugar':'Uno spazio','para':'per','crear':'creare','con calma.':'con calma.','Verificando código…':'Verifica del codice…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Codice errato. Controllalo e riprova.','Error de conexión. Inténtalo de nuevo.':'Errore di connessione. Riprova.','Selecciona un país válido.':'Seleziona un paese valido.','No se ha podido completar la solicitud.':'Non è stato possibile completare la richiesta.'},
-'el-GR':{'Un lugar':'Ένας χώρος','para':'για','crear':'δημιουργία','con calma.':'με ηρεμία.','Verificando código…':'Έλεγχος κωδικού…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Λανθασμένος κωδικός. Ελέγξτε τον και δοκιμάστε ξανά.','Error de conexión. Inténtalo de nuevo.':'Σφάλμα σύνδεσης. Δοκιμάστε ξανά.','Selecciona un país válido.':'Επιλέξτε έγκυρη χώρα.','No se ha podido completar la solicitud.':'Δεν ήταν δυνατή η ολοκλήρωση του αιτήματος.'},
-'sk-SK':{'Un lugar':'Jedno miesto','para':'na','crear':'tvorbu','con calma.':'v pokoji.','Verificando código…':'Overuje sa kód…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Nesprávny kód. Skontrolujte ho a skúste znova.','Error de conexión. Inténtalo de nuevo.':'Chyba pripojenia. Skúste znova.','Selecciona un país válido.':'Vyberte platnú krajinu.','No se ha podido completar la solicitud.':'Požiadavku sa nepodarilo dokončiť.'},
-'sr-Latn-RS':{'Un lugar':'Jedno mesto','para':'za','crear':'stvaranje','con calma.':'bez žurbe.','Verificando código…':'Provera koda…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Pogrešan kod. Proverite ga i pokušajte ponovo.','Error de conexión. Inténtalo de nuevo.':'Greška veze. Pokušajte ponovo.','Selecciona un país válido.':'Izaberite važeću državu.','No se ha podido completar la solicitud.':'Zahtev nije mogao da bude završen.'},
-'tr-TR':{'Un lugar':'Bir alan','para':'rahatça','crear':'üretmek','con calma.':'için.','Verificando código…':'Kod doğrulanıyor…','Código incorrecto. Compruébalo e inténtalo de nuevo.':'Kod yanlış. Kontrol edip tekrar deneyin.','Error de conexión. Inténtalo de nuevo.':'Bağlantı hatası. Tekrar deneyin.','Selecciona un país válido.':'Geçerli bir ülke seçin.','No se ha podido completar la solicitud.':'İstek tamamlanamadı.'}
-};
-for(const [key,value] of Object.entries(runtimeExtras))Object.assign(configs[key].t,value);
-const localeByCountry={FR:'fr-FR',DE:'de-DE',IT:'it-IT',GR:'el-GR',SK:'sk-SK',RS:'sr-Latn-RS',TR:'tr-TR'};
-const normalize=(v)=>{v=String(v||'').toLowerCase();if(v.startsWith('fr'))return'fr-FR';if(v.startsWith('de'))return'de-DE';if(v.startsWith('it'))return'it-IT';if(v.startsWith('el')||v.startsWith('gr'))return'el-GR';if(v.startsWith('sk'))return'sk-SK';if(v.startsWith('sr')||v.startsWith('rs'))return'sr-Latn-RS';if(v.startsWith('tr'))return'tr-TR';return'';};
-let locale=normalize(rawLocale)||localeByCountry[rawCountry]||'';
-if(!locale)return;
-const C=configs[locale],country=rawCountry||C.country;
-try{localStorage.setItem('rimma_locale_v1',locale);localStorage.setItem('rimma_country_v1',country);}catch{}
-document.documentElement.lang=C.lang;
 const base=window.RimmaLocale||{};
-const tr=value=>C.t[String(value||'').trim()]||value;
-const withLocale=(url)=>{try{const u=new URL(url,location.origin);if(u.origin===location.origin){u.searchParams.set('locale',locale);u.searchParams.set('country',country);return u.pathname+u.search+u.hash;}}catch{}return url;};
-const money=(minor,currency=C.currency)=>{try{return new Intl.NumberFormat(locale,{style:'currency',currency}).format(Number(minor||0)/100);}catch{return String(Number(minor||0)/100)+' '+currency;}};
-window.RimmaLocale=Object.freeze({...base,locale,country,isPt:false,isIntl:true,currency:C.currency,translate:tr,t:(es)=>tr(es),money,number:v=>Number.isFinite(Number(v))?Number(v).toLocaleString(locale):'—',date:v=>v?new Date(String(v).slice(0,10)+'T12:00:00').toLocaleDateString(locale,{day:'2-digit',month:'short',year:'numeric'}):tr('Sin fecha'),withLocale});
-const apply=(root=document)=>{
- if(root.nodeType===Node.TEXT_NODE){const p=root.parentElement;if(p&&!['SCRIPT','STYLE','TEXTAREA'].includes(p.tagName)){const raw=root.nodeValue,k=raw.trim(),v=tr(k);if(k&&v!==k)root.nodeValue=raw.replace(k,v);}return;}
- const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const p=n.parentElement;if(!p||['SCRIPT','STYLE','TEXTAREA'].includes(p.tagName))continue;const raw=n.nodeValue,k=raw.trim(),v=tr(k);if(k&&v!==k)n.nodeValue=raw.replace(k,v);}
- root.querySelectorAll?.('[placeholder],[aria-label],[title]').forEach(el=>['placeholder','aria-label','title'].forEach(a=>{if(el.hasAttribute(a)){const v=el.getAttribute(a),nv=tr(v);if(nv!==v)el.setAttribute(a,nv);}}));
- root.querySelectorAll?.('a[href^="/app/"]').forEach(a=>a.setAttribute('href',withLocale(a.getAttribute('href'))));
+const locale=base.locale||'es-ES';
+if(locale==='es-ES')return;
+
+const rows=[
+['Mi taller — RIMMA','El meu taller — RIMMA','Nire tailerra — RIMMA','O meu obradoiro — RIMMA'],
+['Crea tu taller — RIMMA','Crea el teu taller — RIMMA','Sortu zure tailerra — RIMMA','Crea o teu obradoiro — RIMMA'],
+['Ir al contenido','Ves al contingut','Joan edukira','Ir ao contido'],
+['TU TALLER, A TU RITMO','EL TEU TALLER, AL TEU RITME','ZURE TAILERRA, ZURE ERRITMOAN','O TEU OBRADOIRO, AO TEU RITMO'],
+['Un lugar','Un espai','Lasai','Un lugar'],
+['para','per','sortzeko','para'],
+['crear','crear','leku','crear'],
+['con calma.','amb calma.','bat.','con calma.'],
+['Las prendas, los clientes y las cuentas de tu taller, en orden desde cualquier pantalla.','Les peces, els clients i els comptes del teu taller, ordenats des de qualsevol pantalla.','Zure tailerreko jantziak, bezeroak eta kontuak, edozein pantailatan antolatuta.','As prendas, os clientes e as contas do teu obradoiro, ordenadas desde calquera pantalla.'],
+['COSTURA Y ARREGLOS','COSTURA I ARRANJAMENTS','JOSKINTZA ETA KONPONKETAK','COSTURA E ARRANXOS'],
+['ACCEDE A TU ESPACIO','ACCEDEIX AL TEU ESPAI','SARTU ZURE GUNERA','ACCEDE AO TEU ESPAZO'],
+['Qué bueno','Quina alegria','Pozten gara','Que ben'],
+['tenerte aquí.','tenir-te aquí.','hemen izatea.','terte aquí.'],
+['Inicia sesión con la misma cuenta que utilizas en la aplicación Android.','Inicia sessió amb el mateix compte que utilitzes a l’aplicació Android.','Hasi saioa Android aplikazioan erabiltzen duzun kontu berarekin.','Inicia sesión coa mesma conta que utilizas na aplicación Android.'],
+['Correo electrónico','Correu electrònic','Helbide elektronikoa','Correo electrónico'],
+['Sitio web','Lloc web','Webgunea','Sitio web'],
+['Contraseña','Contrasenya','Pasahitza','Contrasinal'],
+['Tu contraseña','La teva contrasenya','Zure pasahitza','O teu contrasinal'],
+['Entrar a mi taller','Entrar al meu taller','Sartu nire tailerrean','Entrar no meu obradoiro'],
+['¿Aún no tienes cuenta?','Encara no tens compte?','Oraindik ez duzu konturik?','Aínda non tes conta?'],
+['Empieza 5 días gratis','Comença 5 dies gratis','Hasi 5 egun doan','Comeza 5 días gratis'],
+['¿Necesitas ayuda?','Necessites ajuda?','Laguntza behar duzu?','Necesitas axuda?'],
+['Escribe a soporte','Escriu a suport','Idatzi laguntzari','Escribe a soporte'],
+['Privacidad','Privacitat','Pribatutasuna','Privacidade'],
+['Términos','Condicions','Baldintzak','Termos'],
+['Abriendo tu taller…','Obrint el teu taller…','Zure tailerra irekitzen…','Abrindo o teu obradoiro…'],
+['MI ESPACIO DE TRABAJO','EL MEU ESPAI DE TREBALL','NIRE LAN-GUNEA','O MEU ESPAZO DE TRABALLO'],
+['Mi taller','El meu taller','Nire tailerra','O meu obradoiro'],
+['TU TALLER','EL TEU TALLER','ZURE TAILERRA','O TEU OBRADOIRO'],
+['Inicio','Inici','Hasiera','Inicio'],
+['Pedidos','Comandes','Eskaerak','Pedidos'],
+['Citas','Cites','Hitzorduak','Citas'],
+['Clientes','Clients','Bezeroak','Clientes'],
+['Servicios','Serveis','Zerbitzuak','Servizos'],
+['Informes','Informes','Txostenak','Informes'],
+['TU CUENTA','EL TEU COMPTE','ZURE KONTUA','A TÚA CONTA'],
+['Suscripción','Subscripció','Harpidetza','Subscrición'],
+['Configuración','Configuració','Ezarpenak','Configuración'],
+['Guía rápida','Guia ràpida','Gida azkarra','Guía rápida'],
+['Ayuda','Ajuda','Laguntza','Axuda'],
+['Cerrar sesión','Tancar sessió','Amaitu saioa','Pechar sesión'],
+['Tu espacio privado','El teu espai privat','Zure gune pribatua','O teu espazo privado'],
+['MI TALLER','EL MEU TALLER','NIRE TAILERRA','O MEU OBRADOIRO'],
+['HOY EN TU TALLER','AVUI AL TEU TALLER','GAUR ZURE TAILERREAN','HOXE NO TEU OBRADOIRO'],
+['Tu taller,','El teu taller,','Zure tailerra,','O teu obradoiro,'],
+['al día.','al dia.','egunean.','ao día.'],
+['Un lugar para cuidar cada detalle y no perder de vista la siguiente entrega.','Un espai per cuidar cada detall i no perdre de vista el pròxim lliurament.','Xehetasun bakoitza zaintzeko eta hurrengo entrega begi-bistan izateko gunea.','Un lugar para coidar cada detalle e non perder de vista a seguinte entrega.'],
+['+ Nuevo pedido','+ Comanda nova','+ Eskaera berria','+ Novo pedido'],
+['PARA HOY','PER AVUI','GAURRAKO','PARA HOXE'],
+['ATRASADAS','ENDARRERIDES','ATZERATUAK','ATRASADAS'],
+['LISTAS','PREPARADES','PREST','LISTAS'],
+['SALDO PENDIENTE','SALDO PENDENT','ORDAINTZEKO SALDOA','SALDO PENDENTE'],
+['CITAS HOY','CITES AVUI','GAURKO HITZORDUAK','CITAS HOXE'],
+['CARGA DEL EQUIPO','CÀRREGA DE L’EQUIP','TALDEAREN KARGA','CARGA DO EQUIPO'],
+['Prendas con entrega hoy','Peces amb lliurament avui','Gaur entregatzeko jantziak','Prendas con entrega hoxe'],
+['Requieren atención','Requereixen atenció','Arreta behar dute','Requiren atención'],
+['Para recoger','Per recollir','Jasotzeko','Para recoller'],
+['Pruebas y recogidas','Proves i recollides','Probak eta jasotzeak','Probas e recollidas'],
+['Profesionales sobrecargados','Professionals sobrecarregats','Gainkargatutako profesionalak','Profesionais sobrecargados'],
+['Ver prendas','Veure peces','Ikusi jantziak','Ver prendas'],
+['Resolver','Resoldre','Ebatzi','Resolver'],
+['Ver listas','Veure preparades','Ikusi prest daudenak','Ver listas'],
+['Prendas recientes','Peces recents','Azken jantziak','Prendas recentes'],
+['Ver todas','Veure totes','Ikusi guztiak','Ver todas'],
+['Recibido','Rebut','Jasota','Recibido'],
+['En proceso','En procés','Prozesuan','En proceso'],
+['Listo','Preparat','Prest','Listo'],
+['Entregado','Lliurat','Entregatuta','Entregado'],
+['Cancelado','Cancel·lat','Ezeztatuta','Cancelado'],
+['Sin estado','Sense estat','Egoerarik gabe','Sen estado'],
+['Sin fecha','Sense data','Datarik gabe','Sen data'],
+['Sin asignar','Sense assignar','Esleitu gabe','Sen asignar'],
+['Sin ubicación','Sense ubicació','Kokapenik gabe','Sen localización'],
+['Sin ficha vinculada','Sense fitxa vinculada','Lotutako fitxarik gabe','Sen ficha vinculada'],
+['Abrir prenda','Obrir peça','Ireki jantzia','Abrir prenda'],
+['Cobrar','Cobrar','Kobratu','Cobrar'],
+['Editar','Editar','Editatu','Editar'],
+['Más acciones','Més accions','Ekintza gehiago','Máis accións'],
+['Información del pedido','Informació de la comanda','Eskaeraren informazioa','Información do pedido'],
+['Documentos','Documents','Dokumentuak','Documentos'],
+['Imprimir etiqueta','Imprimir etiqueta','Etiketa inprimatu','Imprimir etiqueta'],
+['Repetir pedido','Repetir comanda','Eskaera errepikatu','Repetir pedido'],
+['Eliminar','Eliminar','Ezabatu','Eliminar'],
+['Pagado','Pagat','Ordainduta','Pagado'],
+['Pendiente','Pendent','Ordaintzeke','Pendente'],
+['Total','Total','Guztira','Total'],
+['Pedido','Comanda','Eskaera','Pedido'],
+['Prenda','Peça','Jantzia','Prenda'],
+['Entrega','Lliurament','Entrega','Entrega'],
+['Estado','Estat','Egoera','Estado'],
+['Importe','Import','Zenbatekoa','Importe'],
+['Acciones','Accions','Ekintzak','Accións'],
+['Buscar pedidos','Cercar comandes','Bilatu eskaerak','Buscar pedidos'],
+['Buscar pedido o cliente','Cercar comanda o client','Bilatu eskaera edo bezeroa','Buscar pedido ou cliente'],
+['Filtrar estado','Filtrar estat','Iragazi egoera','Filtrar estado'],
+['Todos los estados','Tots els estats','Egoera guztiak','Todos os estados'],
+['Recibidos','Rebuts','Jasotakoak','Recibidos'],
+['Listos','Preparats','Prest daudenak','Listos'],
+['Entregados','Lliurats','Entregatutakoak','Entregados'],
+['← Anterior','← Anterior','← Aurrekoa','← Anterior'],
+['Siguiente →','Següent →','Hurrengoa →','Seguinte →'],
+['Nuevo cliente','Client nou','Bezero berria','Novo cliente'],
+['+ Nuevo cliente','+ Client nou','+ Bezero berria','+ Novo cliente'],
+['Buscar clientes','Cercar clients','Bilatu bezeroak','Buscar clientes'],
+['Buscar nombre, teléfono o correo','Cercar nom, telèfon o correu','Bilatu izena, telefonoa edo posta','Buscar nome, teléfono ou correo'],
+['Nombre','Nom','Izena','Nome'],
+['Teléfono','Telèfon','Telefonoa','Teléfono'],
+['Correo','Correu','Posta','Correo'],
+['Notas','Notes','Oharrak','Notas'],
+['Nuevo pedido','Comanda nova','Eskaera berria','Novo pedido'],
+['Cliente','Client','Bezeroa','Cliente'],
+['Selecciona un cliente','Selecciona un client','Hautatu bezero bat','Selecciona un cliente'],
+['Servicio','Servei','Zerbitzua','Servizo'],
+['Trabajo','Treball','Lana','Traballo'],
+['Precio','Preu','Prezioa','Prezo'],
+['Moneda','Moneda','Moneta','Moeda'],
+['Fecha de entrega','Data de lliurament','Entrega-data','Data de entrega'],
+['Fotografía de la prenda','Fotografia de la peça','Jantziaren argazkia','Fotografía da prenda'],
+['Guardar','Desar','Gorde','Gardar'],
+['Cancelar','Cancel·lar','Utzi','Cancelar'],
+['Cerrar','Tancar','Itxi','Pechar'],
+['Descargar','Baixar','Deskargatu','Descargar'],
+['Categoría','Categoria','Kategoria','Categoría'],
+['+ Categoría','+ Categoria','+ Kategoria','+ Categoría'],
+['+ Servicio','+ Servei','+ Zerbitzua','+ Servizo'],
+['Periodo del informe','Període de l’informe','Txostenaren aldia','Período do informe'],
+['Este mes','Aquest mes','Hilabete honetan','Este mes'],
+['Esta semana','Aquesta setmana','Aste honetan','Esta semana'],
+['Hoy','Avui','Gaur','Hoxe'],
+['Este año','Aquest any','Aurten','Este ano'],
+['Selecciona un periodo.','Selecciona un període.','Hautatu aldi bat.','Selecciona un período.'],
+['CLIENTES QUE VUELVEN','CLIENTS QUE TORNEN','ITZULTZEN DIREN BEZEROAK','CLIENTES QUE VOLVEN'],
+['Trabajos más solicitados','Treballs més sol·licitats','GEHIEN ESKATUTAKO LANAK','Traballos máis solicitados'],
+['Ticket medio','Tiquet mitjà','Batez besteko tiketa','Tícket medio'],
+['Saldo pendiente actual','Saldo pendent actual','Uneko saldo ordaintzeke','Saldo pendente actual'],
+['Cómo te pagan','Com et paguen','Nola ordaintzen dizute','Como che pagan'],
+['Tu suscripción','La teva subscripció','Zure harpidetza','A túa subscrición'],
+['Prueba gratuita','Prova gratuïta','Doako proba','Proba gratuíta'],
+['Activa','Activa','Aktibo','Activa'],
+['Sin acceso','Sense accés','Sarbiderik gabe','Sen acceso'],
+['Actualizar estado','Actualitzar estat','Eguneratu egoera','Actualizar estado'],
+['Gestionar en Google Play ↗','Gestionar a Google Play ↗','Kudeatu Google Play-n ↗','Xestionar en Google Play ↗'],
+['Mi cuenta','El meu compte','Nire kontua','A miña conta'],
+['Datos de la cuenta','Dades del compte','Kontuaren datuak','Datos da conta'],
+['Cambiar contraseña','Canviar contrasenya','Aldatu pasahitza','Cambiar contrasinal'],
+['Centro de ayuda ↗','Centre d’ajuda ↗','Laguntza-zentroa ↗','Centro de axuda ↗'],
+['Política de privacidad ↗','Política de privacitat ↗','Pribatutasun-politika ↗','Política de privacidade ↗'],
+['Descargar mis datos','Baixar les meves dades','Deskargatu nire datuak','Descargar os meus datos'],
+['Eliminar mi cuenta','Eliminar el meu compte','Ezabatu nire kontua','Eliminar a miña conta'],
+['Equipo','Equip','Taldea','Equipo'],
+['Mi equipo','El meu equip','Nire taldea','O meu equipo'],
+['Invitar empleado','Convidar empleat','Langilea gonbidatu','Convidar empregado'],
+['Empleado','Empleat','Langilea','Empregado'],
+['Propietario','Propietari','Jabea','Propietario'],
+['Rol','Rol','Rola','Rol'],
+['ELIGE CÓMO EMPEZAR','TRIA COM COMENÇAR','AUKERATU NOLA HASI','ESCOLLE COMO COMEÇAR'],
+['Tu taller,','El teu taller,','Zure tailerra,','O teu obradoiro,'],
+['tu','el teu','zure','o teu'],
+['espacio.','espai.','gunea.','espazo.'],
+['Prueba RIMMA 5 días gratis sin tarjeta o activa tu suscripción ahora con cobro inmediato.','Prova RIMMA 5 dies gratis sense targeta o activa ara la subscripció amb cobrament immediat.','Probatu RIMMA 5 egun doan txartelik gabe, edo aktibatu harpidetza orain berehalako kobrantzarekin.','Proba RIMMA 5 días gratis sen tarxeta ou activa agora a subscrición con cobro inmediato.'],
+['VERIFICA TU CORREO','VERIFICA EL TEU CORREU','EGIAZTATU ZURE POSTA','VERIFICA O TEU CORREO'],
+['Bienvenido','Benvingut','Ongi etorri','Benvido'],
+['a RIMMA.','a RIMMA.','RIMMAra.','a RIMMA.'],
+['Nombre y apellidos','Nom i cognoms','Izen-abizenak','Nome e apelidos'],
+['Nombre del taller','Nom del taller','Tailerraren izena','Nome do obradoiro'],
+['Contraseña (8 caracteres como mínimo)','Contrasenya (mínim 8 caràcters)','Pasahitza (gutxienez 8 karaktere)','Contrasinal (8 caracteres como mínimo)'],
+['Repetir contraseña','Repetir contrasenya','Errepikatu pasahitza','Repetir contrasinal'],
+['País','País','Herrialdea','País'],
+['¿Cómo quieres empezar?','Com vols començar?','Nola hasi nahi duzu?','Como queres comezar?'],
+['Probar 5 días gratis','Provar 5 dies gratis','Probatu 5 egun doan','Probar 5 días gratis'],
+['Acceso completo durante 5 días. Sin tarjeta y sin cobro automático.','Accés complet durant 5 dies. Sense targeta i sense cobrament automàtic.','Sarbide osoa 5 egunez. Txartelik eta kobrantza automatikorik gabe.','Acceso completo durante 5 días. Sen tarxeta e sen cobro automático.'],
+['Suscribirme ahora','Subscriure’m ara','Harpidetu orain','Subscribirme agora'],
+['Enviarme un código por correo','Enviar-me un codi per correu','Bidali kode bat postaz','Enviarme un código por correo'],
+['Código de seis cifras','Codi de sis xifres','Sei digituko kodea','Código de seis cifras'],
+['Correo verificado','Correu verificat','Posta egiaztatuta','Correo verificado'],
+['Antes de continuar','Abans de continuar','Jarraitu aurretik','Antes de continuar'],
+['Crear mi taller · 5 días gratis','Crear el meu taller · 5 dies gratis','Sortu nire tailerra · 5 egun doan','Crear o meu obradoiro · 5 días gratis'],
+['Crear mi taller y suscribirme ahora','Crear el meu taller i subscriure’m ara','Sortu nire tailerra eta harpidetu orain','Crear o meu obradoiro e subscribirme agora'],
+['← Volver al inicio de sesión','← Tornar a l’inici de sessió','← Itzuli saio-hasierara','← Volver ao inicio de sesión'],
+['Las contraseñas no coinciden.','Les contrasenyes no coincideixen.','Pasahitzak ez datoz bat.','Os contrasinais non coinciden.'],
+['Código enviado. Revisa tu correo y, si es necesario, la carpeta de spam.','Codi enviat. Revisa el correu i, si cal, la carpeta de correu brossa.','Kodea bidalita. Begiratu zure posta eta, beharrezkoa bada, spam karpeta.','Código enviado. Revisa o correo e, se é necesario, a carpeta de spam.'],
+['Verificando código…','Verificant el codi…','Kodea egiaztatzen…','Verificando o código…'],
+['Correo verificado. Ya puedes crear tu taller.','Correu verificat. Ja pots crear el teu taller.','Posta egiaztatuta. Orain zure tailerra sor dezakezu.','Correo verificado. Xa podes crear o teu obradoiro.'],
+['Código incorrecto. Compruébalo e inténtalo de nuevo.','Codi incorrecte. Comprova’l i torna-ho a provar.','Kode okerra. Egiaztatu eta saiatu berriro.','Código incorrecto. Compróbao e inténtao de novo.'],
+['Primero verifica este correo electrónico.','Primer verifica aquest correu electrònic.','Lehenik egiaztatu helbide elektroniko hau.','Primeiro verifica este correo electrónico.'],
+['¡Cuenta creada! Estamos abriendo tu taller…','Compte creat! Estem obrint el teu taller…','Kontua sortuta! Zure tailerra irekitzen ari gara…','Conta creada! Estamos abrindo o teu obradoiro…'],
+['Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.','Compte creat correctament. Ja pots iniciar sessió des de la pàgina d’accés.','Kontua behar bezala sortu da. Sarbide-orritik saioa has dezakezu.','Conta creada correctamente. Xa podes iniciar sesión desde a páxina de acceso.'],
+['Error de conexión. Inténtalo de nuevo.','Error de connexió. Torna-ho a provar.','Konexio-errorea. Saiatu berriro.','Erro de conexión. Inténtao de novo.'],
+['No se ha podido completar la solicitud.','No s’ha pogut completar la sol·licitud.','Ezin izan da eskaera osatu.','Non se puido completar a solicitude.'],
+['Selecciona un país válido.','Selecciona un país vàlid.','Hautatu baliozko herrialde bat.','Selecciona un país válido.']
+];
+
+const family=locale==='eu-ES'?'eu':locale==='gl-ES'?'gl':'ca';
+const index=family==='ca'?1:family==='eu'?2:3;
+const dict=new Map(rows.map(row=>[row[0],row[index]]));
+if(locale==='ca-ES-valencia'){
+ const valencian=new Map([
+  ['HOY EN TU TALLER','HUI AL TEU TALLER'],
+  ['Hoy','Hui'],
+  ['PARA HOY','PER A HUI'],
+  ['CITAS HOY','CITES HUI'],
+  ['Prendas con entrega hoy','Peces amb entrega hui'],
+  ['Este mes','Este mes'],
+  ['Esta semana','Esta setmana'],
+  ['Este año','Este any'],
+  ['Sin ubicación','Sense ubicació'],
+  ['Entrega','Entrega'],
+  ['Fecha de entrega','Data d’entrega'],
+  ['Ver prendas','Vore peces'],
+  ['Ver todas','Vore totes']
+ ]);
+ for(const [k,v] of valencian)dict.set(k,v);
+}
+
+const patterns={
+ ca:[
+  [/^Pedido #(\d+) · (.+)$/,'Comanda #$1 · $2'],
+  [/^Pedido #(\d+)$/,'Comanda #$1'],
+  [/^Entrega (.+)$/,'Lliurament $1']
+ ],
+ eu:[
+  [/^Pedido #(\d+) · (.+)$/,'Eskaera #$1 · $2'],
+  [/^Pedido #(\d+)$/,'Eskaera #$1'],
+  [/^Entrega (.+)$/,'Entrega $1']
+ ],
+ gl:[
+  [/^Pedido #(\d+) · (.+)$/,'Pedido #$1 · $2'],
+  [/^Pedido #(\d+)$/,'Pedido #$1'],
+  [/^Entrega (.+)$/,'Entrega $1']
+ ]
 };
-const start=()=>{document.title=tr(document.title);apply(document.documentElement);const obs=new MutationObserver(rs=>rs.forEach(r=>{if(r.type==='characterData')apply(r.target);else r.addedNodes.forEach(apply);}));obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true});};
+
+const translate=value=>{
+ if(typeof value!=='string'||!value)return value;
+ const key=value.trim();
+ if(!key)return value;
+ let next=dict.get(key)||key;
+ if(next===key){
+  for(const [pattern,replacement] of patterns[family]){
+   if(pattern.test(key)){next=key.replace(pattern,replacement);break;}
+  }
+ }
+ if(next===key)return value;
+ const start=value.match(/^\s*/)?.[0]||'';
+ const end=value.match(/\s*$/)?.[0]||'';
+ return start+next+end;
+};
+const formatLocale=locale==='ca-ES-valencia'?'ca-ES':locale;
+const money=(minor,currency='EUR')=>{
+ try{return new Intl.NumberFormat(formatLocale,{style:'currency',currency}).format(Number(minor||0)/100);}
+ catch{return String(Number(minor||0)/100)+' '+currency;}
+};
+const number=value=>Number.isFinite(Number(value))?Number(value).toLocaleString(formatLocale):'—';
+const date=value=>value?new Date(String(value).slice(0,10)+'T12:00:00')
+ .toLocaleDateString(formatLocale,{day:'2-digit',month:'short',year:'numeric'}):translate('Sin fecha');
+
+window.RimmaLocale=Object.freeze({...base,locale,country:'ES',isPt:false,isIntl:true,currency:'EUR',
+ translate,t:(es)=>translate(es),money,number,date});
+
+const translateElement=element=>{
+ if(!(element instanceof Element))return;
+ for(const attr of ['placeholder','aria-label','title']){
+  if(element.hasAttribute(attr))element.setAttribute(attr,translate(element.getAttribute(attr)));
+ }
+ if(element.matches('a[href^="/app/"]')&&base.withLocale){
+  element.setAttribute('href',base.withLocale(element.getAttribute('href')));
+ }
+};
+const apply=root=>{
+ if(root.nodeType===Node.TEXT_NODE){
+  const parent=root.parentElement;
+  if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName)){
+   const next=translate(root.nodeValue);
+   if(next!==root.nodeValue)root.nodeValue=next;
+  }
+  return;
+ }
+ if(root instanceof Element)translateElement(root);
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ let node;
+ while((node=walker.nextNode())){
+  const parent=node.parentElement;
+  if(parent&&!['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName)){
+   const next=translate(node.nodeValue);
+   if(next!==node.nodeValue)node.nodeValue=next;
+  }
+ }
+ root.querySelectorAll?.('*').forEach(translateElement);
+};
+const start=()=>{
+ document.title=translate(document.title);
+ apply(document.documentElement);
+ const observer=new MutationObserver(records=>{
+  for(const record of records){
+   if(record.type==='characterData')apply(record.target);
+   else record.addedNodes.forEach(apply);
+  }
+ });
+ observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
