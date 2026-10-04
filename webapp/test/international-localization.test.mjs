@@ -47,7 +47,9 @@ test('regional locale layer covers the main atelier workflow',()=>{
     'Nuevo cliente','Nuevo pedido','Periodo del informe',
     'HOY','POR COBRAR','Entrega hoy','Esta semana:','Necesitan atención','Sobrecargados',
     'Sin cobros pendientes','Nada pendiente.','No hay citas hoy.',
-    'Añade responsables a las prendas para ver la carga.','prendas activas'
+    'Añade responsables a las prendas para ver la carga.','prendas activas',
+    'Datos del taller y facturación','Datos fiscales del taller','Documentos comerciales',
+    'Facturación e impuestos','Territorio fiscal *','Emisión fiscal protegida'
   ]) assert.ok(locale.includes(phrase),phrase);
   assert.match(locale,/locale==='eu-ES'\?'eu':locale==='gl-ES'\?'gl':'ca'/);
   assert.match(locale,/locale==='ca-ES-valencia'/);
