@@ -22,7 +22,7 @@ const featureUI=import("/app/portal-features.mjs?v=20261004-v33").then(module=>m
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
-const teamUI=import("/app/team-view.mjs?v=20261004a").then(module=>module.createTeamUI({
+const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
 // The reports screen uses the shared document scroll; prevent a saved scroll
