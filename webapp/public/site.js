@@ -20,14 +20,14 @@ let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261004-v34").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261004-v62").then(module=>module.createOrderWizard({
+const orderWizard=import("/app/order-wizard.mjs?v=20261004-v63").then(module=>module.createOrderWizard({
  api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
  onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
  onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
