@@ -675,7 +675,7 @@ button:disabled,.feature-button[disabled]{
 .verifactu-check small{display:block;margin-top:2px;font:400 10px/1.45 var(--font);color:#776f64}
 
 /* RIMMA Atelier OS V26 */
-.atelier-today-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:18px 0 22px}
+.atelier-today-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 22px}
 .atelier-kpi{appearance:none;border:1px solid #e5ddd0;background:#fff;border-radius:18px;padding:16px;text-align:left;min-height:118px;display:flex;flex-direction:column;gap:5px;cursor:pointer;color:inherit;box-shadow:0 8px 28px rgba(52,43,33,.05)}
 .atelier-kpi span{font-size:11px;font-weight:800;letter-spacing:.08em;color:#7c746b}.atelier-kpi strong{font-size:30px;line-height:1}.atelier-kpi small{font-size:12px;color:#746d66;line-height:1.35}
 .atelier-kpi.dark{background:#25211d;color:#fff;border-color:#25211d}.atelier-kpi.dark span,.atelier-kpi.dark small{color:#d8d1c8}.atelier-kpi.danger{border-color:#e8c7c0;background:#fff8f6}.atelier-kpi.danger strong{color:#9a3c31}
@@ -1530,7 +1530,7 @@ button:disabled,.feature-button[disabled]{
 }
 
 
-/* V59 — consolidated dashboard system: one source of truth for desktop and mobile. */
+/* V60 — four core KPIs: no duplicated appointments/team metrics. */
 
 /* Global language control — single implementation, compact on phones. */
 .topbar-locale{
@@ -2030,7 +2030,7 @@ button:disabled,.feature-button[disabled]{
   line-height:1.4
  }
  #view-inicio #today-cards.atelier-today-grid{
-  grid-template-columns:repeat(3,minmax(0,1fr))
+  grid-template-columns:repeat(2,minmax(0,1fr))
  }
  #view-inicio .atelier-ops-layout{
   grid-template-columns:1fr 1fr
