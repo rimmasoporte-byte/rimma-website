@@ -202,64 +202,45 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-dashboard58/);
-  assert.match(html,/portal-parity\.css\?v=20261004-dashboard58/);
+  assert.match(html,/portal-parity\.css\?v=20261004-mobile59/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
 });
 
-test("dashboard KPI strip stays compact and uses a consistent icon system",async()=>{
+test("V59 replaces legacy dashboard override layers with one consolidated system",async()=>{
+ const css=await source("public/portal-parity.css");
+ for(const legacy of ["V47 —","V48 —","V49 —","V50 —","V51 —","V52 —","V53 —","V54 —","V55 —","V56 —","V57 —","V58 —"])
+  assert.doesNotMatch(css,new RegExp(legacy.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
+ assert.match(css,/V59 — consolidated dashboard system/);
+});
+
+test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped actions",async()=>{
  const css=await source("public/portal-parity.css");
  const html=await source("public/index.html");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:130px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-size:30px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:11px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-icon svg\{[\s\S]*?width:14px[\s\S]*?height:14px/);
  const kpiBlock=html.match(/<div class="atelier-today-grid" id="today-cards">([\s\S]*?)<\/div>/)?.[1]||"";
  assert.equal((kpiBlock.match(/class="metric-icon"/g)||[]).length,6);
  assert.equal((kpiBlock.match(/<svg viewBox="0 0 24 24">/g)||[]).length,6);
-});
-
-test("dashboard KPI typography is readable without increasing card size",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?font-size:11px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:12px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?font-size:11px/);
-});
-test("dashboard KPI numerals reserve stable width and use tabular sans digits",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?min-inline-size:3ch[\s\S]*?font-family:var\(--font\)[\s\S]*?font-size:32px[\s\S]*?font-variant-numeric:tabular-nums lining-nums[\s\S]*?font-feature-settings:"tnum" 1,"lnum" 1/);
-});
-test("dashboard KPI values share a fixed vertical row",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?display:grid[\s\S]*?grid-template-rows:30px 32px minmax\(28px,1fr\) 14px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?grid-row:2[\s\S]*?margin:0/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?grid-row:1[\s\S]*?min-height:30px/);
-});
-test("upper dashboard panels align with recent orders outer width",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio \.atelier-ops-layout\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
-});
-test("KPI strip shares the dashboard outer width",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
-});
-test("dashboard cards keep readable fixed regions without clipping actions",async()=>{
- const html=await source("public/index.html");
- const css=await source("public/portal-parity.css");
  assert.match(html,/class="kpi-helper kpi-helper-stack"><span>Entrega hoy<\/span><span>Esta semana: <b id="week-count">—<\/b><\/span>/);
- assert.match(html,/class="metric-jump"><span>Ver prendas<\/span><span aria-hidden="true">→<\/span><\/span>/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?padding:12px 16px[\s\S]*?grid-template-rows:34px 34px minmax\(40px,1fr\) 18px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?display:inline-flex[\s\S]*?white-space:nowrap/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:anywhere/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font:650 32px\/1 var\(--font\)[\s\S]*?font-variant-numeric:tabular-nums lining-nums/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?position:static[\s\S]*?display:inline-flex[\s\S]*?white-space:nowrap/);
 });
 
-test("large dashboard panels use compact headings and readable empty states",async()=>{
+test("mobile KPI layout never breaks normal words and keeps two-column cards usable",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[\s\S]*?gap:10px/);
+ assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:164px[\s\S]*?padding:13px 14px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:normal[\s\S]*?word-break:normal[\s\S]*?hyphens:none/);
+ assert.doesNotMatch(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:anywhere/);
+});
+
+test("large dashboard panels use compact headings, readable empty states, and stacked actions",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio \.atelier-ops-panel\{[\s\S]*?min-height:205px[\s\S]*?padding:20px 20px 18px/);
  assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head h2,[\s\S]*?#view-inicio \.dashboard-orders-panel \.section-head h2\{[\s\S]*?font:600 24px\/1\.15/);
  assert.match(css,/#view-inicio #today-attention>\.empty,[\s\S]*?font:500 14px\/1\.45/);
- assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head \.text-button,[\s\S]*?white-space:nowrap/);
+ assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head,[\s\S]*?display:grid[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
 });
 
 test("worker load stacks identity above meter and handles long names",async()=>{
@@ -268,20 +249,26 @@ test("worker load stacks identity above meter and handles long names",async()=>{
  assert.match(js,/class="worker-copy"/);
  assert.match(js,/class="worker-load-meterline"/);
  assert.match(js,/lt\("prendas activas"\)/);
- assert.match(css,/#view-inicio \.worker-copy strong\{[\s\S]*?overflow-wrap:anywhere[\s\S]*?word-break:break-word/);
+ assert.match(css,/#view-inicio \.worker-copy strong\{[\s\S]*?overflow-wrap:break-word[\s\S]*?word-break:normal/);
  assert.match(css,/#view-inicio \.worker-load-meterline\{[\s\S]*?grid-template-columns:minmax\(70px,1fr\) auto/);
  assert.match(css,/#view-inicio \.worker-load-meterline b\{[\s\S]*?font-variant-numeric:tabular-nums/);
 });
 
-test("dashboard hero stays compact on desktop and stacks safely on mobile",async()=>{
+test("dashboard widths and compact hero remain coherent across desktop and mobile",async()=>{
  const css=await source("public/portal-parity.css");
+ assert.match(css,/#view-inicio #today-cards\.atelier-today-grid,[\s\S]*?#view-inicio \.atelier-ops-layout\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
  assert.match(css,/#view-inicio>\.page-intro\{[\s\S]*?min-height:148px[\s\S]*?height:148px/);
- assert.match(css,/#view-inicio \.page-intro h1 br\{display:none\}/);
- assert.match(css,/#view-inicio \.intro-action\{[\s\S]*?top:50%[\s\S]*?transform:translateY\(-50%\)/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio>\.page-intro\{[\s\S]*?height:auto[\s\S]*?flex-direction:column/);
- assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio \.page-intro h1 br\{display:block\}/);
- assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio \.intro-action\{[\s\S]*?position:static/);
+ assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards\.atelier-today-grid,[\s\S]*?#view-inicio \.atelier-ops-layout\{[\s\S]*?margin-left:0[\s\S]*?margin-right:0/);
 });
+
+test("mobile topbar language control uses one compact consolidated implementation",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/Global language control — single implementation/);
+ assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?\.topbar-private\{display:none\}[\s\S]*?\.topbar-locale\{[\s\S]*?width:66px/);
+ assert.match(css,/@media\(max-width:390px\)\{[\s\S]*?\.topbar-locale,[\s\S]*?width:62px/);
+});
+
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
  const oldDoc=globalThis.document;
  const scenarios=[
