@@ -134,6 +134,9 @@ export function createOrderWizard({
   }
   function syncFooter(){
     if(!active)return;
+    submit.disabled=busy;
+    cancel.disabled=busy;
+    if(back)back.disabled=busy;
     if(created){
       if(back)back.hidden=true;
       cancel.hidden=true;

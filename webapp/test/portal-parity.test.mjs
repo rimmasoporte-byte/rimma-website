@@ -141,7 +141,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261004-v63/);
+ assert.match(js,/order-wizard\.mjs\?v=20261004-v65/);
  assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
  assert.match(wizard,/const DRAFT_KEY="rimma\.order\.draft\.v62"/);
  assert.match(wizard,/const names=\["Cliente","Prendas","Entrega","Confirmación"\]/);
@@ -160,6 +160,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="payment"/);
  assert.match(wizard,/data-wizard-action="whatsapp"/);
  assert.match(wizard,/data-wizard-action="label"/);
+ assert.match(wizard,/function syncFooter\(\)\{[\s\S]*?submit\.disabled=busy;[\s\S]*?cancel\.disabled=busy;[\s\S]*?back\.disabled=busy/);
  assert.match(js,/function garmentCardOrderActions\(/);
  assert.match(js,/class="garment-quick-actions"/);
  assert.match(js,/>Abrir prenda<\/button>/);
@@ -228,7 +229,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-v63/);
+  assert.match(html,/site\.js\?v=20261004-v65/);
   assert.match(html,/site\.css\?v=20261004-v64/);
   assert.match(html,/portal-parity\.css\?v=20261004-v64/);
   assert.match(css,/scrollbar-width:none/);
