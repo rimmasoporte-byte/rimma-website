@@ -205,7 +205,7 @@ export function createOrderWizard({
       esc(member.name||member.email||"Miembro")+'</option>'
     ).join("");
 
-  function clientContact(client){  function clientContact(client){
+  function clientContact(client){
     return [client?.phone,client?.email].map(value=>String(value||"").trim()).filter(Boolean).join(" · ");
   }
   function clientResultsMarkup(){
@@ -803,7 +803,7 @@ export function createOrderWizard({
     dirty=false;
     state=blankState(locale?.currency||"EUR");
     if(branches.length)state.branchId=branches[0].id;
-    state.items[0].assignedUserId=defaultAssignedUserId;
+    state.items[0].works[0].assignedUserId=defaultAssignedUserId;
     render();
   }
   async function requestClose(){
