@@ -197,6 +197,17 @@ test('no public HTML page contains a literal \\n marker',()=>{
   assert.deepEqual(offenders,[]);
 });
 
+test('homepage presents team and document capabilities as B2B product proof',()=>{
+  const h=read('index.html');
+  assert.match(h,/Hasta 3 usuarios/);
+  assert.match(h,/Documentos y facturación/);
+  for(const doc of ['Presupuesto','Resguardo de depósito','Recibo de pago','Justificante de entrega','Orden de trabajo','Factura fiscal'])
+    assert.match(h,new RegExp(doc),doc);
+  assert.match(h,/conversion-pillar-grid-business/);
+  assert.match(read('assets-v3/v3.css'),/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(h,/documentos oficiales para Hacienda|cumple con VERI\*FACTU|VERI\*FACTU/i);
+});
+
 test('production landing is a focused five-section conversion page',()=>{
   const h=read('index.html');
   assert.match(h,/SOFTWARE PARA TALLERES DE COSTURA Y ARREGLOS/);
