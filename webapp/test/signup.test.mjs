@@ -19,7 +19,7 @@ test('disposable email domains are rejected without blocking normal mail',()=>{
 });
 test('OTP and registration input fail closed',()=>{
  assert.deepEqual(validateSignupStep('send',{email:' A@EXAMPLE.COM '}),{email:'a@example.com',locale:'es-ES'});
- assert.deepEqual(validateSignupStep('send',{email:'a@example.com',locale:'el-GR'}),{email:'a@example.com',locale:'el-GR'});
+ assert.deepEqual(validateSignupStep('send',{email:'a@example.com',locale:'eu-ES'}),{email:'a@example.com',locale:'eu-ES'});
  assert.deepEqual(validateSignupStep('send',{email:'a@example.com',locale:'xx-XX'}),{email:'a@example.com',locale:'es-ES'});
  assert.throws(()=>validateSignupStep('verify',{email:'a@example.com',code:'12345'}));
  assert.deepEqual(validateSignupStep('verify',{email:'a@example.com',code:'123456'}),
@@ -95,8 +95,8 @@ test('same-origin OTP BFF creates a trial account through trusted backend only',
   assert.equal(r.status,403);assert.equal(requests.length,0);
   r=await post('send',{email:'bot@example.com',website:'https://spam.invalid'});
   assert.equal(r.status,202);assert.equal(requests.length,0);
-  r=await post('send',{email:' A@EXAMPLE.COM ',locale:'el-GR'});assert.equal(r.status,202);
-  assert.equal(requests[0].data.locale,'el-GR');
+  r=await post('send',{email:' A@EXAMPLE.COM ',locale:'ca-ES-valencia'});assert.equal(r.status,202);
+  assert.equal(requests[0].data.locale,'ca-ES-valencia');
   r=await post('verify',{email:'a@example.com',code:'123456'});assert.equal(r.status,200);
   const verified=await r.json();assert.ok(verified.emailVerificationToken);
   r=await post('register',{email:'a@example.com',password:'password123',confirmPassword:'password123',displayName:'Alice',
