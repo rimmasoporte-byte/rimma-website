@@ -201,8 +201,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-card57/);
-  assert.match(html,/portal-parity\.css\?v=20261004-hero58/);
+  assert.match(html,/site\.js\?v=20261004-dashboard58/);
+  assert.match(html,/portal-parity\.css\?v=20261004-dashboard58/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -226,10 +226,6 @@ test("dashboard KPI typography is readable without increasing card size",async()
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:12px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?font-size:11px/);
 });
-test("dashboard KPI numerals use the RIMMA serif system",async()=>{
- const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-family:var\(--serif\)[\s\S]*?font-size:33px[\s\S]*?font-weight:600[\s\S]*?font-variant-numeric:lining-nums tabular-nums/);
-});
 test("dashboard KPI numerals reserve stable width and use tabular sans digits",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?min-inline-size:3ch[\s\S]*?font-family:var\(--font\)[\s\S]*?font-size:32px[\s\S]*?font-variant-numeric:tabular-nums lining-nums[\s\S]*?font-feature-settings:"tnum" 1,"lnum" 1/);
@@ -248,6 +244,35 @@ test("KPI strip shares the dashboard outer width",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
 });
+test("dashboard cards keep readable fixed regions without clipping actions",async()=>{
+ const html=await source("public/index.html");
+ const css=await source("public/portal-parity.css");
+ assert.match(html,/class="kpi-helper kpi-helper-stack"><span>Entrega hoy<\/span><span>Esta semana: <b id="week-count">—<\/b><\/span>/);
+ assert.match(html,/class="metric-jump"><span>Ver prendas<\/span><span aria-hidden="true">→<\/span><\/span>/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?padding:12px 16px[\s\S]*?grid-template-rows:34px 34px minmax\(40px,1fr\) 18px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?display:inline-flex[\s\S]*?white-space:nowrap/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:anywhere/);
+});
+
+test("large dashboard panels use compact headings and readable empty states",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/#view-inicio \.atelier-ops-panel\{[\s\S]*?min-height:205px[\s\S]*?padding:20px 20px 18px/);
+ assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head h2,[\s\S]*?#view-inicio \.dashboard-orders-panel \.section-head h2\{[\s\S]*?font:600 24px\/1\.15/);
+ assert.match(css,/#view-inicio #today-attention>\.empty,[\s\S]*?font:500 14px\/1\.45/);
+ assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head \.text-button,[\s\S]*?white-space:nowrap/);
+});
+
+test("worker load stacks identity above meter and handles long names",async()=>{
+ const js=await source("public/site.js");
+ const css=await source("public/portal-parity.css");
+ assert.match(js,/class="worker-copy"/);
+ assert.match(js,/class="worker-load-meterline"/);
+ assert.match(js,/lt\("prendas activas"\)/);
+ assert.match(css,/#view-inicio \.worker-copy strong\{[\s\S]*?overflow-wrap:anywhere[\s\S]*?word-break:break-word/);
+ assert.match(css,/#view-inicio \.worker-load-meterline\{[\s\S]*?grid-template-columns:minmax\(70px,1fr\) auto/);
+ assert.match(css,/#view-inicio \.worker-load-meterline b\{[\s\S]*?font-variant-numeric:tabular-nums/);
+});
+
 test("dashboard hero stays compact on desktop and stacks safely on mobile",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio>\.page-intro\{[\s\S]*?min-height:148px[\s\S]*?height:148px/);
