@@ -229,13 +229,9 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/app.css')return staticFile(res,'app.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/maison-luxe.css')return staticFile(res,'maison-luxe.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/maison-reference.css')return staticFile(res,'maison-reference.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/atelier-polish.css')return staticFile(res,'atelier-polish.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/sidebar-finish.css')return staticFile(res,'sidebar-finish.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/sidebar-photo.css')return staticFile(res,'sidebar-photo.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/rimma-luxury-full.webp')return staticFile(res,'rimma-luxury-full.webp','image/webp');
     if(method==='GET'&&pathname==='/app/rimma-logo.webp')return staticFile(res,'rimma-logo.webp','image/webp');
     if(method==='GET'&&pathname==='/app/atelier-mannequin.webp')return staticFile(res,'atelier-mannequin.webp','image/webp');
@@ -244,10 +240,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/portal-parity.css')return staticFile(res,'portal-parity.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/onboarding.css')return staticFile(res,'onboarding.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/onboarding.mjs')return staticFile(res,'onboarding.mjs','text/javascript; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/luxury-buttons.css')return staticFile(res,'luxury-buttons.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/billing-view.mjs')return staticFile(res,'billing-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
