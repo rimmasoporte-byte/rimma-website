@@ -6,10 +6,8 @@ const file=path=>fs.readFile(new URL('../public/'+path,import.meta.url),'utf8');
 
 test('dashboard reproduces reference structure with real interactive controls',async()=>{
  const html=await file('index.html');
- const styles=['site.css','premium.css','luxury-buttons.css','maison-luxe.css','maison-reference.css'];
- const indices=styles.map(x=>html.indexOf('/app/'+x));
- assert.ok(indices.every(x=>x>=0),'all stylesheets present');
- assert.deepEqual(indices,[...indices].sort((a,b)=>a-b),'reference CSS must load last');
+ assert.match(html,/\/app\/app\.css\?v=20261005-v1/);
+ assert.doesNotMatch(html,/\/app\/(?:site|premium|luxury-buttons|maison-luxe|maison-reference)\.css/);
  assert.match(html,/Tu taller,<br><em>al día\.<\/em>/);
  assert.match(html,/class="dashboard-orders-panel"/);
  assert.match(html,/id="recent-orders"/);
@@ -23,9 +21,9 @@ test('dashboard reproduces reference structure with real interactive controls',a
  assert.match(html,/id="global-error"/);
 });
 test('golden reference artwork stays local with responsive and accessible rules',async()=>{
- const css=await file('maison-reference.css');
+ const css=await file('app.css');
  const assets=[...css.matchAll(/data:image\/webp;base64,([a-zA-Z0-9+/=]+)/g)].map(x=>x[1]);
- assert.equal(assets.length,2,'hero and mannequin crops');
+ assert.ok(assets.length>=2,'local visual artwork remains bundled');
  for(const asset of assets){
   assert.equal(asset.length%4,0);
   assert.ok(asset.startsWith('UklGR'),'WebP RIFF header encoded');
@@ -51,9 +49,10 @@ test('live KPI counts and client/order data are not replaced by mock numbers',as
  assert.match(js,/data-action="edit-/);
  assert.match(js,/data-action="delete-/);
 });
-test('secure BFF explicitly serves the new stylesheet',async()=>{
+test('secure BFF explicitly serves only the canonical application stylesheet',async()=>{
  const server=await fs.readFile(new URL('../server.mjs',import.meta.url),'utf8');
- assert.match(server,/pathname==='\/app\/maison-reference\.css'/);
- assert.match(server,/staticFile\(res,'maison-reference\.css','text\/css; charset=utf-8'\)/);
+ assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/staticFile\(res,'app\.css','text\/css; charset=utf-8'\)/);
+ assert.doesNotMatch(server,/pathname==='\/app\/maison-reference\.css'/);
  assert.match(server,/img-src 'self' data:/);
 });
