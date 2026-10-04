@@ -70,7 +70,7 @@ export function createConfirmationDialog(doc = document) {
     backdropStart = false;
   });
   return function ask({title: heading = "Confirmar acción", message: warning,
-    confirmLabel = "Eliminar", danger = true,
+    confirmLabel = "Eliminar", danger = true, cancelLabel = "Cancelar",
     alternativeLabel = "", alternativeDanger = true, alternativeValue = "alternative"} = {}) {
     // Fail closed: a second action cannot replace the record being confirmed.
     if (pending) return Promise.resolve(false);
@@ -78,6 +78,7 @@ export function createConfirmationDialog(doc = document) {
     message.textContent = warning || "¿Quieres continuar con esta acción?";
     accept.textContent = confirmLabel;
     accept.classList.toggle("danger", danger);
+    cancel.textContent = cancelLabel;
     alternative.hidden = !alternativeLabel;
     alternative.textContent = alternativeLabel;
     alternativeResult = String(alternativeValue || "alternative");
