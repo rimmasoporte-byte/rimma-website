@@ -264,3 +264,30 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
 @media(min-width:1321px){.v3-copy h1{font-size:clamp(60px,4.6vw,70px)}}
 @media(max-width:374px){.header-inner{gap:3px}.header-login{padding:0 9px;min-height:39px}.header-login-text{display:none}.header-login:before{content:'Demo';font:700 11px var(--sans)}.header-actions{gap:5px}}
 
+
+
+/* Spain regional language picker */
+.public-locale-switch{display:flex;align-items:center}
+.public-locale-select{
+ min-height:42px;
+ max-width:138px;
+ padding:0 30px 0 11px;
+ border:1px solid #ded5c7;
+ border-radius:8px;
+ background:#fffdf9;
+ color:#4b493f;
+ font:700 10px/1 var(--sans);
+ letter-spacing:.15px;
+ cursor:pointer;
+ outline:none
+}
+.public-locale-select:focus{border-color:#aa8755;box-shadow:0 0 0 3px #aa87551c}
+@media(max-width:1050px){
+ .public-locale-select{max-width:112px;min-height:40px;padding-left:8px;font-size:9px}
+}
+@media(max-width:600px){
+ .public-locale-select{max-width:92px;min-height:38px;padding:0 24px 0 7px;font-size:8px}
+}
+@media(max-width:374px){
+ .public-locale-select{max-width:76px;padding-left:5px;font-size:7px}
+}
