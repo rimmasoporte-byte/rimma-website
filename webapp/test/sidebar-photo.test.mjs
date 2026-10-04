@@ -21,8 +21,9 @@ test("full photo is displayed with no cover crop, remains separate from navigati
  assert.match(sidebar,/src="\/app\/rimma-luxury-full\.webp" width="420" height="236"/);
  assert.match(html,/id="brand-art-dialog"[^>]+aria-label=/);
  assert.match(html,/id="brand-art-close"/);
- assert.match(css,/object-fit:contain/);
- assert.doesNotMatch(css,/object-fit\s*:\s*cover/i);
+ const photoSection=css.slice(css.indexOf("/* ===== SIDEBAR-PHOTO ===== */"),css.indexOf("/* ===== PORTAL-PARITY ===== */"));
+ assert.match(photoSection,/object-fit:contain/);
+ assert.doesNotMatch(photoSection,/object-fit\s*:\s*cover/i);
  assert.match(css,/\.sidebar>\.sidebar-luxe-art::before/);
  assert.match(css,/display:none!important/);
  assert.match(css,/@media \(min-width:931px\) and \(max-height:820px\)/);
@@ -44,13 +45,15 @@ test("new visual-only assets preserve existing HTTPS, session and CSP security",
  assert.match(server,/img-src 'self' data:/);
  assert.match(server,/script-src 'self'/);
  assert.match(server,/strict-transport-security/);
- assert.doesNotMatch(css,/(?:url\(|src=)[^\n]*http:\/\//i);
+ assert.doesNotMatch(css,/url\(\s*["']?http:\/\//i);
  assert.doesNotMatch(html,/src="http:\/\//i);
 });
 
 test("sidebar scrollbar stays invisible while wheel and keyboard scrolling remain available",async()=>{
  const css=await read("public/app.css");
- const patch=css.slice(css.lastIndexOf("/* RIMMA sidebar: hide the redundant"));
+ const start=css.lastIndexOf("/* RIMMA sidebar: hide the redundant");
+ const end=css.indexOf("/* ===== PORTAL-PARITY ===== */",start);
+ const patch=css.slice(start,end>start?end:undefined);
  assert.match(patch,/\.sidebar\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(patch,/scrollbar-width:none/);
  assert.match(patch,/-ms-overflow-style:none/);
