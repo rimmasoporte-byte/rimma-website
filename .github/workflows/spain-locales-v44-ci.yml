@@ -34,6 +34,9 @@ jobs:
           node --check webapp/signup.mjs
       - name: Test public site locale surface
         run: node --test deploy-tests/site.test.mjs
+      - name: Install webapp dependencies
+        working-directory: webapp
+        run: npm ci
       - name: Test Spain portal localization
         working-directory: webapp
         run: node --test test/brazil-localization.test.mjs test/international-localization.test.mjs test/signup.test.mjs
