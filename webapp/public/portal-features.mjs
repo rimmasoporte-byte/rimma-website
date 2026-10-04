@@ -226,36 +226,78 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    b("×","measure-remove",'aria-label="Quitar medida"')+'</div>';
  async function openPayments(orderId){
   if(!uuid(orderId)){globalError("Selecciona un pedido válido.");return;}
-  const data=await api("/orders/"+encodeURIComponent(orderId)+"/payments");
-  const payments=data.payments||[],s=data.summary||{};
-  selected={orderId,summary:s};
+  const [paymentData,orderData]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
+   api("/orders/"+encodeURIComponent(orderId))
+  ]);
+  const payments=paymentData.payments||[],summary=paymentData.summary||{},order=orderData.order||{};
+  selected={orderId,summary,order};
+  const statusLabel={pending:"Pendiente",confirmed:"Confirmado",cancelled:"Anulado",failed:"Fallido",refunded:"Devuelto"};
+  const history=payments.length?payments.map(p=>
+   '<article class="payment-history-row"><div><strong>'+esc(money(p.amountMinor,p.currencyCode))+
+   ' · '+esc((methods.find(m=>m[0]===p.method)||["",p.method])[1])+'</strong>'+
+   '<small>'+esc(statusLabel[p.status]||p.status)+' · '+esc(localDateTime(p.confirmedAt||p.cancelledAt||p.createdAt))+'</small>'+
+   (p.cancellationReason?'<small>Motivo: '+esc(p.cancellationReason)+'</small>':"")+'</div>'+
+   '<div class="feature-inline">'+
+   (p.status==="pending"?b("Confirmar cobro","payment-confirm",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"')+
+    b("Anular","payment-cancel",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"'):"")+
+   '</div></article>'
+  ).join(""):'<p class="feature-muted">Todavía no hay cobros registrados.</p>';
+
   layout("payments-list","Cobros del pedido",
-   '<div class="feature-summary"><div><small>Total del pedido</small><strong>'+esc(money(s.totalMinor,s.currencyCode))+'</strong></div>'+
-   '<div><small>Confirmado</small><strong>'+esc(money(s.confirmedPaidMinor,s.currencyCode))+'</strong></div>'+
-   '<div><small>Pendiente de cobrar</small><strong>'+esc(money(s.remainingMinor,s.currencyCode))+'</strong></div></div>'+
-   '<p class="feature-muted">Registrar un cobro manual no procesa un pago online. Los cobros nuevos quedan pendientes hasta que los confirmes.</p>'+
-   (payments.length?payments.map(p=>'<div class="feature-ledger"><strong>'+esc(money(p.amountMinor,p.currencyCode))+
-    ' · '+esc((methods.find(m=>m[0]===p.method)||["",p.method])[1])+'</strong><small>Estado: '+
-    esc(({pending:"Pendiente",confirmed:"Confirmado",cancelled:"Cancelado",failed:"Fallido",refunded:"Devuelto"})[p.status]||p.status)+'</small>'+
-    (p.status==="pending"?b("Confirmar","payment-confirm",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"')+
-      b("Cancelar","payment-cancel",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"'):"")+'</div>').join(""):'<p>Todavía no hay cobros.</p>')+
-   (Number(s.remainingMinor)>0?'<div class="feature-bottom">'+b("+ Registrar cobro manual","payment-new")+'</div>':""),null);
+   '<div class="feature-summary"><div><small>Total del pedido</small><strong>'+esc(money(summary.totalMinor,summary.currencyCode))+'</strong></div>'+
+   '<div><small>Cobrado</small><strong>'+esc(money(summary.confirmedPaidMinor,summary.currencyCode))+'</strong></div>'+
+   '<div><small>Saldo pendiente</small><strong>'+esc(money(summary.remainingMinor,summary.currencyCode))+'</strong></div></div>'+
+   (summary.fullyPaid?'<div class="feature-success-note">✓ Pedido totalmente pagado</div>':"")+
+   (Number(summary.pendingMinor)>0?'<p class="feature-muted">Hay '+esc(money(summary.pendingMinor,summary.currencyCode))+' registrado como cobro pendiente de confirmación.</p>':"")+
+   '<section class="feature-section"><h3>Historial de cobros</h3>'+history+'</section>'+
+   (Number(summary.remainingMinor)>0?'<div class="feature-bottom payment-actions">'+
+     b("+ Registrar cobro recibido","payment-new",'data-status="confirmed"')+
+     b("Registrar cobro pendiente","payment-new",'data-status="pending"')+
+    '</div>':""),
+   null);
  }
- async function newPayment(){
+
+ async function newPayment(status="confirmed"){
   if(!uuid(selected?.orderId))return;
   const orderId=selected.orderId;
-  const paymentData=await api("/orders/"+encodeURIComponent(orderId)+"/payments");
-  const s=paymentData.summary||{};
-  const items=(s.items||[]).filter(x=>Number(x.remainingMinor)>0);
-  if(!items.length){globalError("No queda saldo pendiente para registrar.");return;}
-  layout("payment-new","Registrar cobro manual",
-   '<p class="feature-muted">El registro se guardará como pendiente. Confírmalo después de recibir efectivamente el dinero.</p>'+
-   '<div class="feature-fields">'+select("orderItemId","Prenda *",choice(items[0].orderItemId,items.map(i=>[i.orderItemId,i.name+" · "+money(i.remainingMinor,s.currencyCode)])))+
-   field("amount","Importe *","number",'min="0.01" step="0.01" required value="'+(items[0].remainingMinor/100).toFixed(2)+'"')+
-   select("method","Método de cobro",choice("cash",methods))+
-   textarea("notes","Notas",5000)+'</div>');
-  selected={orderId,summary:s,items};
+  const [paymentData,orderData]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
+   api("/orders/"+encodeURIComponent(orderId))
+  ]);
+  const summary=paymentData.summary||{},order=orderData.order||{};
+  const available=Math.max(0,Number(summary.remainingMinor||0)-Number(summary.pendingMinor||0));
+  if(available<=0){globalError("No queda saldo disponible para registrar.");return;}
+  const clientName=order.client?.name||"Cliente";
+  const orderNumber=String(order.orderNumber||"").padStart(4,"0");
+  const pending=status==="pending";
+  selected={orderId,summary,order,paymentStatus:pending?"pending":"confirmed"};
+  layout("payment-new",pending?"Registrar cobro pendiente":"Registrar cobro recibido",
+   '<div class="feature-context"><strong>Pedido #'+esc(orderNumber)+' · '+esc(clientName)+'</strong>'+
+   '<span>Saldo disponible: '+esc(money(available,summary.currencyCode))+'</span></div>'+
+   '<p class="feature-muted">'+(pending
+    ?"Úsalo solo cuando el dinero todavía no haya llegado. El saldo no se considerará cobrado hasta confirmarlo."
+    :"Registra únicamente dinero que ya hayas recibido. RIMMA actualizará el saldo al confirmar.")+'</p>'+
+   '<div class="feature-fields">'+
+   field("amount","Importe *","number",'min="0.01" max="'+(available/100).toFixed(2)+'" step="0.01" required value="'+(available/100).toFixed(2)+'"')+
+   select("method","Método de cobro *",choice(pending?"bank_transfer":"cash",methods))+
+   '<div class="feature-readonly"><small>Fecha y hora</small><strong>'+esc(localDateTime(new Date().toISOString()))+'</strong></div>'+
+   textarea("notes","Notas (opcional)",5000)+'</div>',
+   pending?"Guardar como pendiente":"Continuar");
  }
+
+ function cancelPaymentForm(payment){
+  if(!uuid(selected?.orderId)||!payment?.id)return;
+  selected={...selected,cancelPayment:payment};
+  layout("payment-cancel","Anular cobro pendiente",
+   '<div class="feature-context"><strong>'+esc(money(payment.amountMinor,selected.summary?.currencyCode||L.currency))+
+   ' · '+esc((methods.find(m=>m[0]===payment.method)||["",payment.method])[1])+'</strong>'+
+   '<span>Este registro pendiente se conservará en el historial como anulado.</span></div>'+
+   '<div class="feature-fields">'+textarea("cancellationReason","Motivo de la anulación *",500)+'</div>',
+   "Anular cobro");
+  submit().classList.add("danger");
+ }
+
  async function openWhatsApp(orderId){
   if(!uuid(orderId)){globalError("Pedido inválido.");return;}
   const data=(await api("/orders/"+encodeURIComponent(orderId)+"/whatsapp")).whatsapp||{};
@@ -1239,17 +1281,48 @@ function newPhoto(){
      unit:get("unit"),notes:get("notes").trim()||null,measurements})});
    close();await openMeasurements(clientId);success("Nueva ficha de medidas guardada.");
   }else if(mode==="payment-new"){
-   const orderId=selected.orderId,itemId=get("orderItemId"),amountMinor=moneyMinor(get("amount"));
-   const item=selected.items.find(i=>i.orderItemId===itemId);
-   if(!item||amountMinor>item.remainingMinor)throw Error("El importe excede el saldo de la prenda.");
-   const paymentBody=JSON.stringify({amountMinor,currencyCode:selected.summary.currencyCode,
-    method:get("method"),notes:get("notes").trim()||null,
-    allocations:[{orderItemId:itemId,amountMinor}]});
+   const orderId=selected.orderId,amountMinor=moneyMinor(get("amount"));
+   const available=Math.max(0,Number(selected.summary.remainingMinor||0)-Number(selected.summary.pendingMinor||0));
+   if(amountMinor>available)throw Error("El importe excede el saldo disponible del pedido.");
+   const method=get("method"),status=selected.paymentStatus==="pending"?"pending":"confirmed";
+   if(status==="confirmed"){
+    const approved=await confirmAction({
+     title:"Confirmar cobro",
+     message:"Has recibido "+money(amountMinor,selected.summary.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+". Esta operación actualizará el saldo del pedido.",
+     cancelLabel:"Volver",
+     confirmLabel:"Confirmar cobro",
+     danger:false
+    });
+    if(!approved)return;
+   }
+   const paymentBody=JSON.stringify({
+    amountMinor,
+    currencyCode:selected.summary.currencyCode,
+    method,
+    status,
+    notes:get("notes").trim()||null
+   });
    const retry=paymentRetry(orderId,paymentBody);
-   await api("/orders/"+encodeURIComponent(orderId)+"/payments",{method:"POST",
-    headers:{"Idempotency-Key":retry.key},body:paymentBody});
+   await api("/orders/"+encodeURIComponent(orderId)+"/payments",{
+    method:"POST",headers:{"Idempotency-Key":retry.key},body:paymentBody
+   });
    clearPaymentRetry(retry);
-   close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
+   await openPayments(orderId);
+   await refreshOrders();
+   success(status==="confirmed"?"Cobro confirmado.":"Cobro registrado como pendiente.");
+  }else if(mode==="payment-cancel"){
+   const payment=selected.cancelPayment;
+   const reason=get("cancellationReason").trim();
+   if(!payment||!uuid(payment.id))throw Error("Actualiza los cobros e inténtalo de nuevo.");
+   if(!reason)throw Error("Indica el motivo de la anulación.");
+   const orderId=selected.orderId;
+   await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(payment.id),{
+    method:"PATCH",
+    body:JSON.stringify({expectedVersion:Number(payment.version),status:"cancelled",cancellationReason:reason})
+   });
+   await openPayments(orderId);
+   await refreshOrders();
+   success("Cobro pendiente anulado.");
   }else if(mode==="garment-works-edit"){
    if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
    const rows=[...dlg.querySelectorAll("[data-work-edit-row]")];
@@ -1319,10 +1392,6 @@ function newPhoto(){
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
   if(mode==="business-profile"&&(e.target.id==="fx-taxTerritory"||e.target.id==="fx-jurisdiction"))syncBusinessProfileForm(e.target.name);
   if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
-  if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
-   const i=selected.items.find(x=>x.orderItemId===e.target.value);
-   if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
-  }
   if(mode==="garment-works-edit"&&e.target.matches('[name="workService"]')){
    const row=e.target.closest("[data-work-edit-row]");
    const service=(selected?.workServices||[]).find(item=>item.id===e.target.value);
@@ -1373,16 +1442,32 @@ function newPhoto(){
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
   if(action==="order-payments")return void safe(async()=>openPayments(id));
   if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
-  if(action==="payment-new")return void safe(newPayment);
-  if(action==="payment-confirm"||action==="payment-cancel"){
-   const next=action==="payment-confirm"?"confirmed":"cancelled",orderId=selected.orderId;
+  if(action==="payment-new")return void safe(()=>newPayment(el.dataset.status||"confirmed"));
+  if(action==="payment-cancel"){
+   return cancelPaymentForm({
+    id,version,
+    amountMinor:Number(el.dataset.amount||0),
+    method:el.dataset.method||"other"
+   });
+  }
+  if(action==="payment-confirm"){
+   const orderId=selected.orderId;
    return void safe(async()=>{
-    if(!await confirmAction({title:next==="confirmed"?"Confirmar cobro":"Cancelar cobro pendiente",
-     message:next==="confirmed"?"¿Has recibido realmente este cobro? La confirmación modificará el saldo del pedido.":"¿Cancelar este registro de cobro pendiente?",
-     confirmLabel:next==="confirmed"?"Confirmar cobro":"Cancelar cobro",danger:next!=="confirmed"}))return;
+    const amount=Number(el.dataset.amount||0);
+    const method=el.dataset.method||"other";
+    const approved=await confirmAction({
+     title:"Confirmar cobro",
+     message:"¿Has recibido realmente "+money(amount,selected.summary?.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+"? La confirmación modificará el saldo del pedido.",
+     cancelLabel:"Volver",
+     confirmLabel:"Confirmar cobro",
+     danger:false
+    });
+    if(!approved)return;
     await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(id),{
-     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:next})});
-    close();await openPayments(orderId);await refreshOrders();success(next==="confirmed"?"Cobro confirmado.":"Cobro pendiente cancelado.");
+     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"confirmed"})});
+    await openPayments(orderId);
+    await refreshOrders();
+    success("Cobro confirmado.");
    });
   }
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
