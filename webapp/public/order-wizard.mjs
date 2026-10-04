@@ -201,13 +201,16 @@ export function createOrderWizard({
     const input=fields.querySelector("#ow-client-search");
     if(!holder||!input)return;
     const query=String(input.value||"").trim();
-    const shouldOpen=document.activeElement===input&&(query.length>0||clientSearchBusy);
+    const shouldOpen=!state.clientId&&document.activeElement===input&&(query.length>0||clientSearchBusy);
     holder.hidden=!shouldOpen;
     input.setAttribute("aria-expanded",shouldOpen?"true":"false");
     holder.innerHTML=shouldOpen?clientResultsMarkup():"";
   }
   function selectClient(client){
     if(!client||!UUID.test(String(client.id||"")))return;
+    clearTimeout(clientSearchTimer);
+    clientSearchSeq++;
+    clientSearchBusy=false;
     state.clientId=client.id;
     state.clientLabel=String(client.name||"Cliente");
     clientMatches=[];
@@ -697,13 +700,26 @@ export function createOrderWizard({
       modal.close();
       return;
     }
-    persist();
-    const approved=await confirmAction({
+    const decision=await confirmAction({
       title:"Cerrar nuevo pedido",
-      message:"El pedido aún no está creado. Guardaremos este borrador en esta pestaña para que puedas continuarlo después.",
-      confirmLabel:"Cerrar y conservar borrador"
+      message:"El pedido aún no está creado. Puedes conservar el borrador para continuarlo después o salir sin guardarlo.",
+      confirmLabel:"Cerrar y conservar borrador",
+      danger:false,
+      alternativeLabel:"Cerrar sin guardar",
+      alternativeDanger:true,
+      alternativeValue:"discard"
     });
-    if(approved)modal.close();
+    if(decision==="discard"){
+      clearDraft();
+      dirty=false;
+      state=blankState(locale?.currency||"EUR");
+      modal.close();
+      return;
+    }
+    if(decision===true){
+      persist();
+      modal.close();
+    }
   }
   function backStep(){
     if(active&&!busy&&!created&&state.step>0){
@@ -788,6 +804,8 @@ export function createOrderWizard({
       const value=String(target.value||"");
       if(state.clientId&&value.trim()!==state.clientLabel){
         clearClientSelection({keepQuery:true});
+        fields.querySelector(".wizard-client-confirmation")?.remove();
+        target.setAttribute("aria-expanded","false");
       }
       clearTimeout(clientSearchTimer);
       clientSearchTimer=setTimeout(()=>void searchClients(value),220);

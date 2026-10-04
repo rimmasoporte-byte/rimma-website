@@ -15,6 +15,7 @@ export function createConfirmationDialog(doc = document) {
       <div class="brand-dialog-body"><p id="confirm-message"></p></div>
       <footer class="brand-dialog-actions">
         <button type="button" class="secondary" id="confirm-cancel" autofocus>Cancelar</button>
+        <button type="button" class="secondary danger" id="confirm-alternative" hidden>Salir sin guardar</button>
         <button type="button" class="primary danger" id="confirm-ok">Eliminar</button>
       </footer>
     </div>`;
@@ -22,20 +23,23 @@ export function createConfirmationDialog(doc = document) {
   const title = dialog.querySelector("#confirm-title");
   const message = dialog.querySelector("#confirm-message");
   const cancel = dialog.querySelector("#confirm-cancel");
+  const alternative = dialog.querySelector("#confirm-alternative");
   const accept = dialog.querySelector("#confirm-ok");
   const close = dialog.querySelector(".brand-dialog-close");
   let pending = null;
   let backdropStart = false;
-  function finish(accepted = false) {
+  let alternativeResult = "alternative";
+  function finish(result = false) {
     if (!pending) return;
     const resolve = pending;
     pending = null;
     backdropStart = false;
     if (dialog.open) dialog.close();
-    resolve(accepted);
+    resolve(result);
   }
   cancel.addEventListener("click", () => finish(false));
   close.addEventListener("click", () => finish(false));
+  alternative.addEventListener("click", () => finish(alternativeResult));
   accept.addEventListener("click", () => finish(true));
   dialog.addEventListener("cancel", event => {
     event.preventDefault();
@@ -66,13 +70,18 @@ export function createConfirmationDialog(doc = document) {
     backdropStart = false;
   });
   return function ask({title: heading = "Confirmar acción", message: warning,
-    confirmLabel = "Eliminar", danger = true} = {}) {
+    confirmLabel = "Eliminar", danger = true,
+    alternativeLabel = "", alternativeDanger = true, alternativeValue = "alternative"} = {}) {
     // Fail closed: a second action cannot replace the record being confirmed.
     if (pending) return Promise.resolve(false);
     title.textContent = heading;
     message.textContent = warning || "¿Quieres continuar con esta acción?";
     accept.textContent = confirmLabel;
     accept.classList.toggle("danger", danger);
+    alternative.hidden = !alternativeLabel;
+    alternative.textContent = alternativeLabel;
+    alternativeResult = String(alternativeValue || "alternative");
+    alternative.classList.toggle("danger", Boolean(alternativeDanger));
     return new Promise((resolve, reject) => {
       pending = resolve;
       try {

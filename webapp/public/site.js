@@ -9,6 +9,16 @@ const tr=(es,pt)=>L.isPt?pt:es;
 const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency}).format(Number(value||0)/100);
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
 const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
+const currentCountry=()=>{
+ const explicit=String(new URLSearchParams(location.search).get("country")||"").trim().toUpperCase();
+ if(explicit)return explicit;
+ return String(L.locale||"").toLowerCase()==="es-es"?"ES":"";
+};
+const newClientPhonePrefix=()=>currentCountry()==="ES"?"+34 ":"";
+const normalizedNewClientPhone=value=>{
+ const phone=String(value||"").trim();
+ return currentCountry()==="ES"&&phone==="+34"?"":phone;
+};
 const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
 const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",citas:tr("Citas","Citas"),clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
 const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
@@ -18,7 +28,7 @@ let checkoutHandled=false;
 let returnToOrderAfterClient=false,pendingOrderClientId="";
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
-const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
+const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261004-v69").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
 const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
@@ -27,7 +37,7 @@ const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>m
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261004-v68").then(module=>module.createOrderWizard({
+const orderWizard=import("/app/order-wizard.mjs?v=20261004-v69").then(module=>module.createOrderWizard({
  api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
  onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
  onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
@@ -668,7 +678,7 @@ function openModal(type,record=null,options={}){
  box.dataset.catalog="";
  if(type==="client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Nuevo cliente";
-  box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+  box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel" inputmode="tel" value="'+esc(newClientPhonePrefix())+'" placeholder="+34 600 000 000"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
  }
  if(type==="order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";
@@ -760,7 +770,7 @@ async function saveModal(event){
  const get=k=>form.elements.namedItem(k)?.value??"";
  try {
   if(activeModal==="client"){
-   const result=await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()})});
+   const result=await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:normalizedNewClientPhone(get("phone")),email:get("email").trim(),notes:get("notes").trim()})});
    const resumeOrder=returnToOrderAfterClient===true;
    if(resumeOrder){
     pendingOrderClientId=result?.client?.id||"";

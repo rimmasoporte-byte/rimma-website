@@ -113,3 +113,28 @@ test("Tab and Shift+Tab wrap at the dialog edges without approving an action", a
   h.event(h.get("#confirm-cancel"),"click");
   assert.equal(await answer,false);
 });
+
+
+test("optional third action resolves its explicit value and resets on the next prompt", async () => {
+  const h = harness();
+  const answer = h.ask({
+    title: "Cerrar nuevo pedido",
+    confirmLabel: "Cerrar y conservar borrador",
+    danger: false,
+    alternativeLabel: "Cerrar sin guardar",
+    alternativeDanger: true,
+    alternativeValue: "discard"
+  });
+  const alternative = h.get("#confirm-alternative");
+  assert.equal(alternative.hidden, false);
+  assert.equal(alternative.textContent, "Cerrar sin guardar");
+  assert.equal(alternative.classes.has("danger"), true);
+  assert.equal(h.get("#confirm-ok").classes.has("danger"), false);
+  h.event(alternative, "click");
+  assert.equal(await answer, "discard");
+
+  const next = h.ask({title: "Eliminar cliente"});
+  assert.equal(h.get("#confirm-alternative").hidden, true);
+  h.event(h.get("#confirm-cancel"), "click");
+  assert.equal(await next, false);
+});

@@ -298,6 +298,14 @@ button:disabled,.feature-button[disabled]{
    confirmation visibly distinct without changing other primary buttons. */
 .brand-dialog .primary.danger{background:#813d35!important;border-color:#b17d61!important;color:#fffdfa}
 .brand-dialog .primary.danger:hover{background:#6c302a!important}
+.brand-dialog .secondary.danger{
+ color:#813d35!important;border-color:#c99a8d!important;background:#fff9f6!important
+}
+.brand-dialog .secondary.danger:hover{background:#faeee9!important;border-color:#b77768!important}
+.brand-dialog-actions:has(#confirm-alternative:not([hidden])){
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)
+}
+.brand-dialog-actions:has(#confirm-alternative:not([hidden])) #confirm-ok{grid-column:1/-1}
 .feature-fields{
  display:grid;
  grid-template-columns:minmax(110px,30%) minmax(0,1fr);
