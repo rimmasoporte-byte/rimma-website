@@ -391,7 +391,7 @@ async function loadToday(){
  if(today.status==="fulfilled"){
   const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
   $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
-  $("#unpaid-count").textContent=n(s.unpaidBalance);$("#appointments-count").textContent=n(s.appointmentsToday);$("#overloaded-count").textContent=n(s.overloadedWorkers);
+  $("#unpaid-count").textContent=n(s.unpaidBalance);
   const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):lt("Sin cobros pendientes");
   $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
   const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
