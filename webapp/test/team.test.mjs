@@ -86,3 +86,11 @@ test('portal presents one location and a three-person team instead of branch cre
   assert.match(js,/Propietario · trabajador/);
   assert.match(js,/"Empleado"/);
 });
+
+
+test('team invite submit handler is bound to the form so form.elements is defined',()=>{
+  const source=fs.readFileSync(new URL('../public/team-view.mjs',import.meta.url),'utf8');
+  assert.match(source,/querySelector\("#team-invite-form"\)\.addEventListener\("submit"/);
+  assert.doesNotMatch(source,/dialog\.addEventListener\("submit"/);
+  assert.match(source,/event\.currentTarget instanceof HTMLFormElement/);
+});
