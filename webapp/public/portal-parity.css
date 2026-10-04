@@ -1769,3 +1769,23 @@ button:disabled,.feature-button[disabled]{
    font-size:31px
  }
 }
+
+
+/* V53 — stable KPI numerals: no visual jump when values load or change. */
+#view-inicio #today-cards .atelier-kpi>strong{
+ display:inline-block;
+ min-inline-size:3ch;
+ font-family:var(--font);
+ font-size:32px;
+ font-weight:650;
+ line-height:1;
+ letter-spacing:-.35px;
+ font-variant-numeric:tabular-nums lining-nums;
+ font-feature-settings:"tnum" 1,"lnum" 1;
+ color:#16281f
+}
+#view-inicio #today-cards .atelier-kpi.dark>strong{color:#fff8e9}
+#view-inicio #today-cards .atelier-kpi.danger>strong{color:#9a3c31}
+@media(max-width:720px){
+ #view-inicio #today-cards .atelier-kpi>strong{font-size:30px}
+}
