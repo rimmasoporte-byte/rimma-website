@@ -15,6 +15,16 @@ test('language picker is Spain-only and includes the regional languages',()=>{
     assert.match(picker,new RegExp(label));
 });
 
+test('mobile topbar language picker uses compact labels without losing full language names',()=>{
+  const picker=read('public/locale-picker.js');
+  for(const shortLabel of ["'ES'","'CAT'","'VAL'","'EUS'","'GAL'"])
+    assert.ok(picker.includes(shortLabel),shortLabel);
+  for(const fullLabel of ['ES · Español','CAT · Català','VAL · Valencià','EUS · Euskara','GAL · Galego'])
+    assert.ok(picker.includes(fullLabel),fullLabel);
+  assert.match(picker,/matchMedia\('\(max-width:700px\)'\)/);
+  assert.match(picker,/select\.closest\('\.topbar-locale'\)/);
+});
+
 test('portal language picker lives in the top bar, not the sidebar footer',()=>{
   const html=read('public/index.html');
   assert.match(html,/class="locale-switch locale-switch-select topbar-locale"/);
