@@ -127,7 +127,7 @@ async function createClientProtected(form){
   try{
    return await api("/clients",{method:"POST",body:JSON.stringify({...base,allowDuplicate})});
   }catch(error){
-   if(error.status===409&&error.message==="CLIENT_DUPLICATE"&&!allowDuplicate){
+   if(error.status===409&&(error.code==="CLIENT_DUPLICATE"||error.message==="CLIENT_DUPLICATE")&&!allowDuplicate){
     continue;
    }
    throw error;
@@ -197,8 +197,8 @@ async function request(url,options={}){
  if(!response.ok){
   const source=result.error||result.message||"No se pudo completar la solicitud.";
   const raw=L.translate?L.translate(source):source;
-  const error=new Error(raw);error.status=response.status;
-  if(response.status===403&&raw==="SUBSCRIPTION_REQUIRED"){
+  const error=new Error(raw);error.status=response.status;error.code=result.code||null;
+  if(response.status===403&&(result.code==="SUBSCRIPTION_REQUIRED"||raw==="SUBSCRIPTION_REQUIRED")){
    applySubscriptionLockUi(true);
    error.message="Tu periodo de prueba ha terminado. Suscríbete para continuar trabajando con tu taller.";
    if($("#portal")&&!$("#portal").hidden)setTimeout(()=>go("suscripcion"),0);

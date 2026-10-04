@@ -182,6 +182,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/Usar cliente existente/);
  assert.match(js,/Crear de todos modos/);
  assert.match(js,/allowDuplicate/);
+ assert.match(js,/error\.code=result\.code\|\|null/);
+ assert.match(js,/error\.code==="CLIENT_DUPLICATE"/);
  assert.match(js,/client-duplicate-warning/);
  assert.match(css,/\.client-duplicate-warning\{/);
  assert.match(js,/if\(activeModal==="order"\|\|\$\("#modal"\)\.classList\.contains\("order-wizard-modal"\)\)/);
@@ -267,7 +269,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-v71/);
+  assert.match(html,/site\.js\?v=20261004-v72/);
   assert.match(html,/site\.css\?v=20261004-v64/);
   assert.match(html,/portal-parity\.css\?v=20261004-v71/);
   assert.match(css,/scrollbar-width:none/);
