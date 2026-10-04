@@ -15,6 +15,18 @@ test('language picker is Spain-only and includes the regional languages',()=>{
     assert.match(picker,new RegExp(label));
 });
 
+test('portal language picker lives in the top bar, not the sidebar footer',()=>{
+  const html=read('public/index.html');
+  assert.match(html,/class="locale-switch locale-switch-select topbar-locale"/);
+  assert.doesNotMatch(html,/class="locale-switch locale-switch-select portal-locale"/);
+  const topbar=html.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1]||'';
+  assert.match(topbar,/app-locale-select/);
+  const sidebarBottom=html.match(/<div class="sidebar-bottom">([\s\S]*?)<\/div>/)?.[1]||'';
+  assert.doesNotMatch(sidebarBottom,/app-locale-select/);
+  const css=read('public/portal-parity.css');
+  assert.match(css,/\.topbar-locale/);
+});
+
 test('regional locale layer covers the main atelier workflow',()=>{
   const locale=read('public/locale-intl.js');
   for(const phrase of [
