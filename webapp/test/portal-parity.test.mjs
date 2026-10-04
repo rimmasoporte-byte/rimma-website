@@ -202,7 +202,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v42/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v50/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v51/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -220,6 +220,12 @@ test("dashboard KPI strip stays compact and uses a consistent icon system",async
  assert.equal((kpiBlock.match(/<svg viewBox="0 0 24 24">/g)||[]).length,6);
 });
 
+test("dashboard KPI typography is readable without increasing card size",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?font-size:11px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:12px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?font-size:11px/);
+});
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
  const oldDoc=globalThis.document;
  const scenarios=[
