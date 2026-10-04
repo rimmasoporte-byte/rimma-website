@@ -201,27 +201,36 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-dashboard58/);
-  assert.match(html,/portal-parity\.css\?v=20261004-mobile59/);
+  assert.match(html,/site\.js\?v=20261004-core60/);
+  assert.match(html,/portal-parity\.css\?v=20261004-core60/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
 });
 
-test("V59 replaces legacy dashboard override layers with one consolidated system",async()=>{
+test("V60 keeps one consolidated dashboard system with four core KPIs",async()=>{
  const css=await source("public/portal-parity.css");
  for(const legacy of ["V47 —","V48 —","V49 —","V50 —","V51 —","V52 —","V53 —","V54 —","V55 —","V56 —","V57 —","V58 —"])
   assert.doesNotMatch(css,new RegExp(legacy.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
- assert.match(css,/V59 — consolidated dashboard system/);
+ assert.match(css,/V60 — four core KPIs/);
 });
 
 test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped actions",async()=>{
  const css=await source("public/portal-parity.css");
  const html=await source("public/index.html");
+ assert.match(css,/#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  const kpiBlock=html.match(/<div class="atelier-today-grid" id="today-cards">([\s\S]*?)<\/div>/)?.[1]||"";
- assert.equal((kpiBlock.match(/class="metric-icon"/g)||[]).length,6);
- assert.equal((kpiBlock.match(/<svg viewBox="0 0 24 24">/g)||[]).length,6);
+ assert.equal((kpiBlock.match(/class="metric-icon"/g)||[]).length,4);
+ assert.equal((kpiBlock.match(/<svg viewBox="0 0 24 24">/g)||[]).length,4);
  assert.match(html,/class="kpi-helper kpi-helper-stack"><span>Entrega hoy<\/span><span>Esta semana: <b id="week-count">—<\/b><\/span>/);
+ assert.match(html,/>HOY<\/span><strong id="due-count"/);
+ assert.match(html,/>POR COBRAR<\/span><strong id="unpaid-count"/);
+ assert.doesNotMatch(kpiBlock,/CITAS HOY|CARGA DEL EQUIPO|appointments-count|overloaded-count/);
+ assert.doesNotMatch(html,/id="appointments-count"|id="overloaded-count"/);
+ const js=await source("public/site.js");
+ assert.doesNotMatch(js,/\$\("#appointments-count"\)|\$\("#overloaded-count"\)/);
+ assert.doesNotMatch(css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+ assert.match(kpiBlock,/data-view="pedidos"[\s\S]*?POR COBRAR[\s\S]*?Ver pedidos/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?padding:12px 16px[\s\S]*?grid-template-rows:34px 34px minmax\(40px,1fr\) 18px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font:650 32px\/1 var\(--font\)[\s\S]*?font-variant-numeric:tabular-nums lining-nums/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?position:static[\s\S]*?display:inline-flex[\s\S]*?white-space:nowrap/);
