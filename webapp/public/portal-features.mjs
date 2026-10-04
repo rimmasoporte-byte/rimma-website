@@ -967,14 +967,14 @@ function newPhoto(){
 
   const payOptions=confirmedPayments.map(payment=>[
    payment.id,
-   money(payment.amountMinor,payment.currencyCode)+" · "+String(payment.method||"")+" · "+String(payment.confirmedAt||payment.createdAt||"").slice(0,10)
+   money(payment.amountMinor,payment.currencyCode)+" · "+String(payment.method||"")+" · "+localDate(payment.confirmedAt||payment.createdAt)
   ]);
   const paymentSelect=payOptions.length
    ? '<div class="atelier-doc-payment"><label for="fx-documentPaymentId">Pago para el recibo</label><select id="fx-documentPaymentId" name="documentPaymentId">'+choice(payOptions[0][0],payOptions)+'</select></div>'
    : '<p class="feature-muted">No hay pagos confirmados para emitir un recibo.</p>';
   const language=profile.documentLanguage||"es";
   const history=docs.length
-   ? '<div class="atelier-doc-history">'+docs.map(doc=>'<div class="atelier-doc-row"><div><strong>'+esc(docTypeLabel(doc.documentType))+'</strong><small>'+esc(doc.documentNumber)+' · '+esc(String(doc.createdAt||"").slice(0,16).replace("T"," "))+'</small></div><button type="button" class="feature-button" data-feature="document-open" data-id="'+esc(doc.id)+'">Ver / imprimir</button></div>').join("")+'</div>'
+   ? '<div class="atelier-doc-history">'+docs.map(doc=>'<div class="atelier-doc-row"><div><strong>'+esc(docTypeLabel(doc.documentType))+'</strong><small>'+esc(doc.documentNumber)+' · '+esc(localDateTime(doc.createdAt))+'</small></div><button type="button" class="feature-button" data-feature="document-open" data-id="'+esc(doc.id)+'">Ver / imprimir</button></div>').join("")+'</div>'
    : '<p class="feature-muted">Todavía no hay documentos guardados para este pedido.</p>';
 
   layout("order-documents","Documentos del pedido #"+String(order.orderNumber||""),
