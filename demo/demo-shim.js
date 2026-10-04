@@ -8,31 +8,19 @@ const profiles={
  "es-ES":{country:"ES",currency:"EUR",workspace:"Atelier Ejemplo",user:"María",clients:[
   ["María García","+34 600 111 222","maria@example.invalid"],["Carlos Ruiz","+34 600 222 333","carlos@example.invalid"],["Sofía López","+34 600 333 444","sofia@example.invalid"]],
   items:["Arreglo de vestido","Bajo de pantalón","Cambio de cremallera"],categories:["Arreglos de ropa","Vestidos y prendas"],amounts:[3500,1500,1800]},
- "pt-BR":{country:"BR",currency:"BRL",workspace:"Ateliê Exemplo",user:"Mariana",clients:[
-  ["Mariana Oliveira","+55 11 91234-5678","mariana@example.invalid"],["Carlos Souza","+55 21 99876-5432","carlos@example.invalid"],["Ana Costa","+55 31 98888-7777","ana@example.invalid"]],
-  items:["Ajuste de vestido","Bainha de calça","Troca de zíper"],categories:["Ajustes de roupas","Vestidos e peças"],amounts:[12990,4990,6990]},
- "fr-FR":{country:"FR",currency:"EUR",workspace:"Atelier Démo",user:"Camille",clients:[
-  ["Camille Martin","+33 6 12 34 56 78","camille@example.invalid"],["Julien Bernard","+33 6 23 45 67 89","julien@example.invalid"],["Sophie Laurent","+33 6 34 56 78 90","sophie@example.invalid"]],
-  items:["Retouche de robe","Ourlet de pantalon","Remplacement de fermeture éclair"],categories:["Retouches de vêtements","Robes et vêtements"],amounts:[3500,1500,1800]},
- "de-DE":{country:"DE",currency:"EUR",workspace:"Beispielatelier",user:"Anna",clients:[
-  ["Anna Müller","+49 151 23456781","anna@example.invalid"],["Lukas Schmidt","+49 151 23456782","lukas@example.invalid"],["Sophie Weber","+49 151 23456783","sophie@example.invalid"]],
-  items:["Kleid ändern","Hose kürzen","Reißverschluss ersetzen"],categories:["Änderungen","Kleider und Bekleidung"],amounts:[3500,1500,1800]},
- "it-IT":{country:"IT",currency:"EUR",workspace:"Sartoria Demo",user:"Giulia",clients:[
-  ["Giulia Rossi","+39 320 111 2233","giulia@example.invalid"],["Marco Bianchi","+39 320 222 3344","marco@example.invalid"],["Sofia Romano","+39 320 333 4455","sofia@example.invalid"]],
-  items:["Modifica abito","Orlo pantaloni","Sostituzione cerniera"],categories:["Riparazioni sartoriali","Abiti e capi"],amounts:[3500,1500,1800]},
- "el-GR":{country:"GR",currency:"EUR",workspace:"Εργαστήριο Demo",user:"Μαρία",clients:[
-  ["Μαρία Παπαδοπούλου","+30 691 111 2233","maria@example.invalid"],["Νίκος Γεωργίου","+30 691 222 3344","nikos@example.invalid"],["Σοφία Νικολάου","+30 691 333 4455","sofia@example.invalid"]],
-  items:["Επιδιόρθωση φορέματος","Κόντεμα παντελονιού","Αλλαγή φερμουάρ"],categories:["Επιδιορθώσεις ρούχων","Φορέματα και ενδύματα"],amounts:[3500,1500,1800]},
- "sk-SK":{country:"SK",currency:"EUR",workspace:"Ukážková dielňa",user:"Lucia",clients:[
-  ["Lucia Nováková","+421 901 111 222","lucia@example.invalid"],["Martin Horváth","+421 902 222 333","martin@example.invalid"],["Sofia Kováčová","+421 903 333 444","sofia@example.invalid"]],
-  items:["Úprava šiat","Skrátenie nohavíc","Výmena zipsu"],categories:["Úpravy odevov","Šaty a odevy"],amounts:[3500,1500,1800]},
- "sr-Latn-RS":{country:"RS",currency:"RSD",workspace:"Demo krojačka radionica",user:"Milica",clients:[
-  ["Milica Jovanović","+381 64 111 2233","milica@example.invalid"],["Marko Petrović","+381 64 222 3344","marko@example.invalid"],["Sofija Nikolić","+381 64 333 4455","sofija@example.invalid"]],
-  items:["Prepravka haljine","Skraćivanje pantalona","Zamena rajsferšlusa"],categories:["Prepravke odeće","Haljine i odeća"],amounts:[410000,175000,210000]},
- "tr-TR":{country:"TR",currency:"TRY",workspace:"Demo Terzi Atölyesi",user:"Ayşe",clients:[
-  ["Ayşe Yılmaz","+90 532 111 2233","ayse@example.invalid"],["Mehmet Kaya","+90 533 222 3344","mehmet@example.invalid"],["Sofia Demir","+90 534 333 4455","sofia@example.invalid"]],
-  items:["Elbise tadilatı","Pantolon paçası","Fermuar değişimi"],categories:["Kıyafet tadilatları","Elbiseler ve giysiler"],amounts:[195000,83000,100000]}
-};
+ "ca-ES":{country:"ES",currency:"EUR",workspace:"Taller Exemple",user:"Maria",clients:[
+  ["Maria Garcia","+34 600 111 222","maria@example.invalid"],["Carles Ruiz","+34 600 222 333","carles@example.invalid"],["Sofia López","+34 600 333 444","sofia@example.invalid"]],
+  items:["Arranjament de vestit","Vora de pantalons","Canvi de cremallera"],categories:["Arranjaments de roba","Vestits i peces"],amounts:[3500,1500,1800]},
+ "ca-ES-valencia":{country:"ES",currency:"EUR",workspace:"Taller Exemple",user:"Maria",clients:[
+  ["Maria Garcia","+34 600 111 222","maria@example.invalid"],["Carles Ruiz","+34 600 222 333","carles@example.invalid"],["Sofia López","+34 600 333 444","sofia@example.invalid"]],
+  items:["Arranjament de vestit","Vora de pantalons","Canvi de cremallera"],categories:["Arranjaments de roba","Vestits i peces"],amounts:[3500,1500,1800]},
+ "eu-ES":{country:"ES",currency:"EUR",workspace:"Adibide Tailerra",user:"Maialen",clients:[
+  ["Maialen García","+34 600 111 222","maialen@example.invalid"],["Karlos Ruiz","+34 600 222 333","karlos@example.invalid"],["Sofia López","+34 600 333 444","sofia@example.invalid"]],
+  items:["Soinekoa konpontzea","Prakak laburtzea","Kremailera aldatzea"],categories:["Arropa-konponketak","Soinekoak eta jantziak"],amounts:[3500,1500,1800]},
+ "gl-ES":{country:"ES",currency:"EUR",workspace:"Obradoiro Exemplo",user:"María",clients:[
+  ["María García","+34 600 111 222","maria@example.invalid"],["Carlos Ruiz","+34 600 222 333","carlos@example.invalid"],["Sofía López","+34 600 333 444","sofia@example.invalid"]],
+  items:["Arranxo de vestido","Baixo de pantalón","Cambio de cremalleira"],categories:["Arranxos de roupa","Vestidos e prendas"],amounts:[3500,1500,1800]}
+}
 const P=profiles[L.locale]||profiles["es-ES"];
 const CURRENCY=P.currency;
 const customers=[

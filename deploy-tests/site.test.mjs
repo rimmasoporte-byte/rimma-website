@@ -23,7 +23,7 @@ test('The production home is indexable, canonical and has the original RIMMA log
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
-    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js',
+    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js','assets-v3/spain-locales.js',
     'assets-v3/logo.webp','assets-v3/icon.png','assets-v3/logo-original.png',
     'assets-v3/fonts/manrope-400.woff2','assets-v3/fonts/manrope-700.woff2',
     'assets-v3/fonts/playfair-500.woff2','assets-v3/fonts/licenses/MANROPE-LICENSE.txt',
@@ -135,73 +135,58 @@ test('demo reports use the same renderer as the real portal',()=>{
  assert.match(shim,/duePeriodItems/);
 });
 
-test('Brazilian public landing is localized and discoverable',()=>{
-  const es=read('index.html');
-  const br=read('br/index.html');
-  assert.match(es,/hreflang="pt-BR" href="https:\/\/rimmaapp\.com\/br\//);
-  assert.match(es,/class="header-lang" href="\/br\//);
-  assert.match(br,/<html lang="pt-BR">/);
-  assert.match(br,/https:\/\/rimmaapp\.com\/br\//);
-  assert.match(br,/Gestão para ateliês de costura no Brasil/);
-  assert.match(br,/Experimente 5 dias grátis/);
-  assert.match(br,/R\$ 29,90/);
-  assert.match(br,/country=BR/);
-  assert.match(br,/Em português/);
-  assert.match(read('sitemap.xml'),/https:\/\/rimmaapp\.com\/br\//);
+test('public site exposes only Spain languages',()=>{
+  const h=read('index.html');
+  const locale=read('assets-v3/spain-locales.js');
+  assert.match(h,/public-locale-select/);
+  assert.match(h,/spain-locales\.js/);
+  for(const code of ['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES']){
+    assert.match(locale,new RegExp(code.replaceAll('-','\\-')),code);
+    assert.match(h,new RegExp('hreflang="'+code.replaceAll('-','\\-')+'"'),code);
+  }
+  assert.doesNotMatch(h,/header-lang|rimma-countries|Português|Français|Deutsch|Italiano|Slovenčina|Srpski|Türkçe/);
+  for(const old of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'])
+    assert.doesNotMatch(locale,new RegExp(old.replaceAll('-','\\-')),old);
 });
-test('Brazilian demo and legal pages are localized end to end',()=>{
-  const br=read('br/index.html');
-  assert.match(br,/\/demo\/\?locale=pt-BR&country=BR/);
-  assert.ok(fs.existsSync(path.join(root,'demo','locale.js')));
-  assert.match(read('demo/index.html'),/\.\/locale\.js/);
-  assert.match(read('demo/demo-shim.js'),/BRL/);
-  assert.match(read('demo/demo-shim.js'),/Mariana Oliveira/);
-  for(const p of ['privacy','terms','support','delete-account','aviso-legal']){
-    const file='br/legal/'+p+'/index.html';
-    assert.ok(fs.existsSync(path.join(root,file)),file);
-    const html=read(file);
-    assert.match(html,/<html lang="pt-BR">/);
-    assert.doesNotMatch(html,/Saltar al contenido|← Volver|Inicio<\/a> \/ (?:Privacidad|Términos|Soporte)/);
-    assert.match(read('sitemap.xml'),new RegExp('https:\\/\\/rimmaapp\\.com\\/br\\/legal\\/'+p.replace('-','\\-')+'\\/'));
+
+test('active public locale scripts contain no retired international locales',()=>{
+  const files=['assets-v3/spain-locales.js','assets-v3/legal-i18n.js','demo/locale.js','demo/locale-intl.js','demo/demo-shim.js'];
+  for(const file of files){
+    const source=read(file);
+    for(const old of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'])
+      assert.doesNotMatch(source,new RegExp(old.replaceAll('-','\\-')),file+' '+old);
   }
 });
-test('Brazilian demo localization observer is stable',()=>{
-  const locale=read('demo/locale.js');
-  assert.match(locale,/if\(next!==root\.nodeValue\)root\.nodeValue=next/);
-  assert.match(locale,/if\(next!==node\.nodeValue\)node\.nodeValue=next/);
-});
 
-
-test('interactive demo supports every launched market language and local currency',()=>{
+test('interactive demo uses the same Spain-only locale set',()=>{
   const html=read('demo/index.html');
+  const base=read('demo/locale.js');
   const intl=read('demo/locale-intl.js');
-  const shim=read('demo/demo-shim.js');
-  assert.match(html,/locale-intl\.js/);
   assert.match(html,/demo-locale-select/);
-  for(const locale of ['fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']){
-    assert.match(intl,new RegExp(locale.replaceAll('-','\\-')),locale);
+  assert.match(html,/locale\.js\?v=20261004-es44/);
+  assert.match(html,/locale-intl\.js\?v=20261004-es44/);
+  for(const code of ['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'])
+    assert.ok(base.includes(code)||intl.includes(code),code);
+  for(const old of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']){
+    assert.doesNotMatch(base,new RegExp(old.replaceAll('-','\\-')),old);
+    assert.doesNotMatch(intl,new RegExp(old.replaceAll('-','\\-')),old);
   }
-  for(const code of ['FR','DE','IT','GR','SK','RS','TR']) assert.match(shim,new RegExp('country:"'+code+'"'),code);
-  assert.match(shim,/currency:"RSD"/);
-  assert.match(shim,/currency:"TRY"/);
-  assert.match(shim,/currency:"EUR"/);
-  assert.doesNotMatch(intl,/he-IL|עברית|Hebrew/i);
-  assert.doesNotMatch(html,/he-IL|עברית|Hebrew/i);
 });
 
-test('international demo localizes generated UI and sample business data',()=>{
-  const site=read('demo/site.js');
-  const shim=read('demo/demo-shim.js');
-  assert.match(site,/L\.translate/);
-  assert.match(shim,/Ayşe Yılmaz/);
-  assert.match(shim,/Milica Jovanović/);
-  assert.match(shim,/Camille Martin/);
-  assert.match(shim,/Anna Müller/);
-  assert.match(shim,/Giulia Rossi/);
-  assert.match(shim,/Μαρία Παπαδοπούλου/);
-  assert.match(shim,/Lucia Nováková/);
+test('legacy international routes are retired and absent from sitemap',()=>{
+  const map=read('sitemap.xml');
+  for(const market of ['br','fr','de','it','gr','sk','rs','tr']){
+    const html=read(market+'/index.html');
+    assert.match(html,/noindex,follow/);
+    assert.match(html,/location\.replace\("https:\/\/rimmaapp\.com\/"\)/);
+    assert.doesNotMatch(map,new RegExp('rimmaapp\\.com\\/'+market+'\\/'));
+  }
+  for(const p of ['privacy','terms','support','delete-account','aviso-legal']){
+    const html=read('br/legal/'+p+'/index.html');
+    assert.match(html,/noindex,follow/);
+    assert.match(html,/rimmaapp\.com\/legal\//);
+  }
 });
-
 
 test('no public HTML page contains a literal \\n marker',()=>{
   const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
@@ -211,22 +196,6 @@ test('no public HTML page contains a literal \\n marker',()=>{
   const htmlFiles=walk(root).filter(p=>p.endsWith('.html'));
   const offenders=htmlFiles.filter(p=>fs.readFileSync(p,'utf8').includes('\\\\n'));
   assert.deepEqual(offenders,[]);
-});
-
-test('legal and support translations exist for every launched non-Spanish market',()=>{
-  const locales=['fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'];
-  for(const locale of locales){
-    const p=path.join(root,'assets-v3','legal',locale+'.json');
-    assert.equal(fs.existsSync(p),true,locale);
-    const pack=JSON.parse(fs.readFileSync(p,'utf8'));
-    for(const key of ['support','delete-account','aviso-legal','terms','privacy']){
-      assert.ok(pack[key],locale+' '+key);
-      assert.ok(Array.isArray(pack[key].sections)&&pack[key].sections.length>0,locale+' '+key);
-    }
-  }
-  const loader=read('assets-v3/legal-i18n.js');
-  assert.match(loader,/pt-BR/);
-  assert.match(loader,/support/);
 });
 
 test('production landing leads with a concrete workshop value proposition and real interface capture',()=>{
@@ -240,10 +209,4 @@ test('production landing leads with a concrete workshop value proposition and re
   assert.match(h,/Fotos antes y después/);
   assert.match(h,/WhatsApp en un clic/);
   assert.doesNotMatch(h,/precio mostrado es orientativo|lanzamiento y la configuración de Google Play todavía se están preparando|Solicitar invitación de prueba/i);
-});
-test('localized landings no longer expose obsolete beta invitation or launch copy',()=>{
-  for(const market of ['br','fr','de','it','gr','sk','rs','tr']){
-    const h=read(market+'/index.html');
-    assert.doesNotMatch(h,/Solicitar invitación de prueba|Solicitar acceso de teste|lanzamiento y la configuración de Google Play todavía se están preparando|precio mostrado es orientativo/i);
-  }
 });
