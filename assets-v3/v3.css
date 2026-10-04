@@ -684,3 +684,67 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
  .conversion-final-cta{margin-top:54px;padding:30px 24px;border-radius:17px}
  .conversion-final-actions,.conversion-final-actions .v3-button{width:100%}
 }
+
+
+/* V46 — B2B capability block: operations, payments, team and business documents. */
+.conversion-pillar-grid-business{
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ max-width:1080px;
+ gap:16px
+}
+.conversion-pillar-business{
+ min-height:220px;
+ padding:28px 30px 27px;
+ display:flex;
+ flex-direction:column
+}
+.conversion-pillar-top{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:16px
+}
+.conversion-pillar-kicker{
+ font:800 9px/1.2 var(--sans);
+ letter-spacing:1.8px;
+ color:#9a7a51
+}
+.conversion-pillar-business h3{
+ margin-top:22px;
+ font-size:24px
+}
+.conversion-pillar-business p{
+ max-width:440px
+}
+.conversion-pillar-docs{
+ background:linear-gradient(145deg,#fffdf8,#f5eee3);
+ border-color:#dbc9ad
+}
+.conversion-pillar-docs .conversion-pillar-icon{
+ background:#e8dcc9;
+ color:#76542f
+}
+.conversion-doc-list{
+ display:flex;
+ flex-wrap:wrap;
+ gap:7px;
+ margin-top:18px
+}
+.conversion-doc-list span{
+ display:inline-flex;
+ align-items:center;
+ min-height:25px;
+ padding:4px 8px;
+ border:1px solid #ded1bd;
+ border-radius:999px;
+ background:rgba(255,255,255,.62);
+ color:#695d4e;
+ font:700 9px/1.2 var(--sans);
+ white-space:nowrap
+}
+@media(max-width:760px){
+ .conversion-pillar-grid-business{grid-template-columns:1fr}
+ .conversion-pillar-business{min-height:0}
+ .conversion-doc-list{gap:6px}
+ .conversion-doc-list span{white-space:normal}
+}
