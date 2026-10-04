@@ -157,7 +157,7 @@ export function createOrderWizard({
       if(back)back.hidden=true;
       cancel.hidden=true;
       submit.hidden=false;
-      submit.textContent="Cerrar";
+      submit.textContent="Volver a pedidos";
       return;
     }
     cancel.hidden=false;
@@ -403,50 +403,72 @@ export function createOrderWizard({
   const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
   const totalMinor=()=>state.items.reduce((sum,item)=>sum+itemMinor(item),0);
   function renderReview(){
-    let total=0;
     const rows=state.items.map((item,index)=>{
       const minor=itemMinor(item);
-      total+=minor;
-      const workSummary=(item.works||[]).map(work=>work.work).filter(Boolean).join(" · ");
-      return '<div class="wizard-review-item"><span>'+(index+1)+'</span><div><strong>'+
-        esc(item.garmentType||item.label||"Prenda")+'</strong><small>'+esc(workSummary)+' · '+
-        esc(item.dueDate||state.dueDate)+'</small></div><b>'+esc(money(minor))+'</b></div>';
+      const workRows=(item.works||[]).map((work,workIndex)=>
+        '<div class="wizard-review-work"><span>Trabajo '+(workIndex+1)+'</span><strong>'+esc(work.work||"—")+'</strong>'+
+        '<small>Responsable: '+esc(memberName(work.assignedUserId))+
+        ' · Fotos: '+String((work.photoNames||[]).length)+'</small><b>'+esc(money(toMinor(work.price)))+'</b></div>'
+      ).join("");
+      const due=item.useCustomDueDate&&item.dueDate?item.dueDate:state.dueDate;
+      return '<article class="wizard-review-garment">'+
+        '<header><div><span>PRENDA '+(index+1)+'</span><strong>'+esc(item.garmentType||"Prenda")+'</strong></div>'+
+        '<button type="button" class="record-action" data-wizard-step="1">Editar</button></header>'+
+        workRows+
+        '<div class="wizard-review-garment-meta">'+
+        '<span>Entrega: <strong>'+esc(formatDate(due))+'</strong></span>'+
+        '<span>Ubicación: <strong>'+esc(item.storageLocation||"Sin ubicación")+'</strong></span>'+
+        '</div>'+
+        '<div class="wizard-review-subtotal"><span>Subtotal</span><strong>'+esc(money(minor))+'</strong></div>'+
+      '</article>';
     }).join("");
     return '<section class="order-wizard-step">'+
-      '<div class="wizard-step-copy"><span>4 · CONFIRMACIÓN</span><h3>Revisa antes de guardar.</h3>'+
-      '<p>El estado inicial será <strong>Recibido</strong>. Después podrás cobrar, imprimir, avisar por WhatsApp y continuar el trabajo.</p></div>'+
-      '<div class="wizard-review-meta"><div><small>Cliente</small><strong>'+esc(state.clientLabel||"—")+
-      '</strong></div><div><small>Entrega</small><strong>'+esc(state.dueDate||"—")+
-      '</strong></div><div><small>Prendas</small><strong>'+state.items.length+'</strong></div></div>'+
+      '<div class="wizard-step-copy"><span>4 · CONFIRMACIÓN</span><h3>Resumen del pedido</h3>'+
+      '<p>Comprueba los datos antes de crear el pedido. El estado inicial será <strong>Recibido</strong>.</p></div>'+
+      '<div class="wizard-review-section"><div class="wizard-review-section-head"><strong>Cliente</strong>'+
+      '<button type="button" class="record-action" data-wizard-step="0">Editar</button></div>'+
+      '<div class="wizard-review-client">'+esc(state.clientLabel||"—")+'</div></div>'+
+      '<div class="wizard-review-section"><div class="wizard-review-section-head"><strong>Entrega</strong>'+
+      '<button type="button" class="record-action" data-wizard-step="2">Editar</button></div>'+
+      '<div class="wizard-review-client">'+esc(formatDate(state.dueDate))+' · '+state.items.length+' prenda'+(state.items.length===1?"":"s")+'</div></div>'+
       '<div class="wizard-review-list">'+rows+'</div>'+
-      '<div class="wizard-review-total"><span>Total</span><strong>'+esc(money(total))+'</strong></div>'+
-      '<details class="wizard-advanced"><summary>Notas y moneda</summary>'+
-      '<div class="wizard-advanced-grid"><div class="wizard-control"><label>Moneda</label>'+
-      '<input maxlength="3" data-wizard-field="currencyCode" value="'+esc(state.currencyCode)+'"></div>'+
-      '<div class="wizard-control wizard-wide"><label>Notas</label>'+
-      '<textarea maxlength="10000" data-wizard-field="notes">'+esc(state.notes)+'</textarea></div></div></details>'+
-      '<p class="wizard-safe-note">Los cobros se registran después de crear el pedido. Así RIMMA evita duplicar dinero si falla la conexión durante el alta.</p>'+
+      '<div class="wizard-review-total"><span>Total del pedido</span><strong>'+esc(money(totalMinor()))+'</strong></div>'+
+      '<div class="wizard-initial-status"><span>Estado inicial</span><strong>Recibido</strong></div>'+
+      (state.notes.trim()?'<details class="wizard-advanced"><summary>Notas</summary><p>'+esc(state.notes.trim())+'</p></details>':"")+
+      '<p class="wizard-safe-note">Los cobros se registran después de crear el pedido para mantener un historial financiero claro.</p>'+
       '</section>';
   }
+
   function renderCreated(){
     const order=created?.order||{};
     const failures=[...photoFailures.values()];
     const first=order.items?.[0];
-    return '<section class="order-wizard-success"><div class="wizard-success-mark">✓</div>'+
-      '<span>PEDIDO CREADO</span><h3>Pedido #'+esc(order.orderNumber||"")+'</h3>'+
-      '<p>Ya está guardado en RIMMA. Ahora puedes continuar el flujo sin buscar acciones por el menú.</p>'+
+    const client=order.client||{};
+    const phone=String(client.phone||"").trim();
+    return '<section class="order-wizard-success">'+
+      '<div class="wizard-success-mark">✓</div>'+
+      '<h3>Pedido #'+String(order.orderNumber||"").padStart(4,"0")+' creado</h3>'+
+      '<p>Guardado correctamente en RIMMA.</p>'+
+      '<div class="wizard-created-summary">'+
+      '<span><small>Cliente</small><strong>'+esc(client.name||state.clientLabel||"—")+'</strong></span>'+
+      '<span><small>Entrega</small><strong>'+esc(formatDate(order.dueDate||state.dueDate))+'</strong></span>'+
+      '<span><small>Prendas</small><strong>'+String(order.items?.length||state.items.length)+'</strong></span>'+
+      '<span><small>Total</small><strong>'+esc(money(order.totalMinor??totalMinor()))+'</strong></span>'+
+      '<span><small>Estado</small><strong>Recibido</strong></span>'+
+      '</div>'+
       (failures.length?'<div class="wizard-upload-warning"><strong>'+failures.length+
-        ' fotografía(s) pendientes</strong><p>El pedido no se duplicará. Puedes reintentar solo las fotos que fallaron.</p>'+
+        ' fotografía(s) pendientes</strong><p>El pedido está creado. Puedes reintentar únicamente las fotografías que fallaron.</p>'+
         '<button type="button" class="record-action" data-wizard-action="retry-photos">Reintentar fotografías</button></div>':"")+
       '<div class="wizard-next-actions">'+
       '<button type="button" class="primary" data-wizard-action="open-order">Abrir pedido</button>'+
       '<button type="button" class="secondary" data-wizard-action="payment">Registrar cobro</button>'+
-      '<button type="button" class="secondary" data-wizard-action="whatsapp">WhatsApp</button>'+
-      '<button type="button" class="secondary" data-wizard-action="documents">Documentos</button>'+
-      (first?'<button type="button" class="secondary" data-wizard-action="garment">Abrir prenda</button>'+
-        '<button type="button" class="secondary" data-wizard-action="label">Imprimir etiqueta</button>':"")+
-      '</div></section>';
+      '<button type="button" class="secondary" data-wizard-action="whatsapp" '+(phone?"":'disabled title="El cliente no tiene teléfono"')+'>Enviar por WhatsApp</button>'+
+      (first?'<button type="button" class="secondary" data-wizard-action="label">Imprimir etiqueta</button>':"")+
+      '<details class="wizard-more-actions"><summary>Más acciones</summary>'+
+      '<button type="button" class="secondary" data-wizard-action="documents">Documentos del pedido</button>'+
+      '</details></div></section>';
   }
+
   function render(){
     if(!active)return;
     setError("");
@@ -487,19 +509,15 @@ export function createOrderWizard({
         return false;
       }
       state.items.forEach((item,index)=>{
-        if(!item.garmentType.trim())fail("item-"+index+"-garmentType","Indica el tipo de prenda.");
+        if(!UUID.test(item.categoryId))fail("item-"+index+"-categoryId","Selecciona el tipo de prenda.");
         if(!Array.isArray(item.works)||!item.works.length){
           setError("Cada prenda debe tener al menos un trabajo.");
           return;
         }
         item.works.forEach((work,workIndex)=>{
-          if(!work.work.trim()){
-            fail("item-"+index+"-work-"+workIndex,"Indica el trabajo a realizar.");
-          }
+          if(!work.work.trim())fail("item-"+index+"-work-"+workIndex,"Indica el trabajo a realizar.");
           try{toMinor(work.price)}
-          catch{
-            fail("item-"+index+"-price-"+workIndex,"Indica un precio válido, igual o superior a 0.");
-          }
+          catch{fail("item-"+index+"-price-"+workIndex,"Indica un precio válido, igual o superior a 0.");}
         });
       });
     }
@@ -507,15 +525,13 @@ export function createOrderWizard({
       if(!state.dueDate)fail("dueDate","Indica la fecha de entrega.");
       else if(state.dueDate<today())fail("dueDate","La fecha de entrega no puede estar en el pasado.");
       state.items.forEach((item,index)=>{
-        if(item.dueDate&&item.dueDate<today()){
-          fail("item-"+index+"-dueDate","Esta fecha no puede estar en el pasado.");
+        if(item.useCustomDueDate&&(!item.dueDate||item.dueDate<today())){
+          fail("item-"+index+"-dueDate","Indica una fecha válida para esta prenda.");
         }
       });
     }
     if(step===3){
-      if(!/^[A-Z]{3}$/.test(state.currencyCode)){
-        fail("currencyCode","Usa un código ISO de 3 letras, por ejemplo EUR.");
-      }
+      if(!/^[A-Z]{3}$/.test(state.currencyCode))setError("La moneda del taller no es válida.");
       if(state.notes.length>10000)setError("Las notas son demasiado largas.");
       try{
         const total=totalMinor();
@@ -529,10 +545,11 @@ export function createOrderWizard({
     }
     return !error.textContent;
   }
+
   function deriveOrderDue(){
-    const dates=state.items.map(item=>item.dueDate).filter(Boolean);
-    return dates.length?[state.dueDate,...dates].filter(Boolean).sort().at(-1):state.dueDate;
+    return state.dueDate;
   }
+
   function payload(){
     return {
       clientId:state.clientId,
@@ -542,37 +559,41 @@ export function createOrderWizard({
       notes:state.notes.trim()||null,
       items:state.items.map((item,index)=>{
         const works=(item.works||[]).map((work,workIndex)=>({
-          categoryId:work.categoryId||null,
+          categoryId:item.categoryId||work.categoryId||null,
           serviceId:work.serviceId||null,
+          assignedUserId:work.assignedUserId||null,
           name:work.work.trim(),
           priceMinor:toMinor(work.price),
           sortOrder:workIndex
         }));
-        const primary=works[0]||null;
-        const summary=works.map(work=>work.name).join(" + ");
+        const itemName=(item.garmentType||"Prenda").trim().slice(0,160);
         return {
-          categoryId:primary?.categoryId||null,
-          name:(summary.length<=160?summary:(primary?.name||item.garmentType)).slice(0,160),
+          categoryId:item.categoryId||null,
+          name:itemName,
           description:item.label.trim()||null,
           quantity:1,
           unitPriceMinor:itemMinor(item),
           sortOrder:index,
-          dueDate:item.dueDate||state.dueDate,
+          dueDate:item.useCustomDueDate&&item.dueDate?item.dueDate:state.dueDate,
           garmentType:item.garmentType.trim()||null,
           brand:item.brand.trim()||null,
           color:item.color.trim()||null,
           sizeLabel:item.sizeLabel.trim()||null,
           storageLocation:item.storageLocation.trim()||null,
-          assignedUserId:item.assignedUserId||null,
+          assignedUserId:null,
           works
         };
       })
     };
   }
-  async function uploadPhoto(orderId,item,file,index){
-    if(!file)return;
-    const prepared=preparedPhotos.get(index)||await preparePhoto(file);
-    preparedPhotos.set(index,prepared);
+
+  const fileKey=(itemIndex,workIndex,fileIndex)=>itemIndex+":"+workIndex+":"+fileIndex;
+
+  async function uploadPhoto(orderId,item,work,file,itemIndex,workIndex,fileIndex){
+    if(!file||!work?.id)return;
+    const key=fileKey(itemIndex,workIndex,fileIndex);
+    const prepared=preparedPhotos.get(key)||await preparePhoto(file);
+    preparedPhotos.set(key,prepared);
     const base64=await new Promise((resolve,reject)=>{
       const reader=new FileReader();
       reader.onerror=()=>reject(Error("No se pudo leer la fotografía."));
@@ -582,28 +603,44 @@ export function createOrderWizard({
     await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{
       method:"POST",
       body:JSON.stringify({
-        base64,sizeBytes:prepared.blob.size,fileName:prepared.name,
-        contentType:prepared.contentType,photoType:"intake",
-        caption:"Fotografía añadida al crear el pedido"
+        base64,
+        sizeBytes:prepared.blob.size,
+        fileName:prepared.name,
+        contentType:prepared.contentType,
+        photoType:"intake",
+        workLineId:work.id,
+        source:"desktop_upload",
+        caption:"Fotografía del trabajo "+String(workIndex+1)
       })
     });
   }
+
   async function uploadAllPhotos(){
     photoFailures.clear();
     const order=created?.order;
     if(!order?.id)return;
-    for(let index=0;index<state.items.length;index++){
-      const file=state.items[index].photoFile;
-      const item=order.items?.[index];
-      if(!file||!item?.id||uploadedPhotoIndexes.has(index))continue;
-      try{
-        await uploadPhoto(order.id,item,file,index);
-        uploadedPhotoIndexes.add(index);
-      }catch(e){
-        photoFailures.set(index,e.message||"No se pudo subir la fotografía.");
+    for(let itemIndex=0;itemIndex<state.items.length;itemIndex++){
+      const sourceItem=state.items[itemIndex];
+      const item=order.items?.[itemIndex];
+      if(!item?.id)continue;
+      for(let workIndex=0;workIndex<(sourceItem.works||[]).length;workIndex++){
+        const sourceWork=sourceItem.works[workIndex];
+        const work=item.works?.[workIndex];
+        const files=Array.isArray(sourceWork.photoFiles)?sourceWork.photoFiles:[];
+        for(let fileIndex=0;fileIndex<files.length;fileIndex++){
+          const key=fileKey(itemIndex,workIndex,fileIndex);
+          if(uploadedPhotoIndexes.has(key))continue;
+          try{
+            await uploadPhoto(order.id,item,work,files[fileIndex],itemIndex,workIndex,fileIndex);
+            uploadedPhotoIndexes.add(key);
+          }catch(e){
+            photoFailures.set(key,e.message||"No se pudo subir la fotografía.");
+          }
+        }
       }
     }
   }
+
   function humanError(e){
     if(!navigator.onLine){
       return "No hay conexión. El borrador sigue guardado; vuelve a intentarlo cuando recuperes internet.";
