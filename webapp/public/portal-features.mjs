@@ -107,6 +107,13 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   await loadServices();
   success(createdServices||createdCategories?("Catálogo inicial añadido: "+createdServices+" servicios, "+createdCategories+" categorías."):"El catálogo estándar ya estaba añadido.");
  }
+ async function ensureCatalog(){
+  if(catalog.length)return catalog;
+  const data=(await api("/price-list")).priceList||{};
+  catalog=data.categories||[];
+  defaultCurrency=data.defaultCurrencyCode||L.currency||"EUR";
+  return catalog;
+ }
  async function loadServices(){
   const el=document.querySelector("#services-list");
   el.innerHTML='<p class="empty">Cargando servicios…</p>';
@@ -303,6 +310,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
   const history=Array.isArray(p.history)?p.history:[];
   const measurement=p.measurementSheet;
+  const works=Array.isArray(p.works)?p.works:[];
   const clientName=p.client?.name||tr("Cliente sin nombre","Cliente sem nome");
   const due=String(p.dueDate||"").slice(0,10)||"—";
   const worker=p.assignedWorker?.name||tr("Sin asignar","Sem atribuição");
@@ -329,9 +337,15 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      '<span><small>'+tr("Marca","Marca")+'</small><strong>'+esc(p.brand||"—")+'</strong></span>'+
      '<span><small>'+tr("Color","Cor")+'</small><strong>'+esc(p.color||"—")+'</strong></span>'+
      '<span><small>'+tr("Talla","Tamanho")+'</small><strong>'+esc(p.sizeLabel||"—")+'</strong></span>'+
-    '</div></div>'+
+    '</div>'+
+    (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+    ).join("")+'</div>':
+    '<p class="feature-muted">'+tr("El trabajo está guardado en el resumen de la prenda.","O trabalho está salvo no resumo da peça.")+'</p>')+
+    '</div>'+
    '<div class="passport-section garment-work-section"><h4>'+tr("Herramientas de la prenda","Ferramentas da peça")+'</h4>'+
     '<div class="garment-work-actions">'+
+     b(tr("Editar trabajos","Editar trabalhos"),"garment-works-edit",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
      b(tr("Fotografías","Fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
      b(tr("Cobros y pagos","Cobranças e pagamentos"),"order-payments",'data-id="'+esc(orderId)+'"')+
      (uuid(p.client?.id)?b(tr("Ficha de medidas","Ficha de medidas"),"client-measurements",'data-id="'+esc(p.client.id)+'"'):"")+
@@ -341,6 +355,71 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    '<div class="passport-section garment-work-section"><h4>'+tr("Actividad reciente","Atividade recente")+'</h4>'+
     (history.length?'<div class="passport-timeline">'+history.slice(0,6).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
      '<p class="feature-muted">'+tr("Todavía no hay movimientos registrados.","Ainda não há movimentações registradas.")+'</p>')+'</div>',null);
+ }
+
+ function editableWorkServices(){
+  return catalog.flatMap(category=>
+   (category.status==="active"?category.services||[]:[])
+    .filter(service=>service.status!=="inactive"&&service.status!=="deleted")
+    .map(service=>({
+     id:service.id,
+     categoryId:category.id,
+     label:category.name+" · "+service.name,
+     name:service.name,
+     priceMinor:service.priceMinor,
+     pricingMode:service.pricingMode
+    }))
+  );
+ }
+ function workEditRow(work,index,services){
+  const options='<option value="">'+tr("Trabajo manual","Trabalho manual")+'</option>'+
+   services.map(service=>'<option value="'+esc(service.id)+'"'+(service.id===work.serviceId?' selected':'')+'>'+esc(service.label)+'</option>').join("");
+  return '<div class="garment-work-edit-row" data-work-edit-row>'+
+   '<div class="garment-work-edit-head"><span>'+tr("Trabajo","Trabalho")+' '+(index+1)+'</span>'+
+   '<button type="button" class="record-action danger" data-feature="work-remove">'+tr("Quitar","Remover")+'</button></div>'+
+   '<div class="garment-work-edit-grid">'+
+   '<label>'+tr("Servicio","Serviço")+'<select name="workService">'+options+'</select></label>'+
+   '<label>'+tr("Trabajo *","Trabalho *")+'<input name="workName" maxlength="160" required value="'+esc(work.name||"")+'"></label>'+
+   '<label>'+tr("Precio *","Preço *")+'<input name="workPrice" type="number" inputmode="decimal" min="0" step="0.01" required value="'+esc((Number(work.priceMinor||0)/100).toFixed(2))+'"></label>'+
+   '</div></div>';
+ }
+ async function openGarmentWorksEdit(orderId,itemId){
+  if(!uuid(orderId)||!uuid(itemId))throw Error(tr("Prenda inválida.","Peça inválida."));
+  const [passportResult]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
+   ensureCatalog()
+  ]);
+  const p=passportResult.passport||{};
+  if(!uuid(p.id)||!Number.isSafeInteger(Number(p.version)))throw Error(tr("Actualiza la prenda antes de editar sus trabajos.","Atualize a peça antes de editar seus trabalhos."));
+  const services=editableWorkServices();
+  const works=Array.isArray(p.works)&&p.works.length
+   ?p.works
+   :[{id:null,categoryId:p.categoryId||null,serviceId:null,name:p.name||"",priceMinor:Number(p.totalMinor||0),sortOrder:0}];
+  selected={orderId,itemId,passport:p,workServices:services};
+  layout("garment-works-edit",tr("Editar trabajos","Editar trabalhos"),
+   '<div class="garment-edit-head"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.garmentType||p.name||tr("Prenda","Peça"))+'</h3></div>'+
+   '<strong class="garment-work-edit-total" id="work-edit-total">'+esc(money(works.reduce((sum,work)=>sum+Number(work.priceMinor||0),0),p.currencyCode))+'</strong></div>'+
+   '<p class="feature-muted">'+tr("Cada trabajo mantiene su propio precio. Si ya existe un movimiento de cobro para esta prenda, RIMMA bloqueará cambios de precio para proteger la contabilidad.","Cada trabalho mantém seu próprio preço. Se já houver um movimento de pagamento para esta peça, a RIMMA bloqueará alterações de preço para proteger a contabilidade.")+'</p>'+
+   '<div id="garment-work-edit-list" class="garment-work-edit-list">'+works.map((work,index)=>workEditRow(work,index,services)).join("")+'</div>'+
+   '<button type="button" class="feature-button garment-work-add" data-feature="work-add">+ '+tr("Añadir trabajo","Adicionar trabalho")+'</button>',
+   tr("Guardar trabajos","Salvar trabalhos"));
+  syncWorkEditTotal();
+ }
+ function syncWorkEditTotal(){
+  if(mode!=="garment-works-edit")return;
+  const total=[...dlg.querySelectorAll('[data-work-edit-row] [name="workPrice"]')]
+   .reduce((sum,input)=>{
+    const value=Number(input.value);
+    return sum+(Number.isFinite(value)&&value>=0?Math.round(value*100):0);
+   },0);
+  const target=dlg.querySelector("#work-edit-total");
+  if(target)target.textContent=money(total,selected?.passport?.currencyCode||L.currency||"EUR");
+ }
+ function renumberWorkEditRows(){
+  [...dlg.querySelectorAll("[data-work-edit-row]")].forEach((row,index)=>{
+   const label=row.querySelector(".garment-work-edit-head>span");
+   if(label)label.textContent=tr("Trabajo","Trabalho")+" "+(index+1);
+  });
  }
 
  async function openGarmentEdit(orderId,itemId){
@@ -400,7 +479,12 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     '<div><small>'+tr("Prendas","Peças")+'</small><strong>'+esc(String(items.length))+'</strong></div></div>'+
    (o.notes?'<div class="passport-section"><h4>'+tr("Notas del pedido","Notas do pedido")+'</h4><p class="order-info-notes">'+esc(o.notes)+'</p></div>':"")+
    '<div class="passport-section"><h4>'+tr("Prendas del pedido","Peças do pedido")+'</h4>'+
-    (items.length?'<div class="order-info-items">'+items.map((item,index)=>'<div class="order-info-item"><div><strong>'+esc(item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(String(item.dueDate).slice(0,10)):'')+'</small></div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>').join("")+'</div>':
+    (items.length?'<div class="order-info-items">'+items.map((item,index)=>{
+      const works=Array.isArray(item.works)?item.works:[];
+      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(String(item.dueDate).slice(0,10)):'')+'</small>'+
+       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><b>'+esc(work.name)+'</b><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
+       '</div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>';
+     }).join("")+'</div>':
      '<p class="feature-muted">'+tr("No hay prendas en este pedido.","Não há peças neste pedido.")+'</p>')+
    '</div>',null);
  }
@@ -449,6 +533,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
   const history=Array.isArray(p.history)?p.history:[];
   const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
+  const works=Array.isArray(p.works)?p.works:[];
   layout("passport-edit",tr("Pasaporte digital de la prenda","Passaporte digital da peça"),
    '<div class="passport-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span>'+
     '<h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3><span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
@@ -465,6 +550,12 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
     '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select></div>'+
     (p.measurementSheet?'<div class="measurement-linked"><strong>'+tr("Medidas vinculadas","Medidas vinculadas")+'</strong><span>'+esc((p.measurementSheet.measurements||[]).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")+" "+String(p.measurementSheet.unit||"")).join(" · ")||tr("Ficha guardada","Ficha guardada"))+'</span></div>':'')+'</div>'+
+   '<div class="passport-section"><h4>'+tr("Trabajos de esta prenda","Trabalhos desta peça")+'</h4>'+
+    (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+    ).join("")+'</div>':
+    '<p class="feature-muted">'+tr("Este pedido antiguo no tiene trabajos separados.","Este pedido antigo não tem trabalhos separados.")+'</p>')+
+   '</div>'+
    '<div class="passport-section passport-photo-section"><h4>'+tr("Fotos de la prenda","Fotos da peça")+'</h4>'+
     '<p class="passport-section-help">'+tr("Guarda fotos de recepción, detalles y resultado final.","Guarde fotos do recebimento, detalhes e resultado final.")+'</p>'+
     '<div class="passport-single-action">'+b(tr("Ver / añadir fotografías","Ver / adicionar fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+'</div></div>'+
@@ -1048,6 +1139,35 @@ function newPhoto(){
     headers:{"Idempotency-Key":retry.key},body:paymentBody});
    clearPaymentRetry(retry);
    close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
+  }else if(mode==="garment-works-edit"){
+   if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
+   const rows=[...dlg.querySelectorAll("[data-work-edit-row]")];
+   if(!rows.length)throw Error(tr("Añade al menos un trabajo.","Adicione pelo menos um trabalho."));
+   const services=Array.isArray(selected.workServices)?selected.workServices:[];
+   const works=rows.map((row,index)=>{
+    const serviceId=row.querySelector('[name="workService"]')?.value||"";
+    const service=serviceId?services.find(item=>item.id===serviceId):null;
+    const name=row.querySelector('[name="workName"]')?.value.trim()||"";
+    const price=Number(row.querySelector('[name="workPrice"]')?.value);
+    const priceMinor=Math.round(price*100);
+    if(!name)throw Error(tr("Indica el trabajo en cada línea.","Indique o trabalho em cada linha."));
+    if(!Number.isFinite(price)||price<0||!Number.isSafeInteger(priceMinor))throw Error(tr("Revisa los precios de los trabajos.","Revise os preços dos trabalhos."));
+    return {
+     categoryId:service?.categoryId||null,
+     serviceId:service?.id||null,
+     name,
+     priceMinor,
+     sortOrder:index
+    };
+   });
+   const {orderId,itemId}=selected;
+   await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/works",{
+    method:"PATCH",
+    body:JSON.stringify({expectedVersion:Number(selected.passport.version),works})
+   });
+   await openGarment(orderId,itemId);
+   await refreshOrders();
+   success(tr("Trabajos y precios actualizados.","Trabalhos e preços atualizados."));
   }else if(mode==="passport-edit"||mode==="garment-edit"){
    if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
    const payload={
@@ -1082,11 +1202,25 @@ function newPhoto(){
   }
  }
  dlg.addEventListener("submit",e=>{e.preventDefault();void safe(save)});
+ dlg.addEventListener("input",e=>{
+  if(mode==="garment-works-edit"&&e.target.matches('[name="workPrice"]'))syncWorkEditTotal();
+ });
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
   if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
   if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
    const i=selected.items.find(x=>x.orderItemId===e.target.value);
    if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
+  }
+  if(mode==="garment-works-edit"&&e.target.matches('[name="workService"]')){
+   const row=e.target.closest("[data-work-edit-row]");
+   const service=(selected?.workServices||[]).find(item=>item.id===e.target.value);
+   if(row&&service){
+    const name=row.querySelector('[name="workName"]');
+    const price=row.querySelector('[name="workPrice"]');
+    if(name)name.value=service.name||name.value;
+    if(price&&service.pricingMode!=="quote"&&service.priceMinor!=null)price.value=(Number(service.priceMinor)/100).toFixed(2);
+   }
+   syncWorkEditTotal();
   }});
  dlg.addEventListener("cancel",e=>{e.preventDefault();if(!busy)close();});
  dlg.addEventListener("click",e=>{if(e.target===dlg&&!busy)close()});
@@ -1141,6 +1275,21 @@ function newPhoto(){
   }
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="garment-passport")return void safe(async()=>openPassport(el.dataset.order,id));
+  if(action==="garment-works-edit")return void safe(async()=>openGarmentWorksEdit(el.dataset.order,id));
+  if(action==="work-add"){
+   if(mode!=="garment-works-edit")return;
+   const holder=dlg.querySelector("#garment-work-edit-list");
+   if(!holder||holder.children.length>=50)return;
+   holder.insertAdjacentHTML("beforeend",workEditRow({name:"",priceMinor:0,serviceId:null},holder.children.length,selected?.workServices||[]));
+   renumberWorkEditRows();syncWorkEditTotal();return;
+  }
+  if(action==="work-remove"){
+   if(mode!=="garment-works-edit")return;
+   const rows=dlg.querySelectorAll("[data-work-edit-row]");
+   if(rows.length<=1){alertError(tr("La prenda debe conservar al menos un trabajo.","A peça deve manter pelo menos um trabalho."));return;}
+   el.closest("[data-work-edit-row]")?.remove();
+   renumberWorkEditRows();syncWorkEditTotal();return;
+  }
   if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="passport-share")return void safe(createPassportShare);
   if(action==="passport-copy")return void safe(copyPassportShare);

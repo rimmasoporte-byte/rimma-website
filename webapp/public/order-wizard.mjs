@@ -1,9 +1,22 @@
-const DRAFT_KEY="rimma.order.draft.v61";
-const RECENT_CLIENT_KEY="rimma.order.recent-client.v61";
+const DRAFT_KEY="rimma.order.draft.v62";
+const RECENT_CLIENT_KEY="rimma.order.recent-client.v62";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+const requestKey=()=>{
+  if(globalThis.crypto?.randomUUID)return globalThis.crypto.randomUUID();
+  const bytes=new Uint8Array(16);
+  globalThis.crypto?.getRandomValues?.(bytes);
+  if(!bytes.some(Boolean)){
+    for(let index=0;index<bytes.length;index++)bytes[index]=Math.floor(Math.random()*256);
+  }
+  bytes[6]=(bytes[6]&0x0f)|0x40;
+  bytes[8]=(bytes[8]&0x3f)|0x80;
+  const hex=[...bytes].map(value=>value.toString(16).padStart(2,"0"));
+  return hex.slice(0,4).join("")+"-"+hex.slice(4,6).join("")+"-"+hex.slice(6,8).join("")+"-"+hex.slice(8,10).join("")+"-"+hex.slice(10).join("");
+};
+const IDEMPOTENCY=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const toMinor=value=>{
   const parsed=Number(value);
@@ -13,18 +26,21 @@ const toMinor=value=>{
   return minor;
 };
 const safeCurrency=value=>/^[A-Z]{3}$/.test(String(value||"").toUpperCase())?String(value).toUpperCase():"EUR";
+const makeWork=()=>({
+  key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0"
+});
 const makeItem=(currency="EUR")=>({
-  key:uid(),garmentType:"",label:"",serviceIndex:"",categoryId:null,work:"",price:"0",
-  color:"",sizeLabel:"",storageLocation:"",dueDate:"",assignedUserId:"",
+  key:uid(),garmentType:"",label:"",works:[makeWork()],
+  brand:"",color:"",sizeLabel:"",storageLocation:"",dueDate:"",assignedUserId:"",
   photoFile:null,photoName:"",currencyCode:currency
 });
 const blankState=currency=>({
-  step:0,clientId:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
+  step:0,creationKey:requestKey(),clientId:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
   items:[makeItem(currency)]
 });
 
 export function createOrderWizard({
-  api,preparePhoto,confirmAction,locale,success,
+  api,preparePhoto,confirmAction,locale,success,getMe,
   onOpenClient,onOpenOrder,onOpenPayments,onOpenWhatsApp,onOpenDocuments,onOpenGarment,onPrintLabel,onRefresh
 }){
   const modal=document.querySelector("#modal");
@@ -37,10 +53,11 @@ export function createOrderWizard({
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
-  let clients=[],branches=[],catalog=[],services=[],members=[];
+  let clients=[],branches=[],services=[],members=[],defaultAssignedUserId="";
   let saveClock=null;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
+  const uploadedPhotoIndexes=new Set();
 
   const money=minor=>{
     try{
@@ -53,11 +70,14 @@ export function createOrderWizard({
   };
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
-    state.items.some(item=>item.work.trim()||item.garmentType.trim()||item.photoName)
+    state.items.some(item=>
+      item.garmentType.trim()||item.photoName||
+      (item.works||[]).some(work=>work.work.trim()||Number(work.price)>0)
+    )
   );
   const serializable=()=>({
-    version:61,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
-    clientId:state.clientId,branchId:state.branchId,currencyCode:state.currencyCode,
+    version:62,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
+    creationKey:state.creationKey,clientId:state.clientId,branchId:state.branchId,currencyCode:state.currencyCode,
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(({photoFile,...item})=>item)
   });
@@ -81,16 +101,22 @@ export function createOrderWizard({
   function readDraft(){
     try{
       const draft=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||"null");
-      if(!draft||draft.version!==61||!Number.isFinite(draft.savedAt)||Date.now()-draft.savedAt>DRAFT_TTL){
+      if(!draft||draft.version!==62||!Number.isFinite(draft.savedAt)||Date.now()-draft.savedAt>DRAFT_TTL){
         sessionStorage.removeItem(DRAFT_KEY);
         return null;
       }
       if(!Array.isArray(draft.items)||!draft.items.length)return null;
+      const base=blankState(locale?.currency||"EUR");
       return {
-        ...blankState(locale?.currency||"EUR"),...draft,
-        items:draft.items.slice(0,30).map(item=>({
-          ...makeItem(draft.currencyCode),...item,key:item.key||uid(),photoFile:null
-        }))
+        ...base,...draft,
+        creationKey:IDEMPOTENCY.test(String(draft.creationKey||""))?draft.creationKey:base.creationKey,
+        items:draft.items.slice(0,30).map(item=>{
+          const baseItem=makeItem(draft.currencyCode);
+          const works=Array.isArray(item.works)&&item.works.length
+            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid()}))
+            :baseItem.works;
+          return {...baseItem,...item,key:item.key||uid(),works,photoFile:null};
+        })
       };
     }catch{return null}
   }
@@ -141,10 +167,10 @@ export function createOrderWizard({
     '<option value="'+esc(branch.id)+'" '+(branch.id===state.branchId?"selected":"")+'>'+
     esc(branch.name)+'</option>'
   ).join("");
-  const serviceOptions=item=>
+  const serviceOptions=work=>
     '<option value="">Trabajo manual</option>'+
     services.map((service,index)=>
-      '<option value="'+index+'" '+(String(index)===String(item.serviceIndex)?"selected":"")+'>'+
+      '<option value="'+index+'" '+(String(index)===String(work.serviceIndex)?"selected":"")+'>'+
       esc(service.label)+'</option>'
     ).join("");
   const memberOptions=item=>
@@ -174,11 +200,30 @@ export function createOrderWizard({
         '<p>Crea el primero y volverás a este borrador sin perder lo que hayas escrito.</p></div>':"")+
       '</section>';
   }
+  function workRow(item,itemIndex,work,workIndex){
+    const removable=item.works.length>1;
+    return '<div class="wizard-work-row" data-work-key="'+esc(work.key)+'">'+
+      '<div class="wizard-work-row-head"><span>TRABAJO '+(workIndex+1)+'</span>'+
+      (removable?'<button type="button" class="record-action danger" data-wizard-action="remove-work" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Quitar</button>':"")+
+      '</div>'+
+      '<div class="wizard-work-grid">'+
+      '<div class="wizard-control wizard-wide"><label>Servicio</label>'+
+      '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="serviceIndex">'+serviceOptions(work)+'</select></div>'+
+      '<div class="wizard-control"><label>Trabajo *</label>'+
+      '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="work" data-wizard-field="item-'+itemIndex+'-work-'+workIndex+'" maxlength="160" value="'+
+      esc(work.work)+'" placeholder="Ej. Dobladillo">'+
+      '<p class="wizard-field-error" data-error-for="item-'+itemIndex+'-work-'+workIndex+'"></p></div>'+
+      '<div class="wizard-control"><label>Precio *</label><div class="wizard-price">'+
+      '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="price" data-wizard-field="item-'+itemIndex+'-price-'+workIndex+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+
+      esc(work.price)+'"><span>'+esc(state.currencyCode)+'</span></div>'+
+      '<p class="wizard-field-error" data-error-for="item-'+itemIndex+'-price-'+workIndex+'"></p></div>'+
+      '</div></div>';
+  }
   function itemCard(item,index){
     return '<article class="wizard-garment" data-item-key="'+esc(item.key)+'">'+
       '<header><div><span>PRENDA '+(index+1)+'</span><strong>'+
       esc(item.garmentType||item.label||"Sin identificar")+'</strong></div>'+
-      (state.items.length>1?'<button type="button" class="record-action danger" data-wizard-action="remove-item" data-index="'+index+'">Quitar</button>':"")+
+      (state.items.length>1?'<button type="button" class="record-action danger" data-wizard-action="remove-item" data-index="'+index+'">Quitar prenda</button>':"")+
       '</header><div class="wizard-garment-grid">'+
       '<div class="wizard-control"><label>Tipo de prenda *</label>'+
       '<input data-wizard-item="'+index+'" data-item-field="garmentType" data-wizard-field="item-'+index+'-garmentType" maxlength="80" value="'+
@@ -187,16 +232,14 @@ export function createOrderWizard({
       '<div class="wizard-control"><label>Nombre / referencia</label>'+
       '<input data-wizard-item="'+index+'" data-item-field="label" maxlength="120" value="'+
       esc(item.label)+'" placeholder="Ej. pantalón azul"></div>'+
-      '<div class="wizard-control wizard-wide"><label>Servicio</label>'+
-      '<select data-wizard-item="'+index+'" data-item-field="serviceIndex">'+serviceOptions(item)+'</select></div>'+
-      '<div class="wizard-control"><label>Trabajo *</label>'+
-      '<input data-wizard-item="'+index+'" data-item-field="work" data-wizard-field="item-'+index+'-work" maxlength="160" value="'+
-      esc(item.work)+'" placeholder="Ej. Dobladillo">'+
-      '<p class="wizard-field-error" data-error-for="item-'+index+'-work"></p></div>'+
-      '<div class="wizard-control"><label>Precio *</label><div class="wizard-price">'+
-      '<input data-wizard-item="'+index+'" data-item-field="price" data-wizard-field="item-'+index+'-price" type="number" inputmode="decimal" min="0" step="0.01" value="'+
-      esc(item.price)+'"><span>'+esc(state.currencyCode)+'</span></div>'+
-      '<p class="wizard-field-error" data-error-for="item-'+index+'-price"></p></div>'+
+      '<div class="wizard-work-list wizard-wide">'+item.works.map((work,workIndex)=>workRow(item,index,work,workIndex)).join("")+'</div>'+
+      '<button type="button" class="wizard-add-work wizard-wide" data-wizard-action="add-work" data-index="'+index+'">+ Añadir otro trabajo a esta prenda</button>'+
+      '<details class="wizard-garment-details wizard-wide"><summary>Detalles de la prenda</summary>'+
+      '<div class="wizard-garment-detail-grid">'+
+      '<div class="wizard-control"><label>Marca</label><input data-wizard-item="'+index+'" data-item-field="brand" maxlength="120" value="'+esc(item.brand)+'" placeholder="Opcional"></div>'+
+      '<div class="wizard-control"><label>Color</label><input data-wizard-item="'+index+'" data-item-field="color" maxlength="80" value="'+esc(item.color)+'" placeholder="Opcional"></div>'+
+      '<div class="wizard-control"><label>Talla</label><input data-wizard-item="'+index+'" data-item-field="sizeLabel" maxlength="60" value="'+esc(item.sizeLabel)+'" placeholder="Opcional"></div>'+
+      '</div></details>'+
       '<div class="wizard-control wizard-wide"><label>Fotografía</label>'+
       '<input data-wizard-item="'+index+'" data-item-field="photo" type="file" accept="image/jpeg,image/png,image/webp">'+
       (item.photoName?'<small class="wizard-file-note">'+esc(item.photoName)+
@@ -213,7 +256,7 @@ export function createOrderWizard({
   }
   function deliveryRow(item,index){
     return '<article class="wizard-delivery-row"><div><span>PRENDA '+(index+1)+'</span><strong>'+
-      esc(item.garmentType||item.label||item.work||"Prenda")+'</strong></div>'+
+      esc(item.garmentType||item.label||item.works?.[0]?.work||"Prenda")+'</strong></div>'+
       '<div class="wizard-control"><label>Entrega propia</label>'+
       '<input type="date" min="'+today()+'" data-wizard-item="'+index+'" data-item-field="dueDate" data-wizard-field="item-'+index+'-dueDate" value="'+esc(item.dueDate)+'">'+
       '<p class="wizard-field-error" data-error-for="item-'+index+'-dueDate"></p></div>'+
@@ -232,15 +275,16 @@ export function createOrderWizard({
       '<p class="wizard-field-error" data-error-for="dueDate"></p></div>'+
       '<div class="wizard-delivery-list">'+state.items.map(deliveryRow).join("")+'</div></section>';
   }
-  const itemMinor=item=>toMinor(item.price);
+  const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
   const totalMinor=()=>state.items.reduce((sum,item)=>sum+itemMinor(item),0);
   function renderReview(){
     let total=0;
     const rows=state.items.map((item,index)=>{
       const minor=itemMinor(item);
       total+=minor;
+      const workSummary=(item.works||[]).map(work=>work.work).filter(Boolean).join(" · ");
       return '<div class="wizard-review-item"><span>'+(index+1)+'</span><div><strong>'+
-        esc(item.garmentType||item.label||"Prenda")+'</strong><small>'+esc(item.work)+' · '+
+        esc(item.garmentType||item.label||"Prenda")+'</strong><small>'+esc(workSummary)+' · '+
         esc(item.dueDate||state.dueDate)+'</small></div><b>'+esc(money(minor))+'</b></div>';
     }).join("");
     const client=clients.find(entry=>entry.id===state.clientId);
@@ -320,9 +364,19 @@ export function createOrderWizard({
       }
       state.items.forEach((item,index)=>{
         if(!item.garmentType.trim())fail("item-"+index+"-garmentType","Indica el tipo de prenda.");
-        if(!item.work.trim())fail("item-"+index+"-work","Indica el trabajo a realizar.");
-        try{toMinor(item.price)}
-        catch{fail("item-"+index+"-price","Indica un precio válido, igual o superior a 0.")}
+        if(!Array.isArray(item.works)||!item.works.length){
+          setError("Cada prenda debe tener al menos un trabajo.");
+          return;
+        }
+        item.works.forEach((work,workIndex)=>{
+          if(!work.work.trim()){
+            fail("item-"+index+"-work-"+workIndex,"Indica el trabajo a realizar.");
+          }
+          try{toMinor(work.price)}
+          catch{
+            fail("item-"+index+"-price-"+workIndex,"Indica un precio válido, igual o superior a 0.");
+          }
+        });
       });
     }
     if(step===2){
@@ -362,19 +416,33 @@ export function createOrderWizard({
       currencyCode:state.currencyCode,
       dueDate:deriveOrderDue(),
       notes:state.notes.trim()||null,
-      items:state.items.map((item,index)=>({
-        categoryId:item.categoryId||null,
-        name:item.work.trim(),
-        description:item.label.trim()||null,
-        quantity:1,
-        unitPriceMinor:itemMinor(item),
-        sortOrder:index,
-        dueDate:item.dueDate||state.dueDate,
-        garmentType:item.garmentType.trim()||null,
-        color:item.color.trim()||null,
-        sizeLabel:item.sizeLabel.trim()||null,
-        storageLocation:item.storageLocation.trim()||null
-      }))
+      items:state.items.map((item,index)=>{
+        const works=(item.works||[]).map((work,workIndex)=>({
+          categoryId:work.categoryId||null,
+          serviceId:work.serviceId||null,
+          name:work.work.trim(),
+          priceMinor:toMinor(work.price),
+          sortOrder:workIndex
+        }));
+        const primary=works[0]||null;
+        const summary=works.map(work=>work.name).join(" + ");
+        return {
+          categoryId:primary?.categoryId||null,
+          name:(summary.length<=160?summary:(primary?.name||item.garmentType)).slice(0,160),
+          description:item.label.trim()||null,
+          quantity:1,
+          unitPriceMinor:itemMinor(item),
+          sortOrder:index,
+          dueDate:item.dueDate||state.dueDate,
+          garmentType:item.garmentType.trim()||null,
+          brand:item.brand.trim()||null,
+          color:item.color.trim()||null,
+          sizeLabel:item.sizeLabel.trim()||null,
+          storageLocation:item.storageLocation.trim()||null,
+          assignedUserId:item.assignedUserId||null,
+          works
+        };
+      })
     };
   }
   async function uploadPhoto(orderId,item,file,index){
@@ -403,9 +471,13 @@ export function createOrderWizard({
     for(let index=0;index<state.items.length;index++){
       const file=state.items[index].photoFile;
       const item=order.items?.[index];
-      if(!file||!item?.id)continue;
-      try{await uploadPhoto(order.id,item,file,index)}
-      catch(e){photoFailures.set(index,e.message||"No se pudo subir la fotografía.")}
+      if(!file||!item?.id||uploadedPhotoIndexes.has(index))continue;
+      try{
+        await uploadPhoto(order.id,item,file,index);
+        uploadedPhotoIndexes.add(index);
+      }catch(e){
+        photoFailures.set(index,e.message||"No se pudo subir la fotografía.");
+      }
     }
   }
   function humanError(e){
@@ -417,6 +489,12 @@ export function createOrderWizard({
     }
     if(e?.status===404){
       return "Alguno de los datos seleccionados ya no está disponible. Actualiza clientes o servicios.";
+    }
+    if(e?.status===400){
+      return "Revisa cliente, fechas, precios y datos de las prendas. Hay un campo que el servidor no puede aceptar.";
+    }
+    if(e?.status>=500){
+      return "RIMMA no pudo completar el guardado. El borrador sigue disponible y puedes volver a intentarlo.";
     }
     return e?.message||"No se pudo guardar el pedido. El borrador sigue disponible.";
   }
@@ -431,7 +509,11 @@ export function createOrderWizard({
           preparedPhotos.set(index,await preparePhoto(state.items[index].photoFile));
         }
       }
-      const response=await api("/orders",{method:"POST",body:JSON.stringify(payload())});
+      const response=await api("/orders",{
+        method:"POST",
+        headers:{"Idempotency-Key":state.creationKey},
+        body:JSON.stringify(payload())
+      });
       if(!response?.order?.id)throw Error("El servidor no confirmó el pedido creado.");
       created=response;
       clearDraft();
@@ -473,25 +555,37 @@ export function createOrderWizard({
       const file=target?.files?.[0]||null;
       item.photoFile=file;
       item.photoName=file?.name||"";
-    }else if(field==="serviceIndex"){
-      item.serviceIndex=value;
+    }else{
+      item[field]=value;
+    }
+    schedulePersist();
+  }
+  function updateWork(itemIndex,workIndex,field,value){
+    const item=state.items[itemIndex];
+    const work=item?.works?.[workIndex];
+    if(!work)return;
+
+    if(field==="serviceIndex"){
+      work.serviceIndex=value;
       const service=value===""?null:services[Number(value)];
       if(service){
-        item.categoryId=service.categoryId||null;
-        item.work=service.name||item.work;
+        work.categoryId=service.categoryId||null;
+        work.serviceId=service.id||null;
+        work.work=service.name||work.work;
         if(service.currencyCode)state.currencyCode=safeCurrency(service.currencyCode);
         if(service.pricingMode!=="quote"&&service.priceMinor!=null){
-          item.price=(Number(service.priceMinor)/100).toFixed(2);
+          work.price=(Number(service.priceMinor)/100).toFixed(2);
         }
       }else{
-        item.categoryId=null;
+        work.categoryId=null;
+        work.serviceId=null;
       }
       schedulePersist();
       render();
       return;
-    }else{
-      item[field]=value;
     }
+
+    work[field]=value;
     schedulePersist();
   }
   async function discardDraft(){
@@ -508,6 +602,7 @@ export function createOrderWizard({
     dirty=false;
     state=blankState(locale?.currency||"EUR");
     if(branches.length)state.branchId=branches[0].id;
+    state.items[0].assignedUserId=defaultAssignedUserId;
     render();
   }
   async function requestClose(){
@@ -549,7 +644,9 @@ export function createOrderWizard({
   }
   async function action(name){
     if(name==="add-item"){
-      state.items.push(makeItem(state.currencyCode));
+      const item=makeItem(state.currencyCode);
+      item.assignedUserId=defaultAssignedUserId;
+      state.items.push(item);
       schedulePersist();
       render();
       return;
@@ -560,8 +657,8 @@ export function createOrderWizard({
     }
     if(name==="new-client"){
       persist();
+      modal.addEventListener("close",()=>onOpenClient?.(),{once:true});
       modal.close();
-      onOpenClient?.();
       return;
     }
     if(name==="retry-photos"){
@@ -604,21 +701,20 @@ export function createOrderWizard({
   fields.addEventListener("input",event=>{
     if(!active||created)return;
     const target=event.target;
-    if(target.dataset.wizardField==="clientId"){
-      state.clientId=target.value;
-      schedulePersist();
-    }else if(target.dataset.wizardField==="branchId"){
-      state.branchId=target.value;
-      schedulePersist();
-    }else if(target.dataset.wizardField==="dueDate"){
-      state.dueDate=target.value;
-      schedulePersist();
-    }else if(target.dataset.wizardField==="currencyCode"){
+    if(target.matches("select,input[type=file],input[type=date]"))return;
+    if(target.dataset.wizardField==="currencyCode"){
       state.currencyCode=String(target.value||"").toUpperCase().slice(0,3);
       schedulePersist();
     }else if(target.dataset.wizardField==="notes"){
       state.notes=target.value;
       schedulePersist();
+    }else if(target.dataset.workIndex!==undefined){
+      updateWork(
+        Number(target.dataset.wizardItem),
+        Number(target.dataset.workIndex),
+        target.dataset.workField,
+        target.value
+      );
     }else if(target.dataset.wizardItem!==undefined){
       updateItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value,target);
     }
@@ -626,7 +722,15 @@ export function createOrderWizard({
   fields.addEventListener("change",event=>{
     if(!active||created)return;
     const target=event.target;
-    if(target.dataset.wizardItem!==undefined){
+    if(!target.matches("select,input[type=file],input[type=date]"))return;
+    if(target.dataset.workIndex!==undefined){
+      updateWork(
+        Number(target.dataset.wizardItem),
+        Number(target.dataset.workIndex),
+        target.dataset.workField,
+        target.value
+      );
+    }else if(target.dataset.wizardItem!==undefined){
       updateItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value,target);
     }else if(target.dataset.wizardField==="clientId"){
       state.clientId=target.value;
@@ -653,7 +757,29 @@ export function createOrderWizard({
     }
     const button=event.target.closest("[data-wizard-action]");
     if(!button)return;
-    if(button.dataset.wizardAction==="remove-item"){
+    const actionName=button.dataset.wizardAction;
+    if(actionName==="add-work"){
+      const index=Number(button.dataset.index);
+      const item=state.items[index];
+      if(item&&item.works.length<50){
+        item.works.push(makeWork());
+        schedulePersist();
+        render();
+      }
+      return;
+    }
+    if(actionName==="remove-work"){
+      const index=Number(button.dataset.index);
+      const workIndex=Number(button.dataset.workIndex);
+      const item=state.items[index];
+      if(item&&item.works.length>1&&Number.isInteger(workIndex)){
+        item.works.splice(workIndex,1);
+        schedulePersist();
+        render();
+      }
+      return;
+    }
+    if(actionName==="remove-item"){
       const index=Number(button.dataset.index);
       if(Number.isInteger(index)&&state.items.length>1){
         state.items.splice(index,1);
@@ -662,7 +788,7 @@ export function createOrderWizard({
       }
       return;
     }
-    void action(button.dataset.wizardAction);
+    void action(actionName);
   });
   window.addEventListener("beforeunload",event=>{
     if(active&&!created&&dirty&&meaningful()){
@@ -672,11 +798,12 @@ export function createOrderWizard({
     }
   });
 
-  async function open(){
+  async function open(preferredClientId=null){
     active=true;
     created=null;
     photoFailures.clear();
     preparedPhotos.clear();
+    uploadedPhotoIndexes.clear();
     dirty=false;
     restored=false;
     modal.classList.add("order-wizard-modal");
@@ -699,13 +826,18 @@ export function createOrderWizard({
       ]);
       if(!active)return;
       clients=clientData.clients||[];
-      catalog=catalogData.priceList?.categories||[];
+      const categories=catalogData.priceList?.categories||[];
       branches=(branchData.branches||[]).filter(branch=>branch.status==="active");
       members=Array.isArray(memberData.members)?memberData.members:[];
-      services=catalog.flatMap(category=>
+      const currentUserId=getMe?.()?.user?.id||"";
+      defaultAssignedUserId=members.some(member=>member.id===currentUserId)
+        ?currentUserId
+        :(members.length===1?members[0].id:"");
+      services=categories.flatMap(category=>
         (category.services||[])
           .filter(service=>service.status!=="inactive"&&service.status!=="deleted")
           .map(service=>({
+            id:service.id,
             categoryId:category.id,
             name:service.name,
             label:category.name+" · "+service.name,
@@ -721,6 +853,7 @@ export function createOrderWizard({
         dirty=true;
       }else{
         state=blankState(locale?.currency||"EUR");
+        state.items[0].assignedUserId=defaultAssignedUserId;
         const recent=(()=>{
           try{return sessionStorage.getItem(RECENT_CLIENT_KEY)||""}
           catch{return ""}
@@ -731,6 +864,15 @@ export function createOrderWizard({
         state.branchId=branches[0]?.id||"";
       }
       if(!clients.some(client=>client.id===state.clientId))state.clientId="";
+      if(preferredClientId&&clients.some(client=>client.id===preferredClientId)){
+        state.clientId=preferredClientId;
+        dirty=true;
+        persist();
+      }
+      const memberIds=new Set(members.map(member=>member.id));
+      state.items.forEach(item=>{
+        if(item.assignedUserId&&!memberIds.has(item.assignedUserId))item.assignedUserId=defaultAssignedUserId;
+      });
       state.currencyCode=safeCurrency(state.currencyCode||locale?.currency||"EUR");
       render();
     }catch(e){

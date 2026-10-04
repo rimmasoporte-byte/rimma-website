@@ -15,16 +15,28 @@ const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
+let returnToOrderAfterClient=false,pendingOrderClientId="";
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261004-v33").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261004-v34").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
+}));
+const orderWizard=import("/app/order-wizard.mjs?v=20261004-v62").then(module=>module.createOrderWizard({
+ api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
+ onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
+ onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
+ onOpenPayments:async id=>{await (await featureUI).openPayments(id);},
+ onOpenWhatsApp:async id=>{await (await featureUI).openWhatsApp(id);},
+ onOpenDocuments:async id=>{await (await featureUI).openOrderDocuments(id);},
+ onOpenGarment:async(orderId,itemId)=>{await (await featureUI).openGarment(orderId,itemId);},
+ onPrintLabel:printGarmentLabel,
+ onRefresh:async()=>{await loadOrders();await loadToday();}
 }));
 // The reports screen uses the shared document scroll; prevent a saved scroll
 // position from hiding its title behind the sticky header after navigation.
@@ -642,7 +654,11 @@ async function loadAccount(){
 function field(label,name,type="text",attributes=""){
  return '<div><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" name="'+name+'" type="'+type+'" '+attributes+'></div>';
 }
-function openModal(type,record=null){
+function openModal(type,record=null,options={}){
+ if(type==="client"){
+  returnToOrderAfterClient=options.returnToOrder===true;
+  pendingOrderClientId="";
+ }
  if(type.startsWith("edit-") && (!record || !/^[a-f0-9-]{36}$/i.test(record.id||""))) {
   globalError("Selecciona un registro válido e inténtalo de nuevo.");return;
  }
@@ -655,22 +671,13 @@ function openModal(type,record=null){
   box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
  }
  if(type==="order"){
-  $("#modal-eyebrow").textContent="TUS ENCARGOS";$("#modal-title").textContent="Nuevo pedido";
-  box.innerHTML='<p class="helper">Consultando clientes y servicios…</p>';
-  void Promise.all([api("/clients?limit=100&offset=0"),api("/price-list"),api("/branches")]).then(([clients,catalog,branchData])=>{
-   if(activeModal!=="order")return;
-   lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];const branches=(branchData.branches||[]).filter(b=>b.status==="active");
-   const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div><label for="f-branchId">Ubicación</label><select name="branchId" id="f-branchId" required>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
-   box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
-   $("#f-service").addEventListener("change",e=>{
-    if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
-    $("#f-name").value=pick.service.name;$("#f-currency").value=pick.service.currencyCode||L.currency||"EUR";
-    if(pick.service.pricingMode!=="quote"&&pick.service.priceMinor!=null)$("#f-price").value=(Number(pick.service.priceMinor)/100).toFixed(2);
-   });
-  }).catch(e=>{box.textContent="No se pueden cargar los datos: "+e.message;});
+  $("#modal-eyebrow").textContent="TUS ENCARGOS";
+  $("#modal-title").textContent="Nuevo pedido";
+  box.innerHTML='<p class="helper">Preparando el pedido…</p>';
+  void orderWizard.then(wizard=>wizard.open()).catch(error=>{
+   modalError(error.message||"No se pudo abrir el nuevo pedido.");
+  });
  }
-
  if(type==="appointment"){
   $("#modal-eyebrow").textContent="AGENDA DEL TALLER";$("#modal-title").textContent="Nueva cita";
   box.innerHTML='<p class="helper">Preparando agenda…</p>';
@@ -742,39 +749,28 @@ function openModal(type,record=null){
  if(!$("#modal").open)$("#modal").showModal();
 }
 async function saveModal(event){
- event.preventDefault();modalError("");const form=event.currentTarget;const submit=$("#modal-submit");submit.disabled=true;submit.textContent="Guardando…";
+ event.preventDefault();
+ if(activeModal==="order"){
+  modalError("");
+  try{await (await orderWizard).submit();}
+  catch(e){modalError(e.message||"No se pudo continuar con el pedido.");}
+  return;
+ }
+ modalError("");const form=event.currentTarget;const submit=$("#modal-submit");submit.disabled=true;submit.textContent="Guardando…";
  const get=k=>form.elements.namedItem(k)?.value??"";
  try {
   if(activeModal==="client"){
-   await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()})});
-   $("#modal").close();activeModal=null;go("clientes");
-  }else if(activeModal==="order"){
-    const minor=Math.round(Number(get("price"))*100);
-    if(!Number.isSafeInteger(minor)||minor<0)throw new Error("El precio no es válido.");
-    const options=JSON.parse($("#modal-fields").dataset.catalog||"[]");
-    const pick=get("service")===""?null:options[Number(get("service"))];
-    const mainPhoto=form.elements.namedItem("orderPhoto")?.files?.[0]||null;
-    const extraRows=[...$("#modal-fields").querySelectorAll(".extra-order-item")],extraPhotoFiles=[];
-    const payload={clientId:get("clientId"),branchId:get("branchId")||null,currencyCode:get("currency").toUpperCase(),dueDate:get("due")||null,notes:get("notes").trim(),items:[{name:get("name").trim(),unitPriceMinor:minor,quantity:1,garmentType:get("garmentType").trim()||null,color:get("color").trim()||null,sizeLabel:get("sizeLabel").trim()||null,storageLocation:get("storageLocation").trim()||null,...(pick?{categoryId:pick.catId}:{})},
-     ...extraRows.map(row=>{
-      const name=row.querySelector('[name="extraName"]').value.trim(),unit=Number(row.querySelector('[name="extraPrice"]').value),quantity=Number(row.querySelector('[name="extraQuantity"]').value),amount=Math.round(unit*100);
-      if(!name||!Number.isSafeInteger(amount)||amount<0||!Number.isFinite(quantity)||quantity<=0||!Number.isInteger(quantity*100))throw new Error("Comprueba el nombre, precio y cantidad de las prendas añadidas.");
-      extraPhotoFiles.push(row.querySelector('[name="extraPhoto"]')?.files?.[0]||null);
-      return {name,unitPriceMinor:amount,quantity};
-     })]};
-    const preparedMain=await prepareOrderPhoto(mainPhoto);
-    const preparedExtras=[];
-    for(const file of extraPhotoFiles)preparedExtras.push(await prepareOrderPhoto(file));
-    const created=await api("/orders",{method:"POST",body:JSON.stringify(payload)}),orderId=created.order?.id;
-    if(!/^[a-f0-9-]{36}$/i.test(orderId||""))throw new Error("El pedido se creó, pero no se pudo obtener su identificador.");
-    const fresh=await api("/orders/"+encodeURIComponent(orderId)),items=fresh.order?.items||[],files=[preparedMain,...preparedExtras];
-    for(let i=0;i<files.length;i++){
-      const file=files[i],item=items[i];if(!file)continue;
-      if(!item?.id)throw new Error("El pedido se creó, pero no se pudo asociar una fotografía a una prenda.");
-      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer una fotografía."));reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(file.blob);});
-      await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(item.id)+"/photos/upload",{method:"POST",body:JSON.stringify({base64,sizeBytes:file.blob.size,fileName:file.name,contentType:file.contentType,photoType:"intake",caption:"Fotografía añadida al crear el pedido"})});
-    }
-    $("#modal").close();activeModal=null;go("pedidos");success(files.some(Boolean)?"Pedido y fotografías guardados correctamente.":"Pedido creado correctamente.");
+   const result=await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()})});
+   const resumeOrder=returnToOrderAfterClient===true;
+   if(resumeOrder){
+    pendingOrderClientId=result?.client?.id||"";
+    $("#modal").close();
+    success("Cliente creado. Continúa con el pedido.");
+   }else{
+    $("#modal").close();go("clientes");
+    success("Cliente creado correctamente.");
+   }
+
   }else if(activeModal==="appointment"){
    const startsAt=new Date(get("startsAt")).toISOString(),endsAt=new Date(get("endsAt")).toISOString();
    await api("/appointments",{method:"POST",body:JSON.stringify({kind:get("kind"),branchId:get("branchId")||null,clientId:get("clientId")||null,orderId:get("orderId")||null,startsAt,endsAt,notes:get("notes").trim()||null})});
@@ -902,11 +898,6 @@ document.addEventListener("click",event=>{
     .finally(()=>{checkbox.disabled=false;});
    break;
   }
-  case "add-order-item":{
-   const list=$("#extra-order-items .extra-order-list");if(!list||list.children.length>=30)break;
-   list.insertAdjacentHTML("beforeend",'<fieldset class="extra-order-item"><legend>Otra prenda</legend><label>Trabajo * <input name="extraName" type="text" required maxlength="160" placeholder="Trabajo"></label><label>Precio * <input name="extraPrice" type="number" required min="0" step="0.01" value="0"></label><label>Cantidad <input name="extraQuantity" type="number" required min="0.01" max="1000000" step="0.01" value="1"></label><label>Fotografía <input name="extraPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><small class="helper">JPEG, PNG o WebP, hasta 150 KB.</small><button type="button" class="record-action danger" data-action="remove-order-item">Quitar</button></fieldset>');break;
-  }
-  case "remove-order-item":b.closest(".extra-order-item")?.remove();break;
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
   case "download-order":void downloadOrder(b.dataset.id);break;
@@ -939,8 +930,27 @@ document.addEventListener("click",event=>{
  }
 });
 $("#modal-form").addEventListener("submit",saveModal);
-$("#modal-close").addEventListener("click",()=>$("#modal").close());
-$("#modal-cancel").addEventListener("click",()=>$("#modal").close());
-$("#modal").addEventListener("close",()=>{activeModal=null;activeRecord=null;});
+async function requestModalClose(){
+ if(activeModal==="order"){try{await (await orderWizard).requestClose();}catch(e){modalError(e.message||"No se pudo cerrar el pedido.");}return;}
+ $("#modal").close();
+}
+$("#modal-close").addEventListener("click",()=>void requestModalClose());
+$("#modal-cancel").addEventListener("click",()=>void requestModalClose());
+$("#modal-back").addEventListener("click",()=>void orderWizard.then(wizard=>wizard.back()));
+$("#modal").addEventListener("cancel",event=>{if(activeModal==="order"){event.preventDefault();void requestModalClose();}});
+$("#modal").addEventListener("close",()=>{
+ const closingType=activeModal;
+ const resumeOrder=closingType==="client"&&returnToOrderAfterClient===true;
+ const preferredClientId=pendingOrderClientId;
+ if(closingType==="order")void orderWizard.then(wizard=>wizard.closed());
+ if(activeModal===closingType){activeModal=null;activeRecord=null;}
+ if(closingType==="client"){
+  returnToOrderAfterClient=false;
+  pendingOrderClientId="";
+  if(resumeOrder){
+   queueMicrotask(()=>void orderWizard.then(wizard=>wizard.open(preferredClientId)));
+  }
+ }
+});
 void session();
 })();

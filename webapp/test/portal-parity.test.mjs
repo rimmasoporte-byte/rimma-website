@@ -118,10 +118,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat]=await Promise.all([
+ const [server,html,js,css,feat,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/portal-parity.css"),
-  source("public/portal-features.mjs")]);
+  source("public/portal-features.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -131,6 +131,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/requireSession\(req,res\)/);
  assert.match(server,/requireCsrf\(req,res,s\)/);
  assert.match(server,/pathname==='\/app\/portal-features\.mjs'/);
+ assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-parity\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
@@ -140,7 +141,25 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/data-action="add-order-item"/);
+ assert.match(js,/order-wizard\.mjs\?v=20261004-v62/);
+ assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
+ assert.match(wizard,/const DRAFT_KEY="rimma\.order\.draft\.v62"/);
+ assert.match(wizard,/const names=\["Cliente","Prendas","Entrega","Confirmación"\]/);
+ assert.match(wizard,/data-wizard-action="add-item"/);
+ assert.match(wizard,/data-wizard-action="add-work"/);
+ assert.match(wizard,/data-wizard-action="remove-work"/);
+ assert.match(wizard,/works/);
+ assert.match(wizard,/Idempotency-Key/);
+ assert.match(server,/const orderCreate=method==='POST' && route==='\/orders'/);
+ assert.match(server,/items\\\/\[a-f0-9-\]\{36\}.*works/);
+ assert.match(server,/order_item_work_lines/);
+ assert.match(js,/portal-features\.mjs\?v=20261004-v34/);
+ assert.match(wizard,/assignedUserId/);
+ assert.match(wizard,/uploadedPhotoIndexes/);
+ assert.match(wizard,/data-wizard-action="retry-photos"/);
+ assert.match(wizard,/data-wizard-action="payment"/);
+ assert.match(wizard,/data-wizard-action="whatsapp"/);
+ assert.match(wizard,/data-wizard-action="label"/);
  assert.match(js,/function garmentCardOrderActions\(/);
  assert.match(js,/class="garment-quick-actions"/);
  assert.match(js,/>Abrir prenda<\/button>/);
@@ -156,7 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/garment-paid-action/);
  assert.match(js,/garment-order-link/);
  assert.match(js,/class="garment-card-status"/);
- assert.match(js,/\(actions\?garmentCardOrderActions\(o,itemId,orderId\):""\)\+\n  '<\/div>'/);
+ assert.match(js,/\(actions\?garmentCardOrderActions\(o,itemId,orderId\):""\)\+\r?\n  '<\/div>'/);
  assert.match(css,/@media\(min-width:981px\)\{[\s\S]*?grid-template-columns:76px minmax\(0,1fr\) auto/);
  assert.match(css,/\.garment-grid \.garment-card-main>\.garment-quick-actions\{[\s\S]*?display:flex[\s\S]*?flex-wrap:nowrap/);
  assert.match(css,/\.garment-card-status\{[\s\S]*?justify-self:end/);
@@ -171,13 +190,21 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.doesNotMatch(js,/garment-more-menu[\s\S]{0,500}data-action="order-passport"/);
  assert.match(js,/img\.addEventListener\("error",restoreFallback/);
  assert.doesNotMatch(js,/holder&&photo\?\.viewUrl\)holder\.innerHTML='<img/);
- assert.ok(js.indexOf('id="extra-order-items"')>js.indexOf('if(type==="order"){'),
-  "multi-garment selector must be on order form");
- const clientForm=js.slice(js.indexOf('if(type==="client"){'),js.indexOf('if(type==="order"){'));
- assert.doesNotMatch(clientForm,/extra-order-items/);
+ assert.match(html,/id="modal-back" hidden/);
+ assert.match(css,/\.order-wizard-modal\{width:min\(96vw,820px\)/);
+ assert.doesNotMatch(css,/\.extra-order-item/);
+ assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
+ assert.match(wizard,/modal\.addEventListener\("close",\(\)=>onOpenClient\?\.\(\),\{once:true\}\)/);
  assert.match(feat,/deliveryMode|manualmente/);
  assert.match(feat,/async function openGarment\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentEdit\(orderId,itemId\)/);
+ assert.match(feat,/async function openGarmentWorksEdit\(orderId,itemId\)/);
+ assert.match(feat,/mode==="garment-works-edit"/);
+ assert.match(feat,/encodeURIComponent\(itemId\)\+"\/works"/);
+ assert.match(feat,/data-feature="work-add"/);
+ assert.match(feat,/data-feature="work-remove"/);
+ assert.match(feat,/class="garment-work-lines"/);
+ assert.match(feat,/class="order-info-work-lines"/);
  assert.match(feat,/async function openOrderInfo\(orderId\)/);
  assert.match(feat,/layout\("garment-edit"/);
  assert.match(feat,/layout\("order-info"/);
@@ -201,8 +228,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-core60/);
-  assert.match(html,/portal-parity\.css\?v=20261004-core60/);
+  assert.match(html,/site\.js\?v=20261004-order62/);
+  assert.match(html,/portal-parity\.css\?v=20261004-order62/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");

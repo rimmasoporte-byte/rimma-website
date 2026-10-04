@@ -36,9 +36,9 @@ const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
 const responseLimit = 2 * 1024 * 1024;
 const available = Object.freeze({
-  GET: [/^\/me$/, /^\/business-profile$/, /^\/fiscal\/(?:readiness|settings)$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/workspace\/members$/, /^\/team$/, /^\/branches(?:\/[a-f0-9-]{36}\/summary)?$/, /^\/appointments$/, /^\/notification-settings$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/(?:measurements|fiscal-profile)$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/documents(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/invoices(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/(?:photos|passport|label)$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_photos|order_item_events|order_documents|workspace_business_profiles|client_fiscal_profiles|fiscal_invoices|price_services|payments|payment_allocations|payment_events)$/],
+  GET: [/^\/me$/, /^\/business-profile$/, /^\/fiscal\/(?:readiness|settings)$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/workspace\/members$/, /^\/team$/, /^\/branches(?:\/[a-f0-9-]{36}\/summary)?$/, /^\/appointments$/, /^\/notification-settings$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/(?:measurements|fiscal-profile)$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/documents(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/invoices(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/(?:photos|passport|label)$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_work_lines|order_item_photos|order_item_events|order_documents|workspace_business_profiles|client_fiscal_profiles|fiscal_invoices|price_services|payments|payment_allocations|payment_events)$/],
   POST: [/^\/team\/invitations$/, /^\/appointments$/, /^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/(?:documents|invoice-preview|invoices)$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share\/email$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
-  PATCH: [/^\/business-profile$/, /^\/branches\/[a-f0-9-]{36}$/, /^\/team\/members\/[a-f0-9-]{36}$/, /^\/appointments\/[a-f0-9-]{36}$/, /^\/notification-settings$/, /^\/workspace\/members\/[a-f0-9-]{36}\/atelier-settings$/, /^\/fiscal\/settings$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/fiscal-profile$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
+  PATCH: [/^\/business-profile$/, /^\/branches\/[a-f0-9-]{36}$/, /^\/team\/members\/[a-f0-9-]{36}$/, /^\/appointments\/[a-f0-9-]{36}$/, /^\/notification-settings$/, /^\/workspace\/members\/[a-f0-9-]{36}\/atelier-settings$/, /^\/fiscal\/settings$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/fiscal-profile$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}(?:\/works)?$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
   DELETE: [/^\/team\/invitations\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
 });
 function securityHeaders(type) {
@@ -235,6 +235,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/atelier-mannequin.webp')return staticFile(res,'atelier-mannequin.webp','image/webp');
     if(method==='GET'&&pathname==='/app/report-view.mjs')return staticFile(res,'report-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-features.mjs')return staticFile(res,'portal-features.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-parity.css')return staticFile(res,'portal-parity.css','text/css; charset=utf-8');
@@ -464,10 +465,13 @@ export const server=http.createServer(async(req,res)=>{
       const payload=method==='GET'?undefined:await body(req,photoUpload?maxPhotoBody:maxBody);
       const extraHeaders={};
       const paymentCreate=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/payments$/.test(route);
-      if(paymentCreate){
+      const orderCreate=method==='POST' && route==='/orders';
+      if(paymentCreate||orderCreate){
         const key=String(req.headers['idempotency-key']||'').toLowerCase();
         if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(key)){
-          return send(res,400,{error:'Identificador de cobro no valido. Actualiza la pagina e intentalo de nuevo.'});
+          return send(res,400,{error:paymentCreate
+            ?'Identificador de cobro no valido. Actualiza la pagina e intentalo de nuevo.'
+            :'Identificador de pedido no valido. Cierra el borrador y vuelve a intentarlo.'});
         }
         extraHeaders['idempotency-key']=key;
       }
