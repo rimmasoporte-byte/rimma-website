@@ -17,11 +17,13 @@ test('The production home is indexable, canonical and has the original RIMMA log
   assert.doesNotMatch(h,/noindex|nofollow/i);
   assert.match(h,/\.\/assets-v3\/logo\.webp/);
   assert.match(h,/\.\/demo\//);
+  assert.match(h,/public-locale-select/);
+  assert.match(h,/spain-locales\.js/);
   assert.match(h,/5 €/);
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
-    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js',
+    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js','assets-v3/spain-locales.js',
     'assets-v3/logo.webp','assets-v3/icon.png','assets-v3/logo-original.png',
     'assets-v3/fonts/manrope-400.woff2','assets-v3/fonts/manrope-700.woff2',
     'assets-v3/fonts/playfair-500.woff2','assets-v3/fonts/licenses/MANROPE-LICENSE.txt',
@@ -54,4 +56,13 @@ test('Legal routes use the correct production assets and sitemap retains Google 
   assert.match(map,/https:\/\/rimmaapp\.com\/privacy\//);
   assert.match(map,/https:\/\/rimmaapp\.com\/delete-account\//);
   assert.match(read('robots.txt'),/Allow:\s*\//);
+});
+
+test('Public locale picker is Spain-only',()=>{
+  const js=read('assets-v3/spain-locales.js');
+  for(const locale of ['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'])
+    assert.ok(js.includes(locale),locale);
+  for(const legacy of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'])
+    assert.doesNotMatch(js,new RegExp(legacy.replaceAll('-','\\-')));
+  assert.match(read('demo/index.html'),/spain-locales\.js/);
 });
