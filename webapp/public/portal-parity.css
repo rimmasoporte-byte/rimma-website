@@ -1466,3 +1466,29 @@ button:disabled,.feature-button[disabled]{
  }
 }
 
+
+
+/* V43 — precise circular status markers on garment cards. */
+#view-inicio .garment-card-status>.status{
+ display:inline-flex;
+ align-items:center;
+ gap:7px;
+ padding:5px 10px;
+ border-radius:7px;
+ line-height:1;
+}
+#view-inicio .garment-card-status>.status::before{
+ content:"";
+ display:block;
+ flex:0 0 7px;
+ width:7px;
+ height:7px;
+ margin:0;
+ border-radius:50%;
+ background:#cb8b16;
+ box-shadow:inset 0 0 0 1px rgba(120,78,6,.05);
+}
+#view-inicio .garment-card-status>.status.in_progress::before{background:#216bb5}
+#view-inicio .garment-card-status>.status.ready::before,
+#view-inicio .garment-card-status>.status.issued::before{background:#166b35}
+#view-inicio .garment-card-status>.status.cancelled::before{background:#b94f42}
