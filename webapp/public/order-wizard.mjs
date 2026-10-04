@@ -273,11 +273,11 @@ export function createOrderWizard({
       '<div class="wizard-control wizard-wide wizard-client-search"><label for="ow-client-search">Cliente *</label>'+
       '<div class="wizard-client-searchbox"><div class="wizard-client-combobox">'+
       '<input id="ow-client-search" type="search" inputmode="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="ow-client-results" aria-expanded="false" data-wizard-field="clientId" value="'+esc(state.clientLabel)+'" placeholder="Escribe nombre, teléfono o email">'+
-      (state.clientId?'<button type="button" class="wizard-client-clear" data-wizard-action="clear-client" aria-label="Cambiar cliente">×</button>':"")+
+      (state.clientId?'<span class="wizard-client-confirmation" aria-hidden="true">✓</span>':"")+
       '</div>'+
       '<div id="ow-client-results" class="wizard-client-results" role="listbox" hidden></div></div>'+
       '<p class="wizard-field-error" data-error-for="clientId"></p>'+
-      (state.clientId?'<div class="wizard-client-selected"><span>✓ Cliente seleccionado</span><strong>'+esc(state.clientLabel)+'</strong>'+(state.clientContact?'<small>'+esc(state.clientContact)+'</small>':"")+'</div>':
+      (state.clientId?'<div class="wizard-client-meta">'+(state.clientContact?'<small>'+esc(state.clientContact)+'</small>':"")+'<button type="button" data-wizard-action="clear-client">Cambiar</button></div>':
         '<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>')+
       '</div>'+
       '<div class="wizard-inline-actions"><button type="button" class="record-action" data-wizard-action="new-client">+ Nuevo cliente</button></div>'+
