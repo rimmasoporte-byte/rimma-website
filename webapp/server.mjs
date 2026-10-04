@@ -30,15 +30,16 @@ const authIpThrottle = createLoginThrottle(sessions,{namespace:'auth-ip',maxAtte
 const signupSendIpThrottle = createLoginThrottle(sessions,{namespace:'signup-send-ip',maxAttempts:10,windowMs:60*60_000});
 const signupActionIpThrottle = createLoginThrottle(sessions,{namespace:'signup-action-ip',maxAttempts:40,windowMs:15*60_000});
 const signupRegisterIpThrottle = createLoginThrottle(sessions,{namespace:'signup-register-ip',maxAttempts:6,windowMs:24*60*60_000});
+const inviteIpThrottle = createLoginThrottle(sessions,{namespace:'team-invite-public-ip',maxAttempts:30,windowMs:15*60_000});
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
 const responseLimit = 2 * 1024 * 1024;
 const available = Object.freeze({
-  GET: [/^\/me$/, /^\/business-profile$/, /^\/fiscal\/(?:readiness|settings)$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/workspace\/members$/, /^\/branches(?:\/[a-f0-9-]{36}\/summary)?$/, /^\/appointments$/, /^\/notification-settings$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/(?:measurements|fiscal-profile)$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/documents(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/invoices(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/(?:photos|passport|label)$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_photos|order_item_events|order_documents|workspace_business_profiles|client_fiscal_profiles|fiscal_invoices|price_services|payments|payment_allocations|payment_events)$/],
-  POST: [/^\/branches$/, /^\/appointments$/, /^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/(?:documents|invoice-preview|invoices)$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share\/email$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
-  PATCH: [/^\/business-profile$/, /^\/branches\/[a-f0-9-]{36}$/, /^\/appointments\/[a-f0-9-]{36}$/, /^\/notification-settings$/, /^\/workspace\/members\/[a-f0-9-]{36}\/atelier-settings$/, /^\/fiscal\/settings$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/fiscal-profile$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
-  DELETE: [/^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
+  GET: [/^\/me$/, /^\/business-profile$/, /^\/fiscal\/(?:readiness|settings)$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/workspace\/members$/, /^\/team$/, /^\/branches(?:\/[a-f0-9-]{36}\/summary)?$/, /^\/appointments$/, /^\/notification-settings$/, /^\/clients(?:\/[a-f0-9-]{36})?$/, /^\/clients\/[a-f0-9-]{36}\/(?:measurements|fiscal-profile)$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/documents(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/invoices(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/(?:photos|passport|label)$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_photos|order_item_events|order_documents|workspace_business_profiles|client_fiscal_profiles|fiscal_invoices|price_services|payments|payment_allocations|payment_events)$/],
+  POST: [/^\/team\/invitations$/, /^\/appointments$/, /^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/(?:documents|invoice-preview|invoices)$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share\/email$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
+  PATCH: [/^\/business-profile$/, /^\/branches\/[a-f0-9-]{36}$/, /^\/team\/members\/[a-f0-9-]{36}$/, /^\/appointments\/[a-f0-9-]{36}$/, /^\/notification-settings$/, /^\/workspace\/members\/[a-f0-9-]{36}\/atelier-settings$/, /^\/fiscal\/settings$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/fiscal-profile$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
+  DELETE: [/^\/team\/invitations\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
 });
 function securityHeaders(type) {
   const headers = {
@@ -208,12 +209,16 @@ export const server=http.createServer(async(req,res)=>{
       if(!signupEnabled(process.env))return send(res,404,{error:'Registro no disponible.'});
       return staticFile(res,'register.html','text/html; charset=utf-8');
     }
+    if(method==='GET'&&pathname==='/app/invite.html')return staticFile(res,'invite.html','text/html; charset=utf-8');
     if(method==='GET'&&pathname==='/app/vendor/qrcode.min.js')return staticFile(res,'vendor/qrcode.min.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/vendor/qrcode.LICENSE.txt')return staticFile(res,'vendor/qrcode.LICENSE.txt','text/plain; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale.js')return staticFile(res,'locale.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale-intl.js')return staticFile(res,'locale-intl.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale-picker.js')return staticFile(res,'locale-picker.js','text/javascript; charset=utf-8');
   if(method==='GET'&&pathname==='/app/signup-client.mjs')return staticFile(res,'signup-client.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/invite-client.mjs')return staticFile(res,'invite-client.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/team-view.mjs')return staticFile(res,'team-view.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/team.css')return staticFile(res,'team.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/password-toggle.mjs')return staticFile(res,'password-toggle.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
@@ -247,6 +252,27 @@ export const server=http.createServer(async(req,res)=>{
     }
     if(method==='GET'&&pathname==='/api/auth/signup-config'){
       return send(res,200,{enabled:signupEnabled(process.env)});
+    }
+    if(method==='POST'&&(pathname==='/api/auth/invite/preview'||pathname==='/api/auth/invite/accept')){
+      if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
+      if(!await inviteIpThrottle.reserve(clientAddress(req))){
+        return send(res,429,{error:'Demasiados intentos. Espera antes de volver a intentarlo.'});
+      }
+      const input=await body(req,4096);
+      if(typeof input?.token!=='string'||input.token.length>256){
+        return send(res,400,{error:'La invitación no es válida.'});
+      }
+      if(pathname.endsWith('/accept')&&(
+        typeof input?.password!=='string'||input.password.length>200||
+        (input.displayName!==null&&input.displayName!==undefined&&typeof input.displayName!=='string')
+      )){
+        return send(res,400,{error:'Revisa los datos de acceso.'});
+      }
+      const upstreamPath=pathname.endsWith('/preview')
+        ?'/team/invitations/preview'
+        :'/team/invitations/accept';
+      const result=await fromBackend('POST',upstreamPath,input);
+      return send(res,result.status,result.data);
     }
     if(method==='POST'&&/^\/api\/auth\/signup\/(send|verify|register)$/.test(pathname)){
       if(!signupEnabled(process.env))return send(res,503,{error:'Las nuevas cuentas web todavía no están disponibles.'});
