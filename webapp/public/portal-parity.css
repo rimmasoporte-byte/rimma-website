@@ -1722,3 +1722,27 @@ button:disabled,.feature-button[disabled]{
    font-size:10.5px
  }
 }
+
+
+/* V51 — final KPI typography polish: +10% readability without growing cards. */
+#view-inicio #today-cards .atelier-kpi>span:not(.metric-icon):not(.metric-jump){
+ font-size:11px
+}
+#view-inicio #today-cards .atelier-kpi>small{
+ font-size:12px;
+ line-height:1.32
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump{
+ font-size:11px
+}
+@media(max-width:720px){
+ #view-inicio #today-cards .atelier-kpi>span:not(.metric-icon):not(.metric-jump){
+   font-size:10px
+ }
+ #view-inicio #today-cards .atelier-kpi>small{
+   font-size:11px
+ }
+ #view-inicio #today-cards .atelier-kpi>.metric-jump{
+   font-size:10px
+ }
+}
