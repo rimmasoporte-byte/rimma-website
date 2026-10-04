@@ -287,8 +287,8 @@ function garmentCardOrderActions(o,itemId,orderId){
  return '<div class="garment-quick-actions">'+
   '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
   '<button type="button" class="record-action garment-pay-action" data-action="order-payments" data-id="'+safe+'" data-garment-pay-action="'+itemId+'">Cobrar</button>'+
-  '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar</button>'+
   '<details class="garment-more"><summary aria-label="Más acciones">⋯</summary><div class="garment-more-menu">'+
+  '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar</button>'+
    '<button type="button" class="record-action" data-action="order-info" data-id="'+safe+'">Información del pedido</button>'+
    '<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'">Documentos</button>'+
    '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+
@@ -303,14 +303,14 @@ function garmentCard(o,item,actions=false){
  const itemId=esc(item.id||"");
  const orderId=esc(o.id||"");
  const due=item.dueDate||o.dueDate;
- const branch=o.branch?.name?'<span class="garment-meta-chip">⌂ '+esc(o.branch.name)+'</span>':"";
  const worker=item.assignedWorker?.name?esc(item.assignedWorker.name):"Sin asignar";
  const location=item.storageLocation?esc(item.storageLocation):"Sin ubicación";
  const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
- return '<article class="garment-card" data-order="'+orderId+'" data-item="'+itemId+'">'+
+ return '<article class="garment-card garment-card-refined" data-order="'+orderId+'" data-item="'+itemId+'">'+
   '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
-  '<div class="garment-card-main"><div class="garment-card-top"><div><button type="button" class="garment-order-ref garment-order-link" data-action="order-info" data-id="'+orderId+'"><span class="customer-avatar" aria-hidden="true">'+esc(customerInitials(customer))+'</span> Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</button><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3>'+(details?'<p>'+details+'</p>':"")+'</div></div>'+
-  '<div class="garment-facts">'+branch+'<span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'">⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'">📏 Sin ficha vinculada</span></div>'+
+  '<div class="garment-card-main"><div class="garment-card-top"><div><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3><button type="button" class="garment-order-ref garment-order-link" data-action="order-info" data-id="'+orderId+'">Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</button>'+(details?'<p>'+details+'</p>':"")+'</div></div>'+
+  '<div class="garment-facts"><span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'"'+(item.storageLocation?'':' hidden')+'>⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'" hidden>📏 Sin ficha vinculada</span></div>'+
+  '</div><div class="garment-card-footer">'+
   '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
   (actions?garmentCardOrderActions(o,itemId,orderId):"")+
   '</div>'+
@@ -356,9 +356,9 @@ async function hydrateGarmentCards(rows){
      const worker=document.querySelector('[data-garment-worker="'+CSS.escape(item.id)+'"]');
      if(worker)worker.textContent="👤 "+(p.assignedWorker?.name||"Sin asignar");
      const loc=document.querySelector('[data-garment-location="'+CSS.escape(item.id)+'"]');
-     if(loc)loc.textContent="⌗ "+(p.storageLocation||"Sin ubicación");
+     if(loc){loc.textContent="⌗ "+(p.storageLocation||"Sin ubicación");loc.hidden=!p.storageLocation;}
      const measurement=document.querySelector('[data-garment-measurement="'+CSS.escape(item.id)+'"]');
-     if(measurement)measurement.textContent="📏 "+(p.measurementSheet?.garmentLabel||p.measurementSheet?.garmentType||(p.measurementSheet?"Ficha de medidas":"Sin ficha vinculada"));
+     if(measurement){measurement.textContent="📏 "+(p.measurementSheet?.garmentLabel||p.measurementSheet?.garmentType||(p.measurementSheet?"Ficha de medidas":"Sin ficha vinculada"));measurement.hidden=!p.measurementSheet;}
      const paid=document.querySelector('[data-garment-paid="'+CSS.escape(item.id)+'"] strong');
      if(paid)paid.textContent=money(p.confirmedPaidMinor,p.currencyCode);
      const bal=document.querySelector('[data-garment-balance="'+CSS.escape(item.id)+'"] strong');

@@ -35,7 +35,8 @@ test('table retains customer identity and accessible edit/delete actions',async(
  const js=await read('site.js');
  assert.match(js,/function customerInitials\(name\)/);
  assert.ok(js.includes('split(/\\s+/)'));
- assert.match(js,/class="customer-avatar"/);
+ assert.match(js,/class="garment-order-ref garment-order-link"/);
+ assert.ok(js.includes("esc(customer)"));
  assert.match(js,/class="order-amount"/);
  assert.match(js,/data-action="edit-/);
  assert.match(js,/data-action="delete-/);
