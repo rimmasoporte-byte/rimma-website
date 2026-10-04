@@ -21,6 +21,8 @@ test('portal language picker lives in the top bar, not the sidebar footer',()=>{
   assert.doesNotMatch(html,/class="locale-switch locale-switch-select portal-locale"/);
   const topbar=html.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1]||'';
   assert.match(topbar,/app-locale-select/);
+  assert.ok(topbar.indexOf('topbar-private') < topbar.indexOf('topbar-locale'));
+  assert.ok(topbar.indexOf('topbar-locale') < topbar.indexOf('profile-chip'));
   const sidebarBottom=html.match(/<div class="sidebar-bottom">([\s\S]*?)<\/div>/)?.[1]||'';
   assert.doesNotMatch(sidebarBottom,/app-locale-select/);
   const css=read('public/portal-parity.css');
