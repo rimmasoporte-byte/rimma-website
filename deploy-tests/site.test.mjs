@@ -149,6 +149,15 @@ test('public site exposes only Spain languages',()=>{
     assert.doesNotMatch(locale,new RegExp(old.replaceAll('-','\\-')),old);
 });
 
+test('active public locale scripts contain no retired international locales',()=>{
+  const files=['assets-v3/spain-locales.js','assets-v3/legal-i18n.js','demo/locale.js','demo/locale-intl.js','demo/demo-shim.js'];
+  for(const file of files){
+    const source=read(file);
+    for(const old of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'])
+      assert.doesNotMatch(source,new RegExp(old.replaceAll('-','\\-')),file+' '+old);
+  }
+});
+
 test('interactive demo uses the same Spain-only locale set',()=>{
   const html=read('demo/index.html');
   const base=read('demo/locale.js');
