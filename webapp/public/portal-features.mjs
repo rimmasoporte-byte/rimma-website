@@ -386,8 +386,11 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const measurement=p.measurementSheet;
   const works=Array.isArray(p.works)?p.works:[];
   const clientName=p.client?.name||tr("Cliente sin nombre","Cliente sem nome");
-  const due=String(p.dueDate||"").slice(0,10)||"—";
-  const worker=p.assignedWorker?.name||tr("Sin asignar","Sem atribuição");
+  const due=localDate(p.dueDate);
+  const responsibleNames=[...new Set(works.map(work=>work.assignedWorker?.name).filter(Boolean))];
+  const responsibilitySummary=responsibleNames.length
+   ?responsibleNames.join(" · ")
+   :tr("Sin responsables asignados","Sem responsáveis atribuídos");
   const location=p.storageLocation||tr("Sin ubicación","Sem localização");
   const measurementLabel=measurement
    ? (measurement.garmentLabel||measurement.garmentType||tr("Ficha vinculada","Ficha vinculada"))
@@ -401,7 +404,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     '<div><small>'+tr("Pendiente","Pendente")+'</small><strong>'+esc(money(p.remainingMinor,p.currencyCode))+'</strong></div></div>'+
    '<div class="garment-work-grid">'+
     '<section class="garment-work-card"><small>'+tr("Cliente","Cliente")+'</small><strong>'+esc(clientName)+'</strong><span>'+esc(p.client?.phone||p.client?.email||"—")+'</span></section>'+
-    '<section class="garment-work-card"><small>'+tr("Responsable","Responsável")+'</small><strong>'+esc(worker)+'</strong><span>'+tr("Trabajo asignado a esta prenda","Trabalho atribuído a esta peça")+'</span></section>'+
+    '<section class="garment-work-card"><small>'+tr("Responsables de trabajos","Responsáveis dos trabalhos")+'</small><strong>'+esc(responsibilitySummary)+'</strong><span>'+esc(String(works.length))+' '+tr("trabajo(s) registrado(s)","trabalho(s) registrado(s)")+'</span></section>'+
     '<section class="garment-work-card"><small>'+tr("Ubicación","Localização")+'</small><strong>'+esc(location)+'</strong><span>'+tr("Dónde está guardada la prenda","Onde a peça está guardada")+'</span></section>'+
     '<section class="garment-work-card"><small>'+tr("Medidas","Medidas")+'</small><strong>'+esc(measurementLabel)+'</strong><span>'+(measurement?esc((measurement.measurements||[]).slice(0,4).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")).join(" · ")||tr("Ficha guardada","Ficha guardada")):tr("Puedes vincular una ficha del cliente","Você pode vincular uma ficha do cliente"))+'</span></section>'+
    '</div>'+
@@ -413,7 +416,10 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      '<span><small>'+tr("Talla","Tamanho")+'</small><strong>'+esc(p.sizeLabel||"—")+'</strong></span>'+
     '</div>'+
     (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
-      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><div><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><small>'+
+      esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+      (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+
+      '</small></div><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
     ).join("")+'</div>':
     '<p class="feature-muted">'+tr("El trabajo está guardado en el resumen de la prenda.","O trabalho está salvo no resumo da peça.")+'</p>')+
     '</div>'+
@@ -543,7 +549,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const items=Array.isArray(o.items)?o.items:[];
   const customer=o.client?.name||tr("Cliente sin nombre","Cliente sem nome");
   const branch=o.branch?.name||tr("Sin sucursal","Sem filial");
-  const due=String(o.dueDate||"").slice(0,10)||"—";
+  const due=localDate(o.dueDate);
   layout("order-info",tr("Información del pedido","Informações do pedido")+" #"+esc(o.orderNumber||""),
    '<div class="order-info-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(o.orderNumber||"")+'</span><h3>'+esc(customer)+'</h3>'+
     '<span class="status '+esc(o.status||"accepted")+'">'+esc(passportStatusLabel(o.status))+'</span></div>'+
@@ -555,8 +561,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    '<div class="passport-section"><h4>'+tr("Prendas del pedido","Peças do pedido")+'</h4>'+
     (items.length?'<div class="order-info-items">'+items.map((item,index)=>{
       const works=Array.isArray(item.works)?item.works:[];
-      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(String(item.dueDate).slice(0,10)):'')+'</small>'+
-       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><b>'+esc(work.name)+'</b><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
+      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(localDate(item.dueDate)):'')+'</small>'+
+       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><span><b>'+esc(work.name)+'</b><small>'+esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+       (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+'</small></span><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
        '</div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>';
      }).join("")+'</div>':
      '<p class="feature-muted">'+tr("No hay prendas en este pedido.","Não há peças neste pedido.")+'</p>')+
@@ -618,12 +625,15 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     (p.measurementSheet?'<div class="measurement-linked"><strong>'+tr("Medidas vinculadas","Medidas vinculadas")+'</strong><span>'+esc((p.measurementSheet.measurements||[]).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")+" "+String(p.measurementSheet.unit||"")).join(" · ")||tr("Ficha guardada","Ficha guardada"))+'</span></div>':'')+'</div>'+
    '<div class="passport-section"><h4>'+tr("Trabajos de esta prenda","Trabalhos desta peça")+'</h4>'+
     (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
-      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><div><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><small>'+
+      esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+      (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+
+      '</small></div><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
     ).join("")+'</div>':
     '<p class="feature-muted">'+tr("Este pedido antiguo no tiene trabajos separados.","Este pedido antigo não tem trabalhos separados.")+'</p>')+
    '</div>'+
-   '<div class="passport-section passport-photo-section"><h4>'+tr("Fotos de la prenda","Fotos da peça")+'</h4>'+
-    '<p class="passport-section-help">'+tr("Guarda fotos de recepción, detalles y resultado final.","Guarde fotos do recebimento, detalhes e resultado final.")+'</p>'+
+   '<div class="passport-section passport-photo-section"><h4>'+tr("Fotografías por trabajo","Fotografias por trabalho")+'</h4>'+
+    '<p class="passport-section-help">'+tr("Cada fotografía queda vinculada al trabajo correspondiente para mantener el historial ordenado.","Cada fotografia fica vinculada ao trabalho correspondente para manter o histórico organizado.")+'</p>'+
     '<div class="passport-single-action">'+b(tr("Ver / añadir fotografías","Ver / adicionar fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+'</div></div>'+
    '<div class="passport-section passport-share-section"><h4>'+tr("Compartir con el cliente","Compartilhar com o cliente")+'</h4>'+
     '<p class="passport-section-help">'+tr("RIMMA crea una página privada del pedido. Elige cómo quieres enviarla.","A RIMMA cria uma página privada do pedido. Escolha como deseja enviá-la.")+'</p>'+
