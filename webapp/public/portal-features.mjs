@@ -506,13 +506,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
 
  async function openGarmentEdit(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
-  const [passportResult,membersResult]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   api("/workspace/members")
-  ]);
+  const passportResult=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
   const p=passportResult.passport||{};
   if(!uuid(p.id))throw Error(tr("No se pudo cargar la prenda.","Não foi possível carregar a peça."));
-  const members=Array.isArray(membersResult.members)?membersResult.members:[];
   let measurements=[];
   if(uuid(p.client?.id)){
    try{
@@ -520,24 +516,20 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
    }catch{measurements=[];}
   }
-  selected={orderId,itemId,passport:p,members,measurements};
-  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
-   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
-    esc(member.name||member.email||tr("Miembro","Membro"))+'</option>').join("");
+  selected={orderId,itemId,passport:p,measurements};
   const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
-    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+localDate(m.measuredAt))+'</option>').join("");
   layout("garment-edit",tr("Editar prenda","Editar peça"),
    '<div class="garment-edit-head"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3></div>'+
     '<span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
-   '<p class="feature-muted">'+tr("Edita únicamente los datos propios de esta prenda. Los pagos y documentos pertenecen al pedido.","Edite apenas os dados desta peça. Pagamentos e documentos pertencem ao pedido.")+'</p>'+
+   '<p class="feature-muted">'+tr("Edita los datos físicos de la prenda. El responsable se asigna dentro de cada trabajo.","Edite os dados físicos da peça. O responsável é definido em cada trabalho.")+'</p>'+
    '<div class="feature-fields">'+
     field("garmentType",tr("Tipo de prenda","Tipo de peça"),"text",'maxlength="80" placeholder="'+tr("Pantalón, vestido, chaqueta…","Calça, vestido, jaqueta…")+'" value="'+esc(p.garmentType||"")+'"')+
     field("brand",tr("Marca","Marca"),"text",'maxlength="120" value="'+esc(p.brand||"")+'"')+
     field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
     field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
     field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
     '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select>'+
    '</div>',tr("Guardar cambios","Salvar alterações"));
  }
@@ -592,13 +584,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
 
  async function openPassport(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
-  const [passportResult,membersResult]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   api("/workspace/members")
-  ]);
+  const passportResult=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
   const p=passportResult.passport||{};
   if(!uuid(p.id))throw Error(tr("No se pudo cargar el pasaporte de la prenda.","Não foi possível carregar o passaporte da peça."));
-  const members=Array.isArray(membersResult.members)?membersResult.members:[];
   let measurements=[];
   if(uuid(p.client?.id)){
     try{
@@ -606,13 +594,10 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
       measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
     }catch{measurements=[];}
   }
-  selected={orderId,itemId,passport:p,members,measurements};
-  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
-   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
-    esc(member.name||member.email||tr("Miembro","Membro"))+' · '+esc(member.role||"")+'</option>').join("");
+  selected={orderId,itemId,passport:p,measurements};
   const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
-    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+localDate(m.measuredAt))+'</option>').join("");
   const history=Array.isArray(p.history)?p.history:[];
   const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
   const works=Array.isArray(p.works)?p.works:[];
@@ -629,7 +614,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
     field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
     field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" placeholder="'+tr("Ej. Estante B-12","Ex. Prateleira B-12")+'" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
     '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select></div>'+
     (p.measurementSheet?'<div class="measurement-linked"><strong>'+tr("Medidas vinculadas","Medidas vinculadas")+'</strong><span>'+esc((p.measurementSheet.measurements||[]).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")+" "+String(p.measurementSheet.unit||"")).join(" · ")||tr("Ficha guardada","Ficha guardada"))+'</span></div>':'')+'</div>'+
    '<div class="passport-section"><h4>'+tr("Trabajos de esta prenda","Trabalhos desta peça")+'</h4>'+
@@ -1388,7 +1372,6 @@ function newPhoto(){
     color:get("color").trim()||null,
     sizeLabel:get("sizeLabel").trim()||null,
     storageLocation:get("storageLocation").trim()||null,
-    assignedUserId:get("assignedUserId")||null,
     measurementSetId:get("measurementSetId")||null
    };
    const nextMode=mode;
