@@ -69,6 +69,17 @@ export function createOrderWizard({
       return (Number(minor||0)/100).toFixed(2)+" "+state.currencyCode;
     }
   };
+  const formatDate=value=>{
+    if(!value)return "—";
+    const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(match)return match[3]+"/"+match[2]+"/"+match[1];
+    const parsed=new Date(value);
+    return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleDateString(locale?.locale||"es-ES");
+  };
+  const memberName=id=>{
+    const member=members.find(row=>row.id===id);
+    return member?.name||member?.email||"Sin asignar";
+  };
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
     state.items.some(item=>
@@ -171,20 +182,30 @@ export function createOrderWizard({
     '<option value="'+esc(branch.id)+'" '+(branch.id===state.branchId?"selected":"")+'>'+
     esc(branch.name)+'</option>'
   ).join("");
-  const serviceOptions=work=>
-    '<option value="">Trabajo manual</option>'+
-    services.map((service,index)=>
-      '<option value="'+index+'" '+(String(index)===String(work.serviceIndex)?"selected":"")+'>'+
-      esc(service.label)+'</option>'
+  const categoryOptions=item=>
+    '<option value="">Selecciona una categoría</option>'+
+    categories.map(category=>
+      '<option value="'+esc(category.id)+'" '+(category.id===item.categoryId?"selected":"")+'>'+
+      esc(category.name)+'</option>'
     ).join("");
-  const memberOptions=item=>
+  const serviceOptions=(item,work)=>{
+    const available=services.filter(service=>!item.categoryId||service.categoryId===item.categoryId);
+    return '<option value="">Selecciona un servicio</option>'+
+      available.map(service=>{
+        const index=services.indexOf(service);
+        return '<option value="'+index+'" '+(String(index)===String(work.serviceIndex)?"selected":"")+'>'+
+          esc(service.name)+'</option>';
+      }).join("")+
+      '<option value="manual" '+(work.serviceIndex==="manual"?"selected":"")+'>Otro / Trabajo manual</option>';
+  };
+  const memberOptions=work=>
     '<option value="">Sin asignar</option>'+
     members.map(member=>
-      '<option value="'+esc(member.id)+'" '+(member.id===item.assignedUserId?"selected":"")+'>'+
+      '<option value="'+esc(member.id)+'" '+(member.id===work.assignedUserId?"selected":"")+'>'+
       esc(member.name||member.email||"Miembro")+'</option>'
     ).join("");
 
-  function clientContact(client){
+  function clientContact(client){  function clientContact(client){
     return [client?.phone,client?.email].map(value=>String(value||"").trim()).filter(Boolean).join(" · ");
   }
   function clientResultsMarkup(){
@@ -294,13 +315,14 @@ export function createOrderWizard({
   }
   function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
-    return '<div class="wizard-work-row" data-work-key="'+esc(work.key)+'">'+
+    const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
+    return '<section class="wizard-work-row" data-work-key="'+esc(work.key)+'">'+
       '<div class="wizard-work-row-head"><span>TRABAJO '+(workIndex+1)+'</span>'+
       (removable?'<button type="button" class="record-action danger" data-wizard-action="remove-work" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Quitar</button>':"")+
       '</div>'+
       '<div class="wizard-work-grid">'+
-      '<div class="wizard-control wizard-wide"><label>Servicio</label>'+
-      '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="serviceIndex">'+serviceOptions(work)+'</select></div>'+
+      '<div class="wizard-control wizard-wide"><label>Servicio *</label>'+
+      '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="serviceIndex">'+serviceOptions(item,work)+'</select></div>'+
       '<div class="wizard-control"><label>Trabajo *</label>'+
       '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="work" data-wizard-field="item-'+itemIndex+'-work-'+workIndex+'" maxlength="160" value="'+
       esc(work.work)+'" placeholder="Ej. Dobladillo">'+
@@ -309,65 +331,76 @@ export function createOrderWizard({
       '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="price" data-wizard-field="item-'+itemIndex+'-price-'+workIndex+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+
       esc(work.price)+'"><span>'+esc(state.currencyCode)+'</span></div>'+
       '<p class="wizard-field-error" data-error-for="item-'+itemIndex+'-price-'+workIndex+'"></p></div>'+
-      '</div></div>';
+      '<div class="wizard-control"><label>Responsable</label>'+
+      '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="assignedUserId">'+memberOptions(work)+'</select></div>'+
+      '<div class="wizard-control wizard-wide wizard-photo-control"><label>Fotografías de este trabajo</label>'+
+      '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">'+
+      '<small>JPEG, PNG o WebP. RIMMA reduce cada foto automáticamente a un máximo de 150 KB.</small>'+
+      (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
+      '</div>'+
+      '</div></section>';
   }
+
   function itemCard(item,index){
     return '<article class="wizard-garment" data-item-key="'+esc(item.key)+'">'+
       '<header><div><span>PRENDA '+(index+1)+'</span><strong>'+
-      esc(item.garmentType||item.label||"Sin identificar")+'</strong></div>'+
+      esc(item.garmentType||"Sin identificar")+'</strong></div>'+
       (state.items.length>1?'<button type="button" class="record-action danger" data-wizard-action="remove-item" data-index="'+index+'">Quitar prenda</button>':"")+
       '</header><div class="wizard-garment-grid">'+
-      '<div class="wizard-control"><label>Tipo de prenda *</label>'+
-      '<input data-wizard-item="'+index+'" data-item-field="garmentType" data-wizard-field="item-'+index+'-garmentType" maxlength="80" value="'+
-      esc(item.garmentType)+'" placeholder="Pantalón, vestido, chaqueta…">'+
-      '<p class="wizard-field-error" data-error-for="item-'+index+'-garmentType"></p></div>'+
-      '<div class="wizard-control"><label>Nombre / referencia</label>'+
-      '<input data-wizard-item="'+index+'" data-item-field="label" maxlength="120" value="'+
-      esc(item.label)+'" placeholder="Ej. pantalón azul"></div>'+
+      '<div class="wizard-control wizard-wide"><label>Tipo de prenda *</label>'+
+      '<select data-wizard-item="'+index+'" data-item-field="categoryId" data-wizard-field="item-'+index+'-categoryId">'+categoryOptions(item)+'</select>'+
+      '<p class="wizard-field-error" data-error-for="item-'+index+'-categoryId"></p></div>'+
       '<div class="wizard-work-list wizard-wide">'+item.works.map((work,workIndex)=>workRow(item,index,work,workIndex)).join("")+'</div>'+
+      '<div class="wizard-subtotal wizard-wide"><span>Subtotal de esta prenda</span><strong>'+esc(money(itemMinor(item)))+'</strong></div>'+
       '<button type="button" class="wizard-add-work wizard-wide" data-wizard-action="add-work" data-index="'+index+'">+ Añadir otro trabajo a esta prenda</button>'+
       '<details class="wizard-garment-details wizard-wide"><summary>Detalles de la prenda</summary>'+
       '<div class="wizard-garment-detail-grid">'+
+      '<div class="wizard-control wizard-wide"><label>Descripción / referencia <small>(opcional)</small></label>'+
+      '<input data-wizard-item="'+index+'" data-item-field="label" maxlength="120" value="'+esc(item.label)+'" placeholder="Ej. pantalón azul Zara"></div>'+
       '<div class="wizard-control"><label>Marca</label><input data-wizard-item="'+index+'" data-item-field="brand" maxlength="120" value="'+esc(item.brand)+'" placeholder="Opcional"></div>'+
       '<div class="wizard-control"><label>Color</label><input data-wizard-item="'+index+'" data-item-field="color" maxlength="80" value="'+esc(item.color)+'" placeholder="Opcional"></div>'+
       '<div class="wizard-control"><label>Talla</label><input data-wizard-item="'+index+'" data-item-field="sizeLabel" maxlength="60" value="'+esc(item.sizeLabel)+'" placeholder="Opcional"></div>'+
       '</div></details>'+
-      '<div class="wizard-control wizard-wide"><label>Fotografía</label>'+
-      '<input data-wizard-item="'+index+'" data-item-field="photo" type="file" accept="image/jpeg,image/png,image/webp">'+
-      (item.photoName?'<small class="wizard-file-note">'+esc(item.photoName)+
-        (item.photoFile?"":" · vuelve a seleccionarla si recargaste la página")+'</small>':"")+
-      '</div></div></article>';
+      '</div></article>';
   }
+
   function renderGarments(){
     return '<section class="order-wizard-step">'+
-      '<div class="wizard-step-copy"><span>2 · PRENDAS Y TRABAJO</span><h3>Cada prenda, por separado.</h3>'+
-      '<p>Así puedes seguir precio, fecha, responsable, foto y estado sin mezclar piezas.</p></div>'+
+      '<div class="wizard-step-copy"><span>2 · PRENDAS Y TRABAJOS</span><h3>Cada prenda, por separado.</h3>'+
+      '<p>Elige la prenda y registra cada trabajo con su precio, responsable y fotografías.</p></div>'+
       '<div class="wizard-garment-list">'+state.items.map(itemCard).join("")+'</div>'+
       '<button type="button" class="wizard-add-garment" data-wizard-action="add-item">+ Añadir otra prenda</button>'+
       '</section>';
   }
+
   function deliveryRow(item,index){
-    return '<article class="wizard-delivery-row"><div><span>PRENDA '+(index+1)+'</span><strong>'+
-      esc(item.garmentType||item.label||item.works?.[0]?.work||"Prenda")+'</strong></div>'+
-      '<div class="wizard-control"><label>Entrega propia</label>'+
-      '<input type="date" min="'+today()+'" data-wizard-item="'+index+'" data-item-field="dueDate" data-wizard-field="item-'+index+'-dueDate" value="'+esc(item.dueDate)+'">'+
-      '<p class="wizard-field-error" data-error-for="item-'+index+'-dueDate"></p></div>'+
-      '<div class="wizard-control"><label>Responsable</label>'+
-      '<select data-wizard-item="'+index+'" data-item-field="assignedUserId">'+memberOptions(item)+'</select></div>'+
+    const inherited=!item.useCustomDueDate;
+    return '<article class="wizard-delivery-row"><div class="wizard-delivery-title"><span>PRENDA '+(index+1)+'</span><strong>'+
+      esc(item.garmentType||"Prenda")+'</strong></div>'+
+      '<div class="wizard-inherited-date"><small>Entrega</small><strong>'+
+      esc(formatDate(inherited?state.dueDate:item.dueDate))+
+      (inherited?' <span>· Fecha general</span>':' <span>· Fecha propia</span>')+
+      '</strong><button type="button" class="record-action" data-wizard-action="toggle-item-date" data-index="'+index+'">'+
+      (inherited?"Cambiar fecha":"Usar fecha general")+'</button></div>'+
+      (item.useCustomDueDate?'<div class="wizard-control"><label>Fecha de esta prenda</label>'+
+      '<input type="date" min="'+today()+'" data-wizard-item="'+index+'" data-item-field="dueDate" data-wizard-field="item-'+index+'-dueDate" value="'+esc(item.dueDate||state.dueDate)+'">'+
+      '<p class="wizard-field-error" data-error-for="item-'+index+'-dueDate"></p></div>':"")+
       '<div class="wizard-control"><label>Ubicación física</label>'+
       '<input maxlength="120" data-wizard-item="'+index+'" data-item-field="storageLocation" value="'+
       esc(item.storageLocation)+'" placeholder="Ej. Estante B-12"></div></article>';
   }
+
   function renderDelivery(){
     return '<section class="order-wizard-step">'+
-      '<div class="wizard-step-copy"><span>3 · ENTREGA</span><h3>¿Cuándo y quién?</h3>'+
-      '<p>La fecha general se aplica a todas las prendas; usa una fecha propia solo cuando una pieza sea diferente.</p></div>'+
+      '<div class="wizard-step-copy"><span>3 · ENTREGA</span><h3>Entrega y ubicación</h3>'+
+      '<p>La fecha general se aplica a todas las prendas. Cambia solo la que necesite una fecha diferente.</p></div>'+
       '<div class="wizard-control wizard-date-main"><label for="ow-due">Fecha general de entrega *</label>'+
       '<input id="ow-due" type="date" min="'+today()+'" data-wizard-field="dueDate" value="'+esc(state.dueDate)+'">'+
       '<p class="wizard-field-error" data-error-for="dueDate"></p></div>'+
       '<div class="wizard-delivery-list">'+state.items.map(deliveryRow).join("")+'</div></section>';
   }
-  const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
+
+  const itemMinor=item=>  const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
   const totalMinor=()=>state.items.reduce((sum,item)=>sum+itemMinor(item),0);
   function renderReview(){
     let total=0;
