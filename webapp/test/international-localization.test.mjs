@@ -45,7 +45,7 @@ test('regional locale layer covers the main atelier workflow',()=>{
     'Prendas recientes','Abrir prenda','Cobrar','Sin asignar','Sin ubicación',
     'Pedidos','Citas','Clientes','Servicios','Informes','Suscripción',
     'Nuevo cliente','Nuevo pedido','Periodo del informe',
-    'Entrega hoy','Esta semana:','Necesitan atención','Sobrecargados',
+    'HOY','POR COBRAR','Entrega hoy','Esta semana:','Necesitan atención','Sobrecargados',
     'Sin cobros pendientes','Nada pendiente.','No hay citas hoy.',
     'Añade responsables a las prendas para ver la carga.','prendas activas'
   ]) assert.ok(locale.includes(phrase),phrase);
@@ -55,6 +55,7 @@ test('regional locale layer covers the main atelier workflow',()=>{
 
 test('dashboard short copy has Valencian overrides for today and week labels',()=>{
   const locale=read('public/locale-intl.js');
+  assert.match(locale,/\['HOY','HUI'\]/);
   assert.match(locale,/\['Entrega hoy','Entrega hui'\]/);
   assert.match(locale,/\['Esta semana:','Esta setmana:'\]/);
 });
