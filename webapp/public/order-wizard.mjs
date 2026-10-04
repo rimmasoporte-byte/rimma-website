@@ -34,7 +34,7 @@ const makeItem=(currency="EUR")=>({
   photoFile:null,photoName:"",currencyCode:currency
 });
 const blankState=currency=>({
-  step:0,creationKey:requestKey(),clientId:"",clientLabel:"",clientContact:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
+  step:0,creationKey:requestKey(),clientId:"",clientLabel:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
   items:[makeItem(currency)]
 });
 
@@ -77,7 +77,7 @@ export function createOrderWizard({
   );
   const serializable=()=>({
     version:62,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
-    creationKey:state.creationKey,clientId:state.clientId,clientLabel:state.clientLabel,clientContact:state.clientContact,
+    creationKey:state.creationKey,clientId:state.clientId,clientLabel:state.clientLabel,
     branchId:state.branchId,currencyCode:state.currencyCode,
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(({photoFile,...item})=>item)
@@ -210,7 +210,6 @@ export function createOrderWizard({
     if(!client||!UUID.test(String(client.id||"")))return;
     state.clientId=client.id;
     state.clientLabel=String(client.name||"Cliente");
-    state.clientContact=clientContact(client);
     clientMatches=[];
     clientActiveIndex=-1;
     schedulePersist();
@@ -221,7 +220,6 @@ export function createOrderWizard({
   function clearClientSelection({keepQuery=false}={}){
     state.clientId="";
     state.clientLabel="";
-    state.clientContact="";
     clientActiveIndex=-1;
     if(!keepQuery)clientMatches=[];
     schedulePersist();
@@ -277,8 +275,7 @@ export function createOrderWizard({
       '</div>'+
       '<div id="ow-client-results" class="wizard-client-results" role="listbox" hidden></div></div>'+
       '<p class="wizard-field-error" data-error-for="clientId"></p>'+
-      (state.clientId?'<div class="wizard-client-meta">'+(state.clientContact?'<small>'+esc(state.clientContact)+'</small>':"")+'<button type="button" data-wizard-action="clear-client">Cambiar</button></div>':
-        '<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>')+
+      (!state.clientId?'<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>':"")+
       '</div>'+
       '<div class="wizard-inline-actions"><button type="button" class="record-action" data-wizard-action="new-client">+ Nuevo cliente</button></div>'+
       (singleBranch?'<div class="wizard-readonly"><small>Ubicación</small><strong>'+
@@ -856,14 +853,6 @@ export function createOrderWizard({
       if(client)selectClient(client);
       return;
     }
-    if(actionName==="clear-client"){
-      clearClientSelection();
-      clientMatches=[];
-      render();
-      const input=fields.querySelector("#ow-client-search");
-      if(input)input.focus({preventScroll:true});
-      return;
-    }
     if(actionName==="add-work"){
       const index=Number(button.dataset.index);
       const item=state.items[index];
@@ -1014,7 +1003,6 @@ export function createOrderWizard({
         if(client){
           state.clientId=client.id;
           state.clientLabel=String(client.name||"Cliente");
-          state.clientContact=clientContact(client);
           if(preferredClientId){
             dirty=true;
             persist();
@@ -1022,7 +1010,6 @@ export function createOrderWizard({
         }else{
           state.clientId="";
           state.clientLabel="";
-          state.clientContact="";
         }
       }
       const memberIds=new Set(members.map(member=>member.id));

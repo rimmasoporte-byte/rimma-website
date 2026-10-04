@@ -509,17 +509,6 @@ button:disabled,.feature-button[disabled]{
 .wizard-client-search-state{
  padding:11px 12px;color:#777168;font:500 11px/1.35 var(--font)
 }
-.wizard-client-meta{
- display:flex;align-items:center;gap:10px;margin-top:1px;min-height:24px
-}
-.wizard-client-meta small{
- min-width:0;color:#777168;font:500 10.5px/1.35 var(--font);overflow-wrap:anywhere
-}
-.wizard-client-meta button{
- margin-left:auto;padding:2px 0;border:0;background:transparent;color:#7f6136;
- font:650 10.5px/1.2 var(--font);text-decoration:underline;text-underline-offset:2px;cursor:pointer
-}
-.wizard-client-meta button:hover{color:#3e513f}
 .wizard-client-hint{display:block;margin-top:2px;color:#777168;font:500 11px/1.35 var(--font)}
 .wizard-wide{grid-column:1/-1}
 .wizard-inline-actions{display:flex;gap:8px;align-items:center;margin-top:-6px}
@@ -653,8 +642,6 @@ button:disabled,.feature-button[disabled]{
  .order-wizard-steps button b{font-size:9px}
  .wizard-garment-grid,.wizard-garment-detail-grid,.wizard-work-grid{grid-template-columns:1fr}
  .wizard-client-results{position:static;margin-top:5px;max-height:220px}
- .wizard-client-meta{align-items:flex-start}
- .wizard-client-meta button{flex:none}
  .wizard-delivery-row{grid-template-columns:1fr 1fr}
  .wizard-delivery-row>div:first-child{grid-column:1/-1;padding-top:0}
  .wizard-review-meta{grid-template-columns:1fr 1fr}
