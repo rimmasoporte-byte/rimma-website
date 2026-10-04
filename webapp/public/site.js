@@ -101,7 +101,7 @@ function fallbackTrialExpired(subscription){
 function applySubscriptionLockUi(locked){
  subscriptionLocked=locked===true;
  document.body.classList.toggle("subscription-locked",subscriptionLocked);
- $("[data-view]").forEach(control=>{
+ $$("[data-view]").forEach(control=>{
   if(!businessViews.has(control.dataset.view))return;
   control.classList.toggle("subscription-disabled",subscriptionLocked);
   if(subscriptionLocked){
@@ -116,7 +116,7 @@ function applySubscriptionLockUi(locked){
 }
 function applyRoleUi(){
  const owner=me?.workspace?.role==="owner";
- $("[data-owner-only]").forEach(element=>{element.hidden=!owner;});
+ $$("[data-owner-only]").forEach(element=>{element.hidden=!owner;});
  const invite=$("#team-invite");
  if(invite&&!owner)invite.hidden=true;
 }
