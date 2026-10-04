@@ -241,7 +241,25 @@ const rows=[
 ['Tu próximo pedido puede empezar ya en RIMMA.','La teva pròxima comanda pot començar ja a RIMMA.','Zure hurrengo eskaera RIMMAn has daiteke dagoeneko.','O teu próximo pedido pode comezar xa en RIMMA.'],
 ['5 días gratis. Sin tarjeta. Después, 4,99 €/mes.','5 dies gratis. Sense targeta. Després, 4,99 €/mes.','5 egun doan. Txartelik gabe. Ondoren, 4,99 €/hilean.','5 días gratis. Sen tarxeta. Despois, 4,99 €/mes.'],
 ['Probar RIMMA gratis','Provar RIMMA gratis','Probatu RIMMA doan','Probar RIMMA gratis'],
-['Para talleres de costura, modistas y negocios de arreglos que gestionan prendas, clientes, fechas y cobros.','Per a tallers de costura, modistes i negocis d’arranjaments que gestionen peces, clients, dates i cobraments.','Joskintza-tailerrentzat, modistentzat eta jantziak, bezeroak, datak eta kobrantzak kudeatzen dituzten konponketa-negozioentzat.','Para obradoiros de costura, modistas e negocios de arranxos que xestionan prendas, clientes, datas e cobros.']
+['Para talleres de costura, modistas y negocios de arreglos que gestionan prendas, clientes, fechas y cobros.','Per a tallers de costura, modistes i negocis d’arranjaments que gestionen peces, clients, dates i cobraments.','Joskintza-tailerrentzat, modistentzat eta jantziak, bezeroak, datak eta kobrantzak kudeatzen dituzten konponketa-negozioentzat.','Para obradoiros de costura, modistas e negocios de arranxos que xestionan prendas, clientes, datas e cobros.'],
+['OPERATIVA','OPERATIVA','OPERATIBA','OPERATIVA'],
+['COBROS','COBRAMENTS','KOBRANTZAK','COBROS'],
+['EQUIPO','EQUIP','TALDEA','EQUIPO'],
+['DOCUMENTOS','DOCUMENTS','DOKUMENTUAK','DOCUMENTOS'],
+['Cobros y saldos','Cobraments i saldos','Kobrantzak eta saldoak','Cobros e saldos'],
+['Ves lo pagado, lo pendiente y el saldo antes de entregar cada encargo.','Veus el que està pagat, el pendent i el saldo abans de lliurar cada encàrrec.','Ordaindutakoa, pendiente dagoena eta saldoa ikusten dituzu lan bakoitza entregatu aurretik.','Ves o pagado, o pendente e o saldo antes de entregar cada encargo.'],
+['Hasta 3 usuarios','Fins a 3 usuaris','Gehienez 3 erabiltzaile','Ata 3 usuarios'],
+['Propietario y equipo trabajan en el mismo taller con los mismos pedidos, clientes y prendas.','El propietari i l’equip treballen al mateix taller amb les mateixes comandes, clients i peces.','Jabeak eta taldeak tailer berean lan egiten dute eskaera, bezero eta jantzi berekin.','O propietario e o equipo traballan no mesmo obradoiro cos mesmos pedidos, clientes e prendas.'],
+['Documentos y facturación','Documents i facturació','Dokumentuak eta fakturazioa','Documentos e facturación'],
+['Genera documentos directamente desde cada pedido para trabajar y entregar con más orden.','Genera documents directament des de cada comanda per treballar i lliurar amb més ordre.','Sortu dokumentuak zuzenean eskaera bakoitzetik, lan egiteko eta modu ordenatuagoan entregatzeko.','Xera documentos directamente desde cada pedido para traballar e entregar con máis orde.'],
+['Documentos disponibles','Documents disponibles','Eskuragarri dauden dokumentuak','Documentos dispoñibles'],
+['Presupuesto','Pressupost','Aurrekontua','Orzamento'],
+['Resguardo de depósito','Resguard de dipòsit','Gordailu-agiria','Resgardo de depósito'],
+['Recibo de pago','Rebut de pagament','Ordainketa-agiria','Recibo de pagamento'],
+['Justificante de entrega','Justificant de lliurament','Entrega-justifikagiria','Xustificante de entrega'],
+['Orden de trabajo','Ordre de treball','Lan-agindua','Orde de traballo'],
+['Factura fiscal','Factura fiscal','Faktura fiskala','Factura fiscal'],
+['Operativa, equipo y documentos. Todo dentro del mismo taller.','Operativa, equip i documents. Tot dins del mateix taller.','Operatiba, taldea eta dokumentuak. Dena tailer berean.','Operativa, equipo e documentos. Todo dentro do mesmo obradoiro.']
 ];
 const family=locale==='eu-ES'?'eu':locale==='gl-ES'?'gl':'ca';
 const col=family==='ca'?1:family==='eu'?2:3;
