@@ -763,18 +763,27 @@ function newPhoto(){
 
  function documentCards(order,profile,confirmedPayments){
   const profileReady=profile?.complete===true;
-  const externalDisabled=profileReady?"":' disabled title="Completa primero los datos legales del taller"';
+  const externalDisabled=profileReady?"":' disabled title="Completa primero los datos del taller"';
   const deliveryDisabled=profileReady&&order?.status==="issued"?"":' disabled title="'+
-   esc(profileReady?"Disponible cuando el pedido esté entregado":"Completa primero los datos legales del taller")+'"';
+   esc(profileReady?"Disponible cuando el pedido esté entregado":"Completa primero los datos del taller")+'"';
   const paymentDisabled=profileReady&&confirmedPayments.length?"":' disabled title="'+
-   esc(!profileReady?"Completa primero los datos legales del taller":"No hay pagos confirmados")+'"';
+   esc(!profileReady?"Completa primero los datos del taller":"No hay pagos confirmados")+'"';
+  const territory=String(profile?.taxTerritory||"COMMON");
+  const fiscalCopy={
+   COMMON:"IVA y emisión fiscal mediante el flujo AEAT cuando esté habilitado.",
+   CANARY:"IGIC: emisión fiscal protegida hasta disponer de integración específica.",
+   CEUTA:"IPSI: emisión fiscal protegida hasta disponer de integración específica.",
+   MELILLA:"IPSI: emisión fiscal protegida hasta disponer de integración específica.",
+   BASQUE_FORAL:"Normativa foral: emisión protegida hasta integrar el sistema aplicable.",
+   NAVARRA_FORAL:"Normativa foral: emisión protegida hasta integrar el sistema aplicable."
+  }[territory]||"Configuración fiscal del taller.";
   return '<div class="atelier-doc-grid">'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="estimate"'+externalDisabled+'><strong>Presupuesto</strong><small>Precio, trabajos, validez y aceptación del cliente.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="deposit_receipt"'+externalDisabled+'><strong>Resguardo de depósito</strong><small>Constancia de las prendas que quedan en el taller.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="payment_receipt"'+paymentDisabled+'><strong>Recibo de pago</strong><small>Anticipo o pago parcial ya confirmado.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="delivery_receipt"'+deliveryDisabled+'><strong>Justificante de entrega</strong><small>Constancia de recogida para pedidos entregados.</small></button>'+
    '<button type="button" class="atelier-doc-card" data-feature="document-create" data-type="work_order"><strong>Orden de trabajo</strong><small>Documento interno para el taller y el profesional.</small></button>'+
-   '<button type="button" class="atelier-doc-card fiscal-card" data-feature="fiscal-invoice-open" data-id="'+esc(order?.id||"")+'"'+externalDisabled+'><strong>Factura fiscal</strong><small>IVA, series, datos fiscales y control VERI*FACTU.</small></button>'+
+   '<button type="button" class="atelier-doc-card fiscal-card" data-feature="fiscal-invoice-open" data-id="'+esc(order?.id||"")+'"'+externalDisabled+'><strong>Facturación fiscal</strong><small>'+esc(fiscalCopy)+'</small></button>'+
   '</div>';
  }
 
@@ -928,16 +937,38 @@ function newPhoto(){
   ]);
   const readiness=readinessResult.readiness||{};
   const order=orderResult.order||{};
+  const invoices=Array.isArray(invoicesResult.invoices)?invoicesResult.invoices:[];
+  const territory=readiness.taxTerritory||{
+   code:readiness.settings?.taxTerritory||"COMMON",
+   taxRegime:readiness.settings?.taxRegime||"IVA",
+   authority:"AEAT",
+   fiscalIssuanceSupported:readiness.settings?.fiscalIssuanceSupported!==false
+  };
+  if(territory.fiscalIssuanceSupported===false){
+   selected={orderId,order,readiness,clientFiscal:null,invoices,previewInput:null};
+   const labels={
+    CANARY:"Canarias · IGIC",
+    CEUTA:"Ceuta · IPSI",
+    MELILLA:"Melilla · IPSI",
+    BASQUE_FORAL:"País Vasco · normativa foral",
+    NAVARRA_FORAL:"Navarra · normativa foral"
+   };
+   layout("fiscal-invoice","Facturación fiscal · pedido #"+String(order.orderNumber||""),
+    '<div class="tax-territory-blocked"><span aria-hidden="true">!</span><div><strong>Emisión fiscal protegida</strong><p>Territorio: '+esc(labels[territory.code]||territory.code||"Configuración especial")+'. RIMMA no generará una factura IVA/AEAT incorrecta para este régimen.</p></div></div>'+
+    '<div class="passport-section"><h4>Qué puedes seguir usando</h4><p class="feature-muted">Pedidos, presupuestos, resguardos, recibos de pago, justificantes de entrega y órdenes de trabajo siguen disponibles. Para la factura fiscal utiliza el sistema habilitado para tu territorio hasta que RIMMA incorpore esa integración.</p></div>'+
+    '<div class="passport-section"><h4>Facturas ya registradas</h4>'+fiscalInvoiceHistory(invoices)+'</div>',
+    "");
+   return;
+  }
   if(!uuid(order?.client?.id))throw Error("El pedido no tiene un cliente válido.");
   const clientResult=await api("/clients/"+encodeURIComponent(order.client.id)+"/fiscal-profile");
   const clientFiscal=clientResult.profile||null;
-  const invoices=Array.isArray(invoicesResult.invoices)?invoicesResult.invoices:[];
   const defaultKind=(clientFiscal?.recipientKind==="business"||Number(order.totalMinor)>40000)?"full":"simplified";
   const defaultVat=String(readiness.settings?.defaultVatBps??2100);
   selected={orderId,order,readiness,clientFiscal,invoices,previewInput:null};
 
   layout("fiscal-invoice","Factura fiscal · pedido #"+String(order.orderNumber||""),
-   '<div class="fiscal-readiness '+(readiness.verifactuConnectorConfigured?'ready':'pending')+'"><div><strong>RIMMA Fiscal V25</strong><small>SIF: '+esc(readiness.sifMode||"VERIFACTU_ONLY")+' · '+esc(readiness?.connector?.provider||"AEAT directo")+'</small></div><span>'+(readiness.verifactuConnectorConfigured?'VERI*FACTU conectado':'VERI*FACTU pendiente')+'</span></div>'+
+   '<div class="fiscal-readiness '+(readiness.verifactuConnectorConfigured?'ready':'pending')+'"><div><strong>RIMMA Fiscal</strong><small>Territorio común · IVA · '+esc(readiness?.connector?.provider||"AEAT")+'</small></div><span>'+(readiness.verifactuConnectorConfigured?'VERI*FACTU conectado':'VERI*FACTU pendiente')+'</span></div>'+
    fiscalReadinessChecklist(readiness)+
    '<p class="feature-muted">Calcula primero la factura. La vista previa no recibe número fiscal y no se considera emitida.</p>'+
    '<div class="feature-fields fiscal-main-fields">'+
@@ -950,7 +981,7 @@ function newPhoto(){
    fiscalClientFields(clientFiscal,order.client?.name)+
    '<div id="fiscal-preview-result"></div>'+
    '<div class="passport-section"><h4>Facturas emitidas</h4>'+fiscalInvoiceHistory(invoices)+'</div>'+
-   '<p class="feature-muted fiscal-legal-note">Las facturas simplificadas se limitan en este flujo a 400 € IVA incluido. Las facturas rectificativas usarán una serie R separada en la siguiente fase del módulo.</p>',
+   '<p class="feature-muted fiscal-legal-note">RIMMA asigna la numeración solo al emitir. Las series quedan protegidas después del primer número fiscal. Verifica con tu asesor el tratamiento fiscal de operaciones especiales.</p>',
    "Calcular factura");
   syncFiscalForm();
  }
@@ -1019,32 +1050,36 @@ function newPhoto(){
  async function save(){
   const get=name=>form().elements.namedItem(name)?.value??"";
   if(mode==="business-profile"){
+   const taxTerritory=get("taxTerritory")||"COMMON";
    const payload={
     legalName:get("legalName").trim(),
     tradeName:get("tradeName").trim()||null,
-    taxId:get("taxId").trim(),
+    taxId:get("taxId").trim().toUpperCase(),
     addressLine1:get("addressLine1").trim(),
     addressLine2:get("addressLine2").trim()||null,
     postalCode:get("postalCode").trim(),
     city:get("city").trim(),
     province:get("province").trim()||null,
-    countryCode:get("countryCode").trim().toUpperCase(),
+    countryCode:get("countryCode")||"ES",
     phone:get("phone").trim()||null,
     email:get("email").trim()||null,
     jurisdiction:get("jurisdiction"),
+    taxTerritory,
     documentLanguage:get("documentLanguage"),
     estimateValidityDays:Number(get("estimateValidityDays"))
    };
    if(!payload.legalName||!payload.taxId||!payload.addressLine1||!payload.postalCode||!payload.city)throw Error("Completa los campos obligatorios.");
-   const fiscalSettings={
-    defaultVatBps:Number(get("defaultVatBps")),
-    invoiceFullSeries:get("invoiceFullSeries").trim().toUpperCase(),
-    invoiceSimplifiedSeries:get("invoiceSimplifiedSeries").trim().toUpperCase(),
-    invoiceRectificativeSeries:get("invoiceRectificativeSeries").trim().toUpperCase()
-   };
    await api("/business-profile",{method:"PATCH",body:JSON.stringify(payload)});
-   await api("/fiscal/settings",{method:"PATCH",body:JSON.stringify(fiscalSettings)});
-   close();success("Datos legales y configuración fiscal guardados.");
+   if(taxTerritory==="COMMON"){
+    const fiscalSettings={
+     defaultVatBps:Number(get("defaultVatBps")),
+     invoiceFullSeries:get("invoiceFullSeries").trim().toUpperCase(),
+     invoiceSimplifiedSeries:get("invoiceSimplifiedSeries").trim().toUpperCase(),
+     invoiceRectificativeSeries:get("invoiceRectificativeSeries").trim().toUpperCase()
+    };
+    await api("/fiscal/settings",{method:"PATCH",body:JSON.stringify(fiscalSettings)});
+   }
+   close();success(taxTerritory==="COMMON"?"Datos del taller y facturación guardados.":"Datos del taller guardados. La emisión fiscal queda protegida para el territorio seleccionado.");
   }else if(mode==="fiscal-invoice"){
    await previewFiscalInvoice();return;
   }else if(mode==="password-change"){
@@ -1141,6 +1176,7 @@ function newPhoto(){
  }
  dlg.addEventListener("submit",e=>{e.preventDefault();void safe(save)});
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
+  if(mode==="business-profile"&&(e.target.id==="fx-taxTerritory"||e.target.id==="fx-jurisdiction"))syncBusinessProfileForm(e.target.name);
   if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
   if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
    const i=selected.items.find(x=>x.orderItemId===e.target.value);
