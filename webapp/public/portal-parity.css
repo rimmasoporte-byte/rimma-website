@@ -1746,3 +1746,26 @@ button:disabled,.feature-button[disabled]{
    font-size:10px
  }
 }
+
+
+/* V52 — refined KPI numerals: elegant, consistent with RIMMA typography. */
+#view-inicio #today-cards .atelier-kpi>strong{
+ font-family:var(--serif);
+ font-size:33px;
+ font-weight:600;
+ line-height:.92;
+ letter-spacing:-.45px;
+ font-variant-numeric:lining-nums tabular-nums;
+ color:#16281f
+}
+#view-inicio #today-cards .atelier-kpi.dark>strong{
+ color:#fff8e9
+}
+#view-inicio #today-cards .atelier-kpi.danger>strong{
+ color:#9a3c31
+}
+@media(max-width:720px){
+ #view-inicio #today-cards .atelier-kpi>strong{
+   font-size:31px
+ }
+}
