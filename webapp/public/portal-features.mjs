@@ -28,6 +28,18 @@ export const moneyMinor=value=>{
  return cents;
 };
 const money=(v,c=L.currency||"EUR")=>{try{return new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency:c}).format(Number(v||0)/100)}catch{return esc(v)+" "+esc(c)}};
+const localDate=value=>{
+ if(!value)return "—";
+ const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+ if(match)return match[3]+"/"+match[2]+"/"+match[1];
+ const parsed=new Date(value);
+ return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleDateString(L.locale||"es-ES");
+};
+const localDateTime=value=>{
+ if(!value)return "—";
+ const parsed=new Date(value);
+ return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"short",timeStyle:"short"});
+};
 const choice=(v,opts)=>opts.map(([id,label])=>'<option value="'+esc(id)+'"'+(id===v?' selected':'')+'>'+esc(label)+'</option>').join("");
 const garment=[["body",tr("Cuerpo","Corpo")],["pants",tr("Pantalones","Calças")],["dress","Vestido"],["shirt","Camisa"],["jacket",tr("Chaqueta","Jaqueta")],["skirt",tr("Falda","Saia")],["blouse","Blusa"],["other",tr("Otro","Outro")]];
 const methods=[["cash",tr("Efectivo","Dinheiro")],["card",tr("Tarjeta (pago externo)","Cartão (pagamento externo)")],["bank_transfer",tr("Transferencia","Transferência")],["spei","SPEI"],["other",tr("Otro","Outro")]];
@@ -49,19 +61,25 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const form=()=>dlg.querySelector("#feature-form");
  const submit=()=>dlg.querySelector("#feature-submit");
  const errorEl=()=>dlg.querySelector("#feature-error");
- let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false;
+ let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false,returnFocus=null,parentModal=false;
  function alertError(message){errorEl().hidden=false;errorEl().textContent=message;}
  function layout(next,title,markup,buttonText="Guardar"){
   mode=next;if(dlg.dataset)dlg.dataset.mode=next;errorEl().hidden=true;errorEl().textContent="";
   dlg.querySelector("#feature-title").textContent=title;
   body().innerHTML=markup;submit().hidden=!buttonText;submit().disabled=false;
+  parentModal=Boolean(document.querySelector("#modal")?.open);
+  returnFocus=parentModal?document.activeElement:null;
   const closeText=dlg.querySelector('.feature-actions [data-feature="close"]');
-  if(closeText)closeText.textContent=next==="business-profile"?"Cancelar":"Cerrar";
+  if(closeText)closeText.textContent=next==="business-profile"?"Cancelar":(parentModal?"Volver":"Cerrar");
   if(buttonText)submit().textContent=buttonText;
-  if(document.querySelector("#modal")?.open)document.querySelector("#modal").close();
   if(!dlg.open)dlg.showModal();
  }
- function close(){if(dlg.open)dlg.close();mode="";if(dlg.dataset)delete dlg.dataset.mode;selected=null;}
+ function close(){
+  if(dlg.open)dlg.close();
+  mode="";if(dlg.dataset)delete dlg.dataset.mode;selected=null;
+  const target=returnFocus;returnFocus=null;parentModal=false;
+  if(target?.isConnected)setTimeout(()=>target.focus({preventScroll:true}),0);
+ }
  async function safe(action){
   if(busy)return;busy=true;errorEl().hidden=true;
   submit().disabled=true;
