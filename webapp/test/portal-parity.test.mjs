@@ -246,7 +246,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.doesNotMatch(css,/\.extra-order-item/);
  assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
  assert.match(wizard,/modal\.addEventListener\("close",\(\)=>onOpenClient\?\.\(\),\{once:true\}\)/);
- assert.match(feat,/deliveryMode|manualmente/);
+ assert.match(feat,/RIMMA prepara el mensaje|data-feature="whatsapp-open"/);
  assert.match(feat,/async function openGarment\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentEdit\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentWorksEdit\(orderId,itemId\)/);
@@ -401,7 +401,6 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
   {action:"category-delete",prepare:"loadServices",path:"/categories/"+UUID,method:"DELETE",version:1,id:UUID},
   {action:"measurement-archive",prepare:"openMeasurements",path:"/clients/"+UUID+"/measurements/"+ITEM,method:"PATCH",version:3,status:"deleted"},
   {action:"payment-confirm",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"confirmed"},
-  {action:"payment-cancel",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"cancelled"},
   {action:"photo-archive",prepare:"openPhotos",path:"/orders/"+UUID+"/items/"+ITEM+"/photos/"+ITEM,method:"PATCH",version:3,status:"deleted"}
  ];
  const settle=()=>new Promise(resolve=>setImmediate(resolve));
@@ -420,8 +419,9 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
      }
      if(path==="/price-list")return {priceList:{categories:[{id:UUID,name:"Categoría",status:"active",version:1,
       services:[{id:ITEM,categoryId:UUID,name:"Servicio",pricingMode:"quote",status:"active",version:2}]}]}};
-     if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3}],summary:{currencyCode:"EUR",remainingMinor:1000}};
-     if(path.endsWith("/photos"))return {photos:[{id:ITEM,fileName:"Prueba",status:"active",version:3}]};
+     if(/^\/orders\/[a-f0-9-]{36}$/.test(path))return {order:{id:UUID,orderNumber:7,client:{name:"Cliente"},items:[]}};
+     if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3,amountMinor:1000,method:"cash",currencyCode:"EUR"}],summary:{currencyCode:"EUR",totalMinor:1000,confirmedPaidMinor:0,pendingMinor:1000,remainingMinor:1000}};
+     if(path.endsWith("/passport"))return {passport:{id:ITEM,orderNumber:7,currencyCode:"EUR",garmentType:"Pantalón",works:[{id:UUID,name:"Dobladillo",priceMinor:1000,assignedWorker:null,photoCount:1}],photos:[{id:ITEM,workLineId:UUID,fileName:"Prueba",photoType:"intake",source:"desktop_upload",status:"active",version:3,isCover:true}]}};
      if(path.includes("/measurements"))return {measurements:[{id:ITEM,status:"active",version:3}]};
      throw Error("Unexpected GET "+path);
     };
@@ -457,6 +457,26 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
  }finally{globalThis.document=oldDoc;}
 });
 
+
+test("payment cancellation opens a reason form before any mutation",async()=>{
+ const h=harness(),oldDoc=globalThis.document,writes=[];
+ globalThis.document=h.doc;
+ const api=async(path,opts={})=>{
+  if(opts.method){writes.push({path,method:opts.method,body:JSON.parse(opts.body)});return {success:true};}
+  if(/^\/orders\/[a-f0-9-]{36}$/.test(path))return {order:{id:UUID,orderNumber:7,client:{name:"Cliente"},items:[]}};
+  if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3,amountMinor:1000,method:"cash",currencyCode:"EUR"}],summary:{currencyCode:"EUR",totalMinor:1000,confirmedPaidMinor:0,pendingMinor:1000,remainingMinor:1000}};
+  throw Error("Unexpected GET "+path);
+ };
+ try{
+  const ui=createFeatureUI({api,success:()=>{},globalError:()=>{},confirmAction:async()=>true,refreshOrders:async()=>{},logoutAfterPassword:async()=>{}});
+  await ui.openPayments(UUID);
+  const button={dataset:{feature:"payment-cancel",id:ITEM,version:"3",amount:"1000",method:"cash"}};
+  h.listeners.get("click")({target:{closest:()=>button}});
+  assert.equal(writes.length,0,"opening cancellation form must not mutate");
+  assert.match(h.elements("#feature-body").innerHTML,/Motivo de la anulación/);
+  assert.match(h.elements("#feature-body").innerHTML,/name="cancellationReason"/);
+ }finally{globalThis.document=oldDoc;}
+});
 
 test("V64 focus rings stay inside controls and cannot be cropped by dialogs or native selects",async()=>{
  const base=await source("public/site.css");
