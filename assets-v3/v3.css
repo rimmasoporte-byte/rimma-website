@@ -377,3 +377,31 @@ body{font-size:15px;color:var(--premium-ink);background:var(--premium-paper)}
  .v3-journey-line span{margin-bottom:17px}
  .v3-journey-close b{font-size:22px}
 }
+
+
+/* V44 — Spain-only regional language picker */
+.public-locale-switch{display:flex;align-items:center;flex:0 0 auto}
+.public-locale-select{
+ min-height:42px;
+ max-width:132px;
+ padding:0 28px 0 10px;
+ border:1px solid #ded5c7;
+ border-radius:8px;
+ background:#fffdf9;
+ color:#4b493f;
+ font:700 10px/1 var(--sans);
+ letter-spacing:.12px;
+ cursor:pointer;
+ outline:none
+}
+.public-locale-select:hover{border-color:#c7b18d}
+.public-locale-select:focus{border-color:#aa8755;box-shadow:0 0 0 3px #aa87551c}
+@media(max-width:1050px){
+ .public-locale-select{max-width:108px;min-height:40px;padding-left:8px;font-size:9px}
+}
+@media(max-width:600px){
+ .public-locale-select{max-width:88px;min-height:38px;padding:0 22px 0 7px;font-size:8px}
+}
+@media(max-width:374px){
+ .public-locale-select{max-width:72px;padding-left:5px;font-size:7px}
+}
