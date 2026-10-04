@@ -7,55 +7,44 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('new European signup markets use the expected workshop currencies and timezones',()=>{
-  const signup=read('public/signup-client.mjs');
-  const expected=[
-    ['FR','France','EUR','Europe/Paris'],
-    ['DE','Deutschland','EUR','Europe/Berlin'],
-    ['IT','Italia','EUR','Europe/Rome'],
-    ['GR','Ελλάδα','EUR','Europe/Athens'],
-    ['SK','Slovensko','EUR','Europe/Bratislava'],
-    ['RS','Srbija','RSD','Europe/Belgrade'],
-    ['TR','Türkiye','TRY','Europe/Istanbul'],
-  ];
-  for(const row of expected)assert.ok(signup.includes(JSON.stringify(row).replaceAll('"',"'")));
-});
-
-test('international locale layer loads before registration and application code',()=>{
-  const login=read('public/index.html');
-  const register=read('public/register.html');
-  assert.ok(login.indexOf('/app/locale-intl.js')<login.indexOf('/app/site.js'));
-  assert.ok(register.indexOf('/app/locale-intl.js')<register.indexOf('/app/signup-client.mjs'));
-  assert.match(register,/signup-currency-note/);
-});
-
-test('language picker contains supported locales and excludes Hebrew',()=>{
+test('language picker is Spain-only and includes the regional languages',()=>{
   const picker=read('public/locale-picker.js');
-  for(const value of ['fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR'])
-    assert.match(picker,new RegExp(value.replace('-','\\-')));
-  assert.doesNotMatch(picker,/he-IL|עברית|Hebrew/i);
+  for(const value of ['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'])
+    assert.match(picker,new RegExp(value.replaceAll('-','\\-')));
+  for(const label of ['Español','Català','Valencià','Euskara','Galego'])
+    assert.match(picker,new RegExp(label));
 });
 
-test('market billing distinguishes EUR, RSD and TRY',()=>{
-  const billing=read('public/billing-view.mjs');
-  assert.match(billing,/\['ES','FR','DE','IT','GR','SK'\]/);
-  assert.match(billing,/marketCurrency/);
+test('regional locale layer covers the main atelier workflow',()=>{
   const locale=read('public/locale-intl.js');
-  assert.match(locale,/country:'RS',currency:'RSD'/);
-  assert.match(locale,/country:'TR',currency:'TRY'/);
+  for(const phrase of [
+    'Prendas recientes','Abrir prenda','Cobrar','Sin asignar','Sin ubicación',
+    'Pedidos','Citas','Clientes','Servicios','Informes','Suscripción',
+    'Nuevo cliente','Nuevo pedido','Periodo del informe'
+  ]) assert.ok(locale.includes(phrase),phrase);
+  assert.match(locale,/locale==='eu-ES'\?'eu':locale==='gl-ES'\?'gl':'ca'/);
+  assert.match(locale,/locale==='ca-ES-valencia'/);
 });
 
+test('Spain locales use EUR and Spanish territory while preserving locale formatting',()=>{
+  const base=read('public/locale.js');
+  assert.match(base,/const country='ES'/);
+  assert.match(base,/currency:'EUR'/);
+  assert.match(base,/ca-ES-valencia/);
+  assert.match(base,/eu-ES/);
+  assert.match(base,/gl-ES/);
+});
 
-test('BFF serves international locale assets used by registration',()=>{
+test('BFF serves the locale assets used by registration',()=>{
   const server=read('../webapp/server.mjs');
   assert.match(server,/\/app\/locale-intl\.js/);
   assert.match(server,/\/app\/locale-picker\.js/);
 });
 
-test('signup sends selected locale to email verification backend',()=>{
+test('signup sends selected Spain locale to email verification backend',()=>{
   const client=read('public/signup-client.mjs');
   const signup=read('signup.mjs');
   assert.match(client,/locale:window\.RimmaLocale\?\.locale/);
-  assert.match(signup,/SUPPORTED_SIGNUP_LOCALES/);
-  assert.match(signup,/locale:localeOf\(input\.locale\)/);
+  for(const value of ['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'])
+    assert.ok(signup.includes("'"+value+"'"),value);
 });
