@@ -66,7 +66,11 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  function layout(next,title,markup,buttonText="Guardar"){
   mode=next;if(dlg.dataset)dlg.dataset.mode=next;errorEl().hidden=true;errorEl().textContent="";
   dlg.querySelector("#feature-title").textContent=title;
-  body().innerHTML=markup;submit().hidden=!buttonText;submit().disabled=false;submit().classList.remove("danger");
+  body().innerHTML=markup;
+  const submitButton=submit();
+  submitButton.hidden=!buttonText;
+  submitButton.disabled=false;
+  submitButton.classList?.remove?.("danger");
   parentModal=Boolean(document.querySelector("#modal")?.open);
   returnFocus=parentModal?document.activeElement:null;
   const closeText=dlg.querySelector('.feature-actions [data-feature="close"]');
