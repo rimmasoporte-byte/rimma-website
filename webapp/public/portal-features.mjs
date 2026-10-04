@@ -52,7 +52,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false;
  function alertError(message){errorEl().hidden=false;errorEl().textContent=message;}
  function layout(next,title,markup,buttonText="Guardar"){
-  mode=next;errorEl().hidden=true;errorEl().textContent="";
+  mode=next;dlg.dataset.mode=next;errorEl().hidden=true;errorEl().textContent="";
   dlg.querySelector("#feature-title").textContent=title;
   body().innerHTML=markup;submit().hidden=!buttonText;submit().disabled=false;
   const closeText=dlg.querySelector('.feature-actions [data-feature="close"]');
@@ -61,7 +61,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(document.querySelector("#modal")?.open)document.querySelector("#modal").close();
   if(!dlg.open)dlg.showModal();
  }
- function close(){if(dlg.open)dlg.close();mode="";selected=null;}
+ function close(){if(dlg.open)dlg.close();mode="";delete dlg.dataset.mode;selected=null;}
  async function safe(action){
   if(busy)return;busy=true;errorEl().hidden=true;
   submit().disabled=true;
