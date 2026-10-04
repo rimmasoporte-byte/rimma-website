@@ -226,6 +226,10 @@ test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped acti
  assert.match(html,/>HOY<\/span><strong id="due-count"/);
  assert.match(html,/>POR COBRAR<\/span><strong id="unpaid-count"/);
  assert.doesNotMatch(kpiBlock,/CITAS HOY|CARGA DEL EQUIPO|appointments-count|overloaded-count/);
+ assert.doesNotMatch(html,/id="appointments-count"|id="overloaded-count"/);
+ const js=await source("public/site.js");
+ assert.doesNotMatch(js,/\$\("#appointments-count"\)|\$\("#overloaded-count"\)/);
+ assert.doesNotMatch(css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
  assert.match(kpiBlock,/data-view="pedidos"[\s\S]*?POR COBRAR[\s\S]*?Ver pedidos/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?padding:12px 16px[\s\S]*?grid-template-rows:34px 34px minmax\(40px,1fr\) 18px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font:650 32px\/1 var\(--font\)[\s\S]*?font-variant-numeric:tabular-nums lining-nums/);
