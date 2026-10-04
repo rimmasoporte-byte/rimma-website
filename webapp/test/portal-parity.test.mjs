@@ -208,8 +208,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
 });
 
-test("dashboard KPI strip stays compact on desktop",()=>{
- const css=source("public/portal-parity.css");
+test("dashboard KPI strip stays compact on desktop",async()=>{
+ const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:126px[\s\S]*?padding:12px 13px 11px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-size:28px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:10px/);
