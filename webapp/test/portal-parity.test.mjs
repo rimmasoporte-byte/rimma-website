@@ -202,7 +202,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v42/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v52/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v53/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -229,6 +229,10 @@ test("dashboard KPI typography is readable without increasing card size",async()
 test("dashboard KPI numerals use the RIMMA serif system",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-family:var\(--serif\)[\s\S]*?font-size:33px[\s\S]*?font-weight:600[\s\S]*?font-variant-numeric:lining-nums tabular-nums/);
+});
+test("dashboard KPI numerals reserve stable width and use tabular sans digits",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?min-inline-size:3ch[\s\S]*?font-family:var\(--font\)[\s\S]*?font-size:32px[\s\S]*?font-variant-numeric:tabular-nums lining-nums[\s\S]*?font-feature-settings:"tnum" 1,"lnum" 1/);
 });
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
  const oldDoc=globalThis.document;
