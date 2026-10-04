@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>RIMMA — Invitación al equipo</title>
+  <link rel="icon" href="/app/favicon.svg">
+  <link rel="stylesheet" href="/app/signup.css">
+  <link rel="stylesheet" href="/app/team.css">
+</head>
+<body class="signup-page team-invite-page">
+  <main class="signup-shell">
+    <section class="signup-card team-invite-card">
+      <a class="signup-logo" href="https://rimmaapp.com" aria-label="RIMMA"><img src="/app/rimma-logo.webp" alt="RIMMA" width="184" height="65"></a>
+      <span class="eyebrow">INVITACIÓN AL EQUIPO</span>
+      <h1>Tu acceso a <em id="invite-workspace">RIMMA</em></h1>
+      <p id="invite-loading">Comprobando invitación…</p>
+      <form id="invite-form" hidden>
+        <label>Correo electrónico
+          <input id="invite-email" type="email" readonly>
+        </label>
+        <label>Tu nombre
+          <input id="invite-name" name="displayName" type="text" maxlength="120" autocomplete="name">
+        </label>
+        <label>Contraseña
+          <input name="password" type="password" minlength="8" maxlength="200" required autocomplete="new-password">
+        </label>
+        <label>Repite la contraseña
+          <input name="confirmPassword" type="password" minlength="8" maxlength="200" required autocomplete="new-password">
+        </label>
+        <button id="invite-submit" type="submit">Activar mi acceso</button>
+      </form>
+      <div id="invite-error" class="auth-message" role="alert" hidden></div>
+      <div id="invite-success" class="team-invite-success" hidden>
+        <h2>Acceso activado</h2>
+        <p>Ya formas parte del taller. A partir de ahora utiliza tu correo y contraseña en la pantalla habitual de RIMMA.</p>
+        <a class="team-login-link" href="/app/">Iniciar sesión →</a>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/app/invite-client.mjs"></script>
+</body>
+</html>
