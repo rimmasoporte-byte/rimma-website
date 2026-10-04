@@ -1492,3 +1492,71 @@ button:disabled,.feature-button[disabled]{
 #view-inicio .garment-card-status>.status.ready::before,
 #view-inicio .garment-card-status>.status.issued::before{background:#166b35}
 #view-inicio .garment-card-status>.status.cancelled::before{background:#b94f42}
+
+
+/* V47 — language is a global portal control, so it lives in the top bar. */
+.topbar-locale{
+ display:flex;
+ align-items:center;
+ flex:0 0 auto;
+ margin-right:2px
+}
+.topbar-locale .app-locale-select{
+ width:auto;
+ min-width:126px;
+ max-width:148px;
+ min-height:36px;
+ height:36px;
+ padding:6px 30px 6px 11px;
+ border:1px solid #ddd4c6;
+ border-radius:8px;
+ background:#fffdf9;
+ color:#465149;
+ box-shadow:0 1px 3px rgba(43,56,48,.035);
+ font:700 10px/1.2 var(--font);
+ letter-spacing:.02em
+}
+.topbar-locale .app-locale-select:hover{
+ border-color:#c9b48f;
+ background:#fffaf2
+}
+.topbar-locale .app-locale-select:focus{
+ outline:2px solid rgba(166,132,78,.18);
+ outline-offset:2px;
+ border-color:#b99b6c
+}
+@media(max-width:930px){
+ .topbar-locale .app-locale-select{
+   min-width:112px;
+   max-width:124px
+ }
+}
+@media(max-width:700px){
+ .topbar-locale{margin-right:0}
+ .topbar-locale .app-locale-select{
+   min-width:100px;
+   max-width:108px;
+   height:34px;
+   min-height:34px;
+   padding-left:9px;
+   font-size:9px
+ }
+ .topbar-right{gap:7px}
+}
+@media(max-width:520px){
+ .topbar-private{display:none}
+ .topbar-locale .app-locale-select{
+   min-width:94px;
+   max-width:100px
+ }
+}
+@media(max-width:390px){
+ .topbar{padding-inline:12px}
+ .topbar-right{gap:5px}
+ .topbar-locale .app-locale-select{
+   min-width:88px;
+   max-width:92px;
+   padding-left:7px;
+   padding-right:24px
+ }
+}
