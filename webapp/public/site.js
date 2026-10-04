@@ -145,16 +145,16 @@ let returnToOrderAfterClient=false,pendingOrderClientId="";
 let clientDuplicateClock=null,clientDuplicateSeq=0,clientDuplicateMatches=[];
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
-const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261004-v69").then(module=>module.confirmAction(options));
+const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261005-v1").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261005-v1").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261004-v69").then(module=>module.createOrderWizard({
+const orderWizard=import("/app/order-wizard.mjs?v=20261005-v1").then(module=>module.createOrderWizard({
  api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
  onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
  onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
