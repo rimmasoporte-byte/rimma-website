@@ -78,7 +78,7 @@ test('portal presents one location and a three-person team instead of branch cre
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
   assert.match(html,/Hasta 3 personas/);
-  assert.match(html,/una sola ubicaci[oó]n/i);
+  assert.match(html,/una (?:sola|única) ubicaci[oó]n/i);
   assert.match(html,/id="team-summary"/);
   assert.doesNotMatch(html,/>\+ Añadir sucursal</);
   assert.match(html,/id="order-branch"[^>]*hidden/);
