@@ -232,7 +232,9 @@ test("mobile KPI layout never breaks normal words and keeps two-column cards usa
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[\s\S]*?gap:10px/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:164px[\s\S]*?padding:13px 14px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:normal[\s\S]*?word-break:normal[\s\S]*?hyphens:none/);
- assert.doesNotMatch(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:anywhere/);
+ const titleBlocks=[...css.matchAll(/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{([^}]*)\}/g)].map(match=>match[1]);
+ assert.ok(titleBlocks.length>=2);
+ for(const block of titleBlocks)assert.doesNotMatch(block,/overflow-wrap:anywhere/);
 });
 
 test("large dashboard panels use compact headings, readable empty states, and stacked actions",async()=>{
