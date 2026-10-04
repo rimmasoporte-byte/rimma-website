@@ -665,9 +665,17 @@ export function createOrderWizard({
     setError("");
     try{
       preparedPhotos.clear();
-      for(let index=0;index<state.items.length;index++){
-        if(state.items[index].photoFile){
-          preparedPhotos.set(index,await preparePhoto(state.items[index].photoFile));
+      for(let itemIndex=0;itemIndex<state.items.length;itemIndex++){
+        const item=state.items[itemIndex];
+        for(let workIndex=0;workIndex<(item.works||[]).length;workIndex++){
+          const work=item.works[workIndex];
+          const files=Array.isArray(work.photoFiles)?work.photoFiles:[];
+          for(let fileIndex=0;fileIndex<files.length;fileIndex++){
+            preparedPhotos.set(
+              fileKey(itemIndex,workIndex,fileIndex),
+              await preparePhoto(files[fileIndex])
+            );
+          }
         }
       }
       const response=await api("/orders",{
@@ -711,25 +719,57 @@ export function createOrderWizard({
   function updateItem(index,field,value,target){
     const item=state.items[index];
     if(!item)return;
-    if(field==="photo"){
-      const file=target?.files?.[0]||null;
-      item.photoFile=file;
-      item.photoName=file?.name||"";
-    }else{
-      item[field]=value;
+
+    if(field==="categoryId"){
+      item.categoryId=value;
+      const category=categories.find(row=>row.id===value);
+      item.garmentType=category?.name||"";
+      for(const work of item.works||[]){
+        if(work.categoryId&&work.categoryId!==value){
+          work.serviceIndex="";
+          work.categoryId=value||null;
+          work.serviceId=null;
+          work.work="";
+          work.price="0";
+        }else{
+          work.categoryId=value||null;
+        }
+      }
+      schedulePersist();
+      render();
+      return;
     }
+
+    item[field]=value;
     schedulePersist();
   }
-  function updateWork(itemIndex,workIndex,field,value){
+
+  function updateWork(itemIndex,workIndex,field,value,target){
     const item=state.items[itemIndex];
     const work=item?.works?.[workIndex];
     if(!work)return;
 
+    if(field==="photos"){
+      const files=[...(target?.files||[])].slice(0,12);
+      work.photoFiles=files;
+      work.photoNames=files.map(file=>file.name);
+      schedulePersist();
+      render();
+      return;
+    }
+
     if(field==="serviceIndex"){
       work.serviceIndex=value;
+      if(value==="manual"){
+        work.categoryId=item.categoryId||null;
+        work.serviceId=null;
+        schedulePersist();
+        render();
+        return;
+      }
       const service=value===""?null:services[Number(value)];
       if(service){
-        work.categoryId=service.categoryId||null;
+        work.categoryId=item.categoryId||service.categoryId||null;
         work.serviceId=service.id||null;
         work.work=service.name||work.work;
         if(service.currencyCode)state.currencyCode=safeCurrency(service.currencyCode);
@@ -737,7 +777,7 @@ export function createOrderWizard({
           work.price=(Number(service.priceMinor)/100).toFixed(2);
         }
       }else{
-        work.categoryId=null;
+        work.categoryId=item.categoryId||null;
         work.serviceId=null;
       }
       schedulePersist();
@@ -748,6 +788,7 @@ export function createOrderWizard({
     work[field]=value;
     schedulePersist();
   }
+
   async function discardDraft(){
     if(meaningful()){
       const approved=await confirmAction({
@@ -775,17 +816,21 @@ export function createOrderWizard({
       return;
     }
     const decision=await confirmAction({
-      title:"Cerrar nuevo pedido",
-      message:"El pedido aún no está creado. Puedes conservar el borrador para continuarlo después o salir sin guardarlo.",
-      confirmLabel:"Cerrar y conservar borrador",
+      title:"Salir del nuevo pedido",
+      message:"El pedido todavía no se ha creado. Puedes guardar un borrador para continuar más tarde o descartar los cambios.",
+      cancelLabel:"Seguir editando",
+      confirmLabel:"Guardar borrador y salir",
       danger:false,
-      alternativeLabel:"Cerrar sin guardar",
+      alternativeLabel:"Descartar y salir",
       alternativeDanger:true,
       alternativeValue:"discard"
     });
     if(decision==="discard"){
       clearDraft();
       dirty=false;
+      preparedPhotos.clear();
+      uploadedPhotoIndexes.clear();
+      photoFailures.clear();
       state=blankState(locale?.currency||"EUR");
       modal.close();
       return;
@@ -795,6 +840,7 @@ export function createOrderWizard({
       modal.close();
     }
   }
+
   function backStep(){
     if(active&&!busy&&!created&&state.step>0){
       state.step--;
@@ -818,7 +864,7 @@ export function createOrderWizard({
   async function action(name){
     if(name==="add-item"){
       const item=makeItem(state.currencyCode);
-      item.assignedUserId=defaultAssignedUserId;
+      item.works[0].assignedUserId=defaultAssignedUserId;
       state.items.push(item);
       schedulePersist();
       render();
@@ -834,6 +880,9 @@ export function createOrderWizard({
       modal.close();
       return;
     }
+    if(name==="toggle-item-date"){
+      return;
+    }
     if(name==="retry-photos"){
       await retryPhotos();
       return;
@@ -846,26 +895,18 @@ export function createOrderWizard({
       return;
     }
     if(name==="payment"){
-      modal.close();
       await onOpenPayments?.(order.id);
       return;
     }
     if(name==="whatsapp"){
-      modal.close();
       await onOpenWhatsApp?.(order.id);
       return;
     }
     if(name==="documents"){
-      modal.close();
       await onOpenDocuments?.(order.id);
       return;
     }
     const first=order.items?.[0];
-    if(name==="garment"&&first){
-      modal.close();
-      await onOpenGarment?.(order.id,first.id);
-      return;
-    }
     if(name==="label"&&first){
       await onPrintLabel?.(order.id,first.id);
     }
@@ -897,7 +938,8 @@ export function createOrderWizard({
         Number(target.dataset.wizardItem),
         Number(target.dataset.workIndex),
         target.dataset.workField,
-        target.value
+        target.value,
+        target
       );
     }else if(target.dataset.wizardItem!==undefined){
       updateItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value,target);
@@ -912,7 +954,8 @@ export function createOrderWizard({
         Number(target.dataset.wizardItem),
         Number(target.dataset.workIndex),
         target.dataset.workField,
-        target.value
+        target.value,
+        target
       );
     }else if(target.dataset.wizardItem!==undefined){
       updateItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value,target);
@@ -945,11 +988,26 @@ export function createOrderWizard({
       if(client)selectClient(client);
       return;
     }
+    if(actionName==="toggle-item-date"){
+      const index=Number(button.dataset.index);
+      const item=state.items[index];
+      if(item){
+        item.useCustomDueDate=!item.useCustomDueDate;
+        if(item.useCustomDueDate&&!item.dueDate)item.dueDate=state.dueDate;
+        if(!item.useCustomDueDate)item.dueDate="";
+        schedulePersist();
+        render();
+      }
+      return;
+    }
     if(actionName==="add-work"){
       const index=Number(button.dataset.index);
       const item=state.items[index];
       if(item&&item.works.length<50){
-        item.works.push(makeWork());
+        const work=makeWork();
+        work.categoryId=item.categoryId||null;
+        work.assignedUserId=defaultAssignedUserId;
+        item.works.push(work);
         schedulePersist();
         render();
       }
@@ -1057,7 +1115,7 @@ export function createOrderWizard({
         api("/workspace/members")
       ]);
       if(!active)return;
-      const categories=catalogData.priceList?.categories||[];
+      categories=(catalogData.priceList?.categories||[]).filter(category=>category.status!=="inactive"&&category.status!=="deleted");
       branches=(branchData.branches||[]).filter(branch=>branch.status==="active");
       members=Array.isArray(memberData.members)?memberData.members:[];
       const currentUserId=getMe?.()?.user?.id||"";
@@ -1084,7 +1142,7 @@ export function createOrderWizard({
         dirty=true;
       }else{
         state=blankState(locale?.currency||"EUR");
-        state.items[0].assignedUserId=defaultAssignedUserId;
+        state.items[0].works[0].assignedUserId=defaultAssignedUserId;
       }
       if(!branches.some(branch=>branch.id===state.branchId)){
         state.branchId=branches[0]?.id||"";
@@ -1106,7 +1164,13 @@ export function createOrderWizard({
       }
       const memberIds=new Set(members.map(member=>member.id));
       state.items.forEach(item=>{
-        if(item.assignedUserId&&!memberIds.has(item.assignedUserId))item.assignedUserId=defaultAssignedUserId;
+        const category=categories.find(row=>row.id===item.categoryId);
+        if(category)item.garmentType=category.name;
+        for(const work of item.works||[]){
+          if(work.assignedUserId&&!memberIds.has(work.assignedUserId))work.assignedUserId=defaultAssignedUserId;
+          if(!work.assignedUserId)work.assignedUserId=defaultAssignedUserId;
+          if(!work.categoryId&&item.categoryId)work.categoryId=item.categoryId;
+        }
       });
       state.currencyCode=safeCurrency(state.currencyCode||locale?.currency||"EUR");
       render();
