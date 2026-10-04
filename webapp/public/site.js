@@ -27,7 +27,7 @@ const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>m
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261004-v65").then(module=>module.createOrderWizard({
+const orderWizard=import("/app/order-wizard.mjs?v=20261004-v66").then(module=>module.createOrderWizard({
  api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
  onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
  onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},

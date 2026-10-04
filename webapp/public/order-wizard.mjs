@@ -1,5 +1,4 @@
 const DRAFT_KEY="rimma.order.draft.v62";
-const RECENT_CLIENT_KEY="rimma.order.recent-client.v62";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -35,7 +34,7 @@ const makeItem=(currency="EUR")=>({
   photoFile:null,photoName:"",currencyCode:currency
 });
 const blankState=currency=>({
-  step:0,creationKey:requestKey(),clientId:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
+  step:0,creationKey:requestKey(),clientId:"",clientLabel:"",clientContact:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
   items:[makeItem(currency)]
 });
 
@@ -53,7 +52,8 @@ export function createOrderWizard({
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
-  let clients=[],branches=[],services=[],members=[],defaultAssignedUserId="";
+  let branches=[],services=[],members=[],defaultAssignedUserId="";
+  let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
@@ -77,7 +77,8 @@ export function createOrderWizard({
   );
   const serializable=()=>({
     version:62,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
-    creationKey:state.creationKey,clientId:state.clientId,branchId:state.branchId,currencyCode:state.currencyCode,
+    creationKey:state.creationKey,clientId:state.clientId,clientLabel:state.clientLabel,clientContact:state.clientContact,
+    branchId:state.branchId,currencyCode:state.currencyCode,
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(({photoFile,...item})=>item)
   });
@@ -162,10 +163,6 @@ export function createOrderWizard({
         '<span>'+(index+1)+'</span><b>'+name+'</b></button>'
       ).join("")+'</nav>';
   }
-  const clientOptions=()=>clients.map(client=>
-    '<option value="'+esc(client.id)+'" '+(client.id===state.clientId?"selected":"")+'>'+
-    esc(client.name)+'</option>'
-  ).join("");
   const branchOptions=()=>branches.map(branch=>
     '<option value="'+esc(branch.id)+'" '+(branch.id===state.branchId?"selected":"")+'>'+
     esc(branch.name)+'</option>'
@@ -183,24 +180,112 @@ export function createOrderWizard({
       esc(member.name||member.email||"Miembro")+'</option>'
     ).join("");
 
+  function clientContact(client){
+    return [client?.phone,client?.email].map(value=>String(value||"").trim()).filter(Boolean).join(" · ");
+  }
+  function clientResultsMarkup(){
+    if(clientSearchBusy)return '<div class="wizard-client-search-state">Buscando…</div>';
+    const input=fields.querySelector("#ow-client-search");
+    const query=String(input?.value||"").trim();
+    if(query.length<2)return '<div class="wizard-client-search-state">Escribe al menos 2 caracteres.</div>';
+    if(!clientMatches.length)return '<div class="wizard-client-search-state">No se encontraron clientes.</div>';
+    return clientMatches.map((client,index)=>
+      '<button type="button" role="option" aria-selected="'+(index===clientActiveIndex?"true":"false")+'" class="wizard-client-result '+(index===clientActiveIndex?"active":"")+'" data-wizard-action="select-client" data-client-index="'+index+'">'+
+      '<strong>'+esc(client.name||"Cliente")+'</strong>'+
+      (clientContact(client)?'<small>'+esc(clientContact(client))+'</small>':"")+
+      '</button>'
+    ).join("");
+  }
+  function renderClientResults(){
+    const holder=fields.querySelector("#ow-client-results");
+    const input=fields.querySelector("#ow-client-search");
+    if(!holder||!input)return;
+    const query=String(input.value||"").trim();
+    const shouldOpen=document.activeElement===input&&(query.length>0||clientSearchBusy);
+    holder.hidden=!shouldOpen;
+    input.setAttribute("aria-expanded",shouldOpen?"true":"false");
+    holder.innerHTML=shouldOpen?clientResultsMarkup():"";
+  }
+  function selectClient(client){
+    if(!client||!UUID.test(String(client.id||"")))return;
+    state.clientId=client.id;
+    state.clientLabel=String(client.name||"Cliente");
+    state.clientContact=clientContact(client);
+    clientMatches=[];
+    clientActiveIndex=-1;
+    schedulePersist();
+    render();
+    const input=fields.querySelector("#ow-client-search");
+    if(input)input.focus({preventScroll:true});
+  }
+  function clearClientSelection({keepQuery=false}={}){
+    state.clientId="";
+    state.clientLabel="";
+    state.clientContact="";
+    clientActiveIndex=-1;
+    if(!keepQuery)clientMatches=[];
+    schedulePersist();
+  }
+  async function searchClients(query){
+    const q=String(query||"").trim();
+    const sequence=++clientSearchSeq;
+    clientActiveIndex=-1;
+    if(q.length<2){
+      clientMatches=[];
+      clientSearchBusy=false;
+      renderClientResults();
+      return;
+    }
+    clientSearchBusy=true;
+    renderClientResults();
+    try{
+      const result=await api("/clients?limit=8&offset=0&q="+encodeURIComponent(q));
+      if(sequence!==clientSearchSeq||!active)return;
+      clientMatches=(result.clients||result.items||[]).slice(0,8);
+      clientActiveIndex=clientMatches.length?0:-1;
+    }catch(e){
+      if(sequence!==clientSearchSeq)return;
+      clientMatches=[];
+    }finally{
+      if(sequence===clientSearchSeq){
+        clientSearchBusy=false;
+        renderClientResults();
+      }
+    }
+  }
+  async function hydrateClient(clientId){
+    if(!UUID.test(String(clientId||"")))return null;
+    try{
+      const result=await api("/clients/"+encodeURIComponent(clientId));
+      return result.client||null;
+    }catch{
+      return null;
+    }
+  }
+
   function renderClient(){
     const singleBranch=branches.length===1;
     return '<section class="order-wizard-step">'+
       '<div class="wizard-step-copy"><span>1 · CLIENTE</span><h3>¿Para quién es el pedido?</h3>'+
-      '<p>Selecciona al cliente. RIMMA conserva el borrador mientras trabajas.</p></div>'+
+      '<p>Empieza a escribir el nombre, teléfono o email. RIMMA mostrará solo coincidencias.</p></div>'+
       (restored?'<div class="wizard-draft-notice"><span>✓ Borrador recuperado</span>'+
         '<button type="button" data-wizard-action="discard-draft">Empezar de nuevo</button></div>':"")+
-      '<div class="wizard-control wizard-wide"><label for="ow-client">Cliente *</label>'+
-      '<select id="ow-client" data-wizard-field="clientId"><option value="">Selecciona un cliente</option>'+
-      clientOptions()+'</select><p class="wizard-field-error" data-error-for="clientId"></p></div>'+
+      '<div class="wizard-control wizard-wide wizard-client-search"><label for="ow-client-search">Cliente *</label>'+
+      '<div class="wizard-client-searchbox"><div class="wizard-client-combobox">'+
+      '<input id="ow-client-search" type="search" inputmode="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="ow-client-results" aria-expanded="false" data-wizard-field="clientId" value="'+esc(state.clientLabel)+'" placeholder="Escribe nombre, teléfono o email">'+
+      (state.clientId?'<button type="button" class="wizard-client-clear" data-wizard-action="clear-client" aria-label="Cambiar cliente">×</button>':"")+
+      '</div>'+
+      '<div id="ow-client-results" class="wizard-client-results" role="listbox" hidden></div></div>'+
+      '<p class="wizard-field-error" data-error-for="clientId"></p>'+
+      (state.clientId?'<div class="wizard-client-selected"><span>✓ Cliente seleccionado</span><strong>'+esc(state.clientLabel)+'</strong>'+(state.clientContact?'<small>'+esc(state.clientContact)+'</small>':"")+'</div>':
+        '<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>')+
+      '</div>'+
       '<div class="wizard-inline-actions"><button type="button" class="record-action" data-wizard-action="new-client">+ Nuevo cliente</button></div>'+
       (singleBranch?'<div class="wizard-readonly"><small>Ubicación</small><strong>'+
         esc(branches[0]?.name||"Taller")+'</strong></div>':
         '<div class="wizard-control"><label for="ow-branch">Ubicación *</label>'+
         '<select id="ow-branch" data-wizard-field="branchId"><option value="">Selecciona una ubicación</option>'+
         branchOptions()+'</select><p class="wizard-field-error" data-error-for="branchId"></p></div>')+
-      (!clients.length?'<div class="wizard-empty-state"><strong>Aún no hay clientes.</strong>'+
-        '<p>Crea el primero y volverás a este borrador sin perder lo que hayas escrito.</p></div>':"")+
       '</section>';
   }
   function workRow(item,itemIndex,work,workIndex){
@@ -290,11 +375,10 @@ export function createOrderWizard({
         esc(item.garmentType||item.label||"Prenda")+'</strong><small>'+esc(workSummary)+' · '+
         esc(item.dueDate||state.dueDate)+'</small></div><b>'+esc(money(minor))+'</b></div>';
     }).join("");
-    const client=clients.find(entry=>entry.id===state.clientId);
     return '<section class="order-wizard-step">'+
       '<div class="wizard-step-copy"><span>4 · CONFIRMACIÓN</span><h3>Revisa antes de guardar.</h3>'+
       '<p>El estado inicial será <strong>Recibido</strong>. Después podrás cobrar, imprimir, avisar por WhatsApp y continuar el trabajo.</p></div>'+
-      '<div class="wizard-review-meta"><div><small>Cliente</small><strong>'+esc(client?.name||"—")+
+      '<div class="wizard-review-meta"><div><small>Cliente</small><strong>'+esc(state.clientLabel||"—")+
       '</strong></div><div><small>Entrega</small><strong>'+esc(state.dueDate||"—")+
       '</strong></div><div><small>Prendas</small><strong>'+state.items.length+'</strong></div></div>'+
       '<div class="wizard-review-list">'+rows+'</div>'+
@@ -521,7 +605,6 @@ export function createOrderWizard({
       created=response;
       clearDraft();
       dirty=false;
-      try{sessionStorage.setItem(RECENT_CLIENT_KEY,state.clientId)}catch{}
       await uploadAllPhotos();
       render();
       success(photoFailures.size
@@ -704,6 +787,15 @@ export function createOrderWizard({
   fields.addEventListener("input",event=>{
     if(!active||created)return;
     const target=event.target;
+    if(target.id==="ow-client-search"){
+      const value=String(target.value||"");
+      if(state.clientId&&value.trim()!==state.clientLabel){
+        clearClientSelection({keepQuery:true});
+      }
+      clearTimeout(clientSearchTimer);
+      clientSearchTimer=setTimeout(()=>void searchClients(value),220);
+      return;
+    }
     if(target.matches("select,input[type=file],input[type=date]"))return;
     if(target.dataset.wizardField==="currencyCode"){
       state.currencyCode=String(target.value||"").toUpperCase().slice(0,3);
@@ -735,9 +827,6 @@ export function createOrderWizard({
       );
     }else if(target.dataset.wizardItem!==undefined){
       updateItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value,target);
-    }else if(target.dataset.wizardField==="clientId"){
-      state.clientId=target.value;
-      schedulePersist();
     }else if(target.dataset.wizardField==="branchId"){
       state.branchId=target.value;
       schedulePersist();
@@ -761,6 +850,20 @@ export function createOrderWizard({
     const button=event.target.closest("[data-wizard-action]");
     if(!button)return;
     const actionName=button.dataset.wizardAction;
+    if(actionName==="select-client"){
+      const index=Number(button.dataset.clientIndex);
+      const client=clientMatches[index];
+      if(client)selectClient(client);
+      return;
+    }
+    if(actionName==="clear-client"){
+      clearClientSelection();
+      clientMatches=[];
+      render();
+      const input=fields.querySelector("#ow-client-search");
+      if(input)input.focus({preventScroll:true});
+      return;
+    }
     if(actionName==="add-work"){
       const index=Number(button.dataset.index);
       const item=state.items[index];
@@ -793,6 +896,47 @@ export function createOrderWizard({
     }
     void action(actionName);
   });
+  fields.addEventListener("keydown",event=>{
+    if(!active||created||event.target.id!=="ow-client-search")return;
+    if(event.key==="Escape"){
+      event.preventDefault();
+      clientMatches=[];
+      clientActiveIndex=-1;
+      event.target.blur();
+      renderClientResults();
+      return;
+    }
+    if(event.key==="ArrowDown"||event.key==="ArrowUp"){
+      if(!clientMatches.length)return;
+      event.preventDefault();
+      const direction=event.key==="ArrowDown"?1:-1;
+      clientActiveIndex=(clientActiveIndex+direction+clientMatches.length)%clientMatches.length;
+      renderClientResults();
+      return;
+    }
+    if(event.key==="Enter"&&clientActiveIndex>=0&&clientMatches[clientActiveIndex]){
+      event.preventDefault();
+      selectClient(clientMatches[clientActiveIndex]);
+    }
+  });
+  fields.addEventListener("focusin",event=>{
+    if(event.target.id!=="ow-client-search"||state.clientId)return;
+    const value=String(event.target.value||"");
+    if(value.trim().length>=2){
+      clearTimeout(clientSearchTimer);
+      clientSearchTimer=setTimeout(()=>void searchClients(value),80);
+    }else{
+      renderClientResults();
+    }
+  });
+  fields.addEventListener("focusout",event=>{
+    if(event.target.id!=="ow-client-search")return;
+    setTimeout(()=>renderClientResults(),0);
+  });
+  fields.addEventListener("pointerdown",event=>{
+    if(event.target.closest(".wizard-client-result"))event.preventDefault();
+  });
+
   window.addEventListener("beforeunload",event=>{
     if(active&&!created&&dirty&&meaningful()){
       persist();
@@ -807,13 +951,18 @@ export function createOrderWizard({
     photoFailures.clear();
     preparedPhotos.clear();
     uploadedPhotoIndexes.clear();
+    clientMatches=[];
+    clientActiveIndex=-1;
+    clientSearchBusy=false;
+    clientSearchSeq++;
+    clearTimeout(clientSearchTimer);
     dirty=false;
     restored=false;
     modal.classList.add("order-wizard-modal");
     eyebrow.textContent="TUS ENCARGOS";
     title.textContent="Nuevo pedido";
     fields.innerHTML='<div class="wizard-loading"><span></span><strong>Preparando el pedido…</strong>'+
-      '<p>Cargando clientes, servicios y equipo.</p></div>';
+      '<p>Cargando servicios, ubicación y equipo.</p></div>';
     setError("");
     if(back)back.hidden=true;
     submit.disabled=true;
@@ -821,14 +970,12 @@ export function createOrderWizard({
     cancel.hidden=false;
     if(!modal.open)modal.showModal();
     try{
-      const [clientData,catalogData,branchData,memberData]=await Promise.all([
-        api("/clients?limit=100&offset=0"),
+      const [catalogData,branchData,memberData]=await Promise.all([
         api("/price-list"),
         api("/branches"),
         api("/workspace/members")
       ]);
       if(!active)return;
-      clients=clientData.clients||[];
       const categories=catalogData.priceList?.categories||[];
       branches=(branchData.branches||[]).filter(branch=>branch.status==="active");
       members=Array.isArray(memberData.members)?memberData.members:[];
@@ -857,20 +1004,26 @@ export function createOrderWizard({
       }else{
         state=blankState(locale?.currency||"EUR");
         state.items[0].assignedUserId=defaultAssignedUserId;
-        const recent=(()=>{
-          try{return sessionStorage.getItem(RECENT_CLIENT_KEY)||""}
-          catch{return ""}
-        })();
-        if(clients.some(client=>client.id===recent))state.clientId=recent;
       }
       if(!branches.some(branch=>branch.id===state.branchId)){
         state.branchId=branches[0]?.id||"";
       }
-      if(!clients.some(client=>client.id===state.clientId))state.clientId="";
-      if(preferredClientId&&clients.some(client=>client.id===preferredClientId)){
-        state.clientId=preferredClientId;
-        dirty=true;
-        persist();
+      const requestedClientId=preferredClientId||state.clientId;
+      if(requestedClientId){
+        const client=await hydrateClient(requestedClientId);
+        if(client){
+          state.clientId=client.id;
+          state.clientLabel=String(client.name||"Cliente");
+          state.clientContact=clientContact(client);
+          if(preferredClientId){
+            dirty=true;
+            persist();
+          }
+        }else{
+          state.clientId="";
+          state.clientLabel="";
+          state.clientContact="";
+        }
       }
       const memberIds=new Set(members.map(member=>member.id));
       state.items.forEach(item=>{
@@ -887,6 +1040,11 @@ export function createOrderWizard({
   }
   function closed(){
     persist();
+    clearTimeout(clientSearchTimer);
+    clientSearchSeq++;
+    clientMatches=[];
+    clientActiveIndex=-1;
+    clientSearchBusy=false;
     active=false;
     busy=false;
     created=null;
