@@ -674,15 +674,6 @@ button:disabled,.feature-button[disabled]{
 .verifactu-check strong{display:block;font:650 11px/1.35 var(--font);color:#344739}
 .verifactu-check small{display:block;margin-top:2px;font:400 10px/1.45 var(--font);color:#776f64}
 
-/* RIMMA Atelier OS V26 */
-.atelier-today-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 22px}
-.atelier-kpi{appearance:none;border:1px solid #e5ddd0;background:#fff;border-radius:18px;padding:16px;text-align:left;min-height:118px;display:flex;flex-direction:column;gap:5px;cursor:pointer;color:inherit;box-shadow:0 8px 28px rgba(52,43,33,.05)}
-.atelier-kpi span{font-size:11px;font-weight:800;letter-spacing:.08em;color:#7c746b}.atelier-kpi strong{font-size:30px;line-height:1}.atelier-kpi small{font-size:12px;color:#746d66;line-height:1.35}
-.atelier-kpi.dark{background:#25211d;color:#fff;border-color:#25211d}.atelier-kpi.dark span,.atelier-kpi.dark small{color:#d8d1c8}.atelier-kpi.danger{border-color:#e8c7c0;background:#fff8f6}.atelier-kpi.danger strong{color:#9a3c31}
-.atelier-ops-layout{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:16px;margin-bottom:22px}.atelier-ops-panel{min-height:280px}
-.today-action-list,.today-appointment-list,.worker-load-list{display:grid;gap:8px}.today-action-row{width:100%;border:0;border-bottom:1px solid #eee7dd;background:transparent;padding:10px 0;display:flex;justify-content:space-between;align-items:center;text-align:left;cursor:pointer;color:inherit}.today-action-row span:first-child{display:grid;gap:2px}.today-action-row small,.today-appointment small,.worker-load-row small{color:#7a736b}
-.today-appointment{display:grid;grid-template-columns:58px 1fr;gap:4px 10px;padding:10px 0;border-bottom:1px solid #eee7dd}.today-appointment strong{grid-row:1/3;font-size:18px}.today-appointment span{font-weight:700}
-.worker-load-row{display:grid;grid-template-columns:minmax(0,1fr) 86px 42px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eee7dd}.worker-load-row>div:first-child{display:grid}.worker-meter{height:7px;border-radius:999px;background:#eee8df;overflow:hidden}.worker-meter span{display:block;height:100%;background:#5e7567;border-radius:inherit}.worker-load-row.is-overloaded .worker-meter span{background:#a2493e}.worker-load-row.is-overloaded b{color:#9a3c31}
 .garment-grid{display:grid;gap:14px}.garment-card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:18px;padding:16px;background:#fff;border:1px solid #e8e0d4;border-radius:20px;box-shadow:0 8px 26px rgba(49,40,32,.05)}.garment-photo{width:112px;height:112px;border-radius:16px;background:linear-gradient(145deg,#f1ebe3,#e4dacd);display:grid;place-items:center;overflow:hidden;color:#7b7166;font-size:30px}.garment-photo img{width:100%;height:100%;object-fit:cover}.garment-card-main{min-width:0}.garment-card-top{display:flex;justify-content:space-between;gap:14px}.garment-card-top h3{margin:4px 0 3px;font-size:18px}.garment-card-top p{margin:0;color:#766f68;font-size:13px}.garment-order-ref{font-size:11px;font-weight:800;letter-spacing:.04em;color:#8a8177}.garment-facts{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.garment-meta-chip{background:#f7f3ed;border-radius:999px;padding:5px 8px;font-size:11px;color:#655e57}.garment-money{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:#756d64;margin:9px 0}.garment-money strong{color:#26211d}.garment-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
 .appointments-timeline{display:grid;gap:12px}.appointment-card{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px;background:#fff;border:1px solid #e6ddd1;border-radius:18px}.appointment-time{display:grid;text-align:center;background:#f5f0e9;border-radius:14px;padding:10px}.appointment-time strong{font-size:21px}.appointment-time small{color:#7a7269}.appointment-card h3{margin:3px 0}.appointment-card p{margin:2px 0;color:#6e675f}
 .branch-chips{display:flex;flex-wrap:wrap;gap:8px}.branch-chip{display:grid;padding:9px 11px;border:1px solid #e4dbcf;border-radius:12px;background:#fbf9f6}.branch-chip small{color:#746c64}.notification-rule-list{display:grid;gap:8px}.notification-rule{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:9px 0;border-bottom:1px solid #eee7dd}.notification-rule span{display:grid}.notification-rule small{color:#7a7269}.notification-rule input{width:20px;height:20px}
@@ -1700,7 +1691,7 @@ button:disabled,.feature-button[disabled]{
 /* KPI strip */
 #view-inicio #today-cards.atelier-today-grid{
  display:grid;
- grid-template-columns:repeat(6,minmax(0,1fr));
+ grid-template-columns:repeat(4,minmax(0,1fr));
  gap:10px;
  margin-top:14px;
  margin-bottom:18px
@@ -1853,6 +1844,55 @@ button:disabled,.feature-button[disabled]{
 #view-inicio #today-cards .atelier-kpi>.metric-jump>span:last-child{flex:0 0 auto}
 
 /* Operational cards */
+#view-inicio .today-action-list,
+#view-inicio .today-appointment-list,
+#view-inicio .worker-load-list{
+ display:grid;
+ gap:8px
+}
+#view-inicio .today-action-row{
+ width:100%;
+ border:0;
+ border-bottom:1px solid #eee7dd;
+ background:transparent;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ text-align:left;
+ cursor:pointer;
+ color:inherit
+}
+#view-inicio .today-action-row span:first-child{
+ display:grid;
+ gap:2px
+}
+#view-inicio .today-appointment{
+ display:grid;
+ grid-template-columns:58px minmax(0,1fr);
+ gap:4px 10px;
+ padding:10px 0;
+ border-bottom:1px solid #eee7dd
+}
+#view-inicio .today-appointment strong{
+ grid-row:1/3;
+ font-size:18px
+}
+#view-inicio .today-appointment span{font-weight:700}
+#view-inicio .worker-meter{
+ height:7px;
+ border-radius:999px;
+ background:#eee8df;
+ overflow:hidden
+}
+#view-inicio .worker-meter span{
+ display:block;
+ height:100%;
+ background:#5e7567;
+ border-radius:inherit
+}
+#view-inicio .worker-load-row.is-overloaded .worker-meter span{background:#a2493e}
+#view-inicio .worker-load-row.is-overloaded b{color:#9a3c31}
+
 #view-inicio .atelier-ops-layout{
  display:grid;
  grid-template-columns:1.35fr 1fr 1fr;
