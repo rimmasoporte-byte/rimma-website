@@ -400,7 +400,7 @@ export function createOrderWizard({
       '<div class="wizard-delivery-list">'+state.items.map(deliveryRow).join("")+'</div></section>';
   }
 
-  const itemMinor=item=>  const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
+  const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
   const totalMinor=()=>state.items.reduce((sum,item)=>sum+itemMinor(item),0);
   function renderReview(){
     let total=0;
