@@ -1,0 +1,39 @@
+name: Spain locales V44 CI
+on:
+  pull_request:
+    branches: [feat/webapp-prod-prep-20260927]
+    paths:
+      - 'index.html'
+      - 'assets-v3/spain-locales.js'
+      - 'assets-v3/v3.css'
+      - 'demo/index.html'
+      - 'deploy-tests/site.test.mjs'
+      - 'webapp/public/locale.js'
+      - 'webapp/public/locale-intl.js'
+      - 'webapp/public/locale-picker.js'
+      - 'webapp/public/index.html'
+      - 'webapp/public/register.html'
+      - 'webapp/signup.mjs'
+      - 'webapp/test/*localization.test.mjs'
+      - 'webapp/test/signup.test.mjs'
+      - '.github/workflows/spain-locales-v44-ci.yml'
+jobs:
+  locale-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check locale JavaScript syntax
+        run: |
+          node --check assets-v3/spain-locales.js
+          node --check webapp/public/locale.js
+          node --check webapp/public/locale-intl.js
+          node --check webapp/public/locale-picker.js
+          node --check webapp/signup.mjs
+      - name: Test public site locale surface
+        run: node --test deploy-tests/site.test.mjs
+      - name: Test Spain portal localization
+        working-directory: webapp
+        run: node --test test/brazil-localization.test.mjs test/international-localization.test.mjs test/signup.test.mjs
