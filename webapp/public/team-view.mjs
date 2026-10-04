@@ -102,14 +102,14 @@ export function createTeamUI({api,success,globalError,confirmAction,getMe}){
     document.body.append(dialog);
     dialog.querySelectorAll("[data-team-close]").forEach(button=>button.addEventListener("click",()=>dialog.close()));
     dialog.addEventListener("cancel",event=>{event.preventDefault();if(!busy)dialog.close();});
-    dialog.addEventListener("submit",event=>void submitInvite(event));
+    dialog.querySelector("#team-invite-form").addEventListener("submit",event=>void submitInvite(event));
     return dialog;
   }
 
   async function submitInvite(event){
     event.preventDefault();
     if(busy)return;
-    const dialog=inviteDialog(),form=event.currentTarget,error=dialog.querySelector("#team-dialog-error");
+    const dialog=inviteDialog(),form=event.currentTarget instanceof HTMLFormElement?event.currentTarget:dialog.querySelector("#team-invite-form"),error=dialog.querySelector("#team-dialog-error");
     const submit=form.querySelector('button[type="submit"]');
     error.hidden=true;busy=true;submit.disabled=true;submit.textContent="Enviando…";
     try{
