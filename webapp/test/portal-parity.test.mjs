@@ -202,18 +202,22 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v42/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v49/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v50/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
 });
 
-test("dashboard KPI strip stays compact on desktop",async()=>{
+test("dashboard KPI strip stays compact and uses a consistent icon system",async()=>{
  const css=await source("public/portal-parity.css");
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:126px[\s\S]*?padding:12px 13px 11px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-size:28px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:10px/);
- assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-icon\{[\s\S]*?position:absolute[\s\S]*?width:23px[\s\S]*?height:23px/);
+ const html=await source("public/index.html");
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:130px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?font-size:30px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>small\{[\s\S]*?font-size:11px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>\.metric-icon svg\{[\s\S]*?width:14px[\s\S]*?height:14px/);
+ const kpiBlock=html.match(/<div class="atelier-today-grid" id="today-cards">([\s\S]*?)<\/div>/)?.[1]||"";
+ assert.equal((kpiBlock.match(/class="metric-icon"/g)||[]).length,6);
+ assert.equal((kpiBlock.match(/<svg viewBox="0 0 24 24">/g)||[]).length,6);
 });
 
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{

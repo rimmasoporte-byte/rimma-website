@@ -12,7 +12,7 @@ test('Maison luxe visual sheet loads after existing styles without any extra scr
  assert.match(html,/family=Cormorant\+Garamond/);
  assert.match(html,/family=DM\+Sans/);
  assert.match(html,/id="today-cards"/);
- assert.equal((html.match(/class="metric-icon"/g)||[]).length,3);
+ assert.equal((html.match(/class="metric-icon"/g)||[]).length,6);
  assert.equal((html.match(/class="metric-jump"/g)||[]).length,3);
  assert.match(html,/data-action="new-order"/);
  assert.match(html,/id="due-count"/);
