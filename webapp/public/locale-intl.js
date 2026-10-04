@@ -201,7 +201,7 @@ const rows=[
 ['Cuenta creada correctamente. Ya puedes iniciar sesión desde la página de acceso.','Compte creat correctament. Ja pots iniciar sessió des de la pàgina d’accés.','Kontua behar bezala sortu da. Sarbide-orritik saioa has dezakezu.','Conta creada correctamente. Xa podes iniciar sesión desde a páxina de acceso.'],
 ['Error de conexión. Inténtalo de nuevo.','Error de connexió. Torna-ho a provar.','Konexio-errorea. Saiatu berriro.','Erro de conexión. Inténtao de novo.'],
 ['No se ha podido completar la solicitud.','No s’ha pogut completar la sol·licitud.','Ezin izan da eskaera osatu.','Non se puido completar a solicitude.'],
-['Selecciona un país válido.','Selecciona un país vàlid.','Hautatu baliozko herrialde bat.','Selecciona un país válido.']
+['Selecciona un país válido.','Selecciona un país vàlid.','Hautatu baliozko herrialde bat.','Selecciona un país válido.'],
 ['Datos del taller y facturación','Dades del taller i facturació','Tailerraren datuak eta fakturazioa','Datos do obradoiro e facturación'],
 ['Datos fiscales, documentos, impuestos y facturación de tu taller.','Dades fiscals, documents, impostos i facturació del teu taller.','Zure tailerraren zerga-datuak, dokumentuak, zergak eta fakturazioa.','Datos fiscais, documentos, impostos e facturación do teu obradoiro.'],
 ['Completa la información del negocio y selecciona el territorio fiscal que te corresponde.','Completa la informació del negoci i selecciona el territori fiscal que et correspon.','Osatu negozioaren informazioa eta hautatu dagokizun zerga-lurraldea.','Completa a información do negocio e selecciona o territorio fiscal que che corresponde.'],
