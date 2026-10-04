@@ -1560,3 +1560,65 @@ button:disabled,.feature-button[disabled]{
    padding-right:24px
  }
 }
+
+
+/* V48 — quieter language control, visually grouped with account controls. */
+.topbar-locale{
+ margin:0 0 0 6px;
+ padding-left:14px;
+ border-left:1px solid #e8e2d8
+}
+.topbar-locale .app-locale-select{
+ min-width:104px;
+ max-width:112px;
+ height:32px;
+ min-height:32px;
+ padding:4px 24px 4px 8px;
+ border:0;
+ border-radius:6px;
+ background:transparent;
+ color:#6f624f;
+ box-shadow:none;
+ font:600 10px/1.2 var(--font);
+ letter-spacing:.01em
+}
+.topbar-locale .app-locale-select:hover{
+ border-color:transparent;
+ background:#f8f4ed;
+ color:#3f4d45
+}
+.topbar-locale .app-locale-select:focus{
+ outline:2px solid rgba(166,132,78,.14);
+ outline-offset:1px;
+ border-color:transparent;
+ background:#fffaf2
+}
+@media(max-width:930px){
+ .topbar-locale{margin-left:2px;padding-left:10px}
+ .topbar-locale .app-locale-select{
+   min-width:100px;
+   max-width:106px
+ }
+}
+@media(max-width:700px){
+ .topbar-locale{
+   margin-left:0;
+   padding-left:0;
+   border-left:0
+ }
+ .topbar-locale .app-locale-select{
+   min-width:94px;
+   max-width:100px;
+   height:32px;
+   min-height:32px;
+   padding-left:7px;
+   font-size:9px
+ }
+}
+@media(max-width:390px){
+ .topbar-locale .app-locale-select{
+   min-width:84px;
+   max-width:90px;
+   padding-right:20px
+ }
+}
