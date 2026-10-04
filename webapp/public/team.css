@@ -1,3 +1,4 @@
+:root{--font-ui:"DM Sans","Segoe UI",Arial,sans-serif;--font-display:"Cormorant Garamond",Georgia,serif;--font:var(--font-ui);--serif:var(--font-display)}
 .team-headline{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:4px 0 16px}
 .team-headline>div{display:grid;gap:3px}.team-headline small,.team-member-main small,.team-readonly-note{color:var(--muted,#756f68)}
 .team-seat-badge{border:1px solid rgba(79,66,56,.16);border-radius:999px;padding:7px 10px;font-size:12px;white-space:nowrap}
@@ -9,6 +10,6 @@
 .team-dialog{width:min(560px,calc(100vw - 32px));border:0;border-radius:18px;padding:0}.team-dialog::backdrop{background:rgba(25,20,17,.46)}
 .team-dialog form{padding:22px}.team-dialog .feature-fields{display:grid;gap:14px;margin:18px 0}.team-dialog label{display:grid;gap:7px;font-size:13px}
 .team-dialog input{width:100%;box-sizing:border-box;padding:12px;border:1px solid rgba(79,66,56,.22);border-radius:10px;background:#fff}
-.team-invite-page{min-height:100vh}.team-invite-card{max-width:560px}.team-invite-card form{display:grid;gap:14px}.team-invite-card form label{display:grid;gap:7px}
+.team-invite-page{min-height:100vh;font-family:var(--font-ui)}.team-invite-card h1,.team-invite-card h2{font-family:var(--font-display)}.team-invite-card{max-width:560px}.team-invite-card form{display:grid;gap:14px}.team-invite-card form label{display:grid;gap:7px}
 .team-invite-card input{width:100%;box-sizing:border-box}.team-invite-success{padding:18px 0}.team-login-link{display:inline-flex;margin-top:10px;font-weight:700}
 @media(max-width:640px){.team-headline,.team-member{align-items:flex-start}.team-headline{flex-direction:column}.team-member{flex-wrap:wrap}.team-actions{width:100%;justify-content:flex-start}}
