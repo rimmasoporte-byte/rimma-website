@@ -299,7 +299,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    '<span>Este registro pendiente se conservará en el historial como anulado.</span></div>'+
    '<div class="feature-fields">'+textarea("cancellationReason","Motivo de la anulación *",500)+'</div>',
    "Anular cobro");
-  submit().classList.add("danger");
+  submit().classList?.add?.("danger");
  }
 
  async function openWhatsApp(orderId){
