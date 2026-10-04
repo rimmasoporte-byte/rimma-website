@@ -202,7 +202,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v42/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v53/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v54/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -233,6 +233,12 @@ test("dashboard KPI numerals use the RIMMA serif system",async()=>{
 test("dashboard KPI numerals reserve stable width and use tabular sans digits",async()=>{
  const css=await source("public/portal-parity.css");
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?min-inline-size:3ch[\s\S]*?font-family:var\(--font\)[\s\S]*?font-size:32px[\s\S]*?font-variant-numeric:tabular-nums lining-nums[\s\S]*?font-feature-settings:"tnum" 1,"lnum" 1/);
+});
+test("dashboard KPI values share a fixed vertical row",async()=>{
+ const css=await source("public/portal-parity.css");
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?display:grid[\s\S]*?grid-template-rows:30px 32px minmax\(28px,1fr\) 14px/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>strong\{[\s\S]*?grid-row:2[\s\S]*?margin:0/);
+ assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?grid-row:1[\s\S]*?min-height:30px/);
 });
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
  const oldDoc=globalThis.document;
