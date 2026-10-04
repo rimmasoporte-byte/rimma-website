@@ -201,11 +201,46 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-core60/);
-  assert.match(html,/portal-parity\.css\?v=20261004-core60/);
+  assert.match(html,/site\.js\?v=20261004-fiscal61/);
+  assert.match(html,/portal-parity\.css\?v=20261004-fiscal61/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
+});
+
+test("V61 fiscal settings are territory-aware and fail closed outside the implemented regime",async()=>{
+ const html=await source("public/index.html");
+ const js=await source("public/site.js");
+ const feat=await source("public/portal-features.mjs");
+ const css=await source("public/portal-parity.css");
+ assert.match(html,/Datos del taller y facturación/);
+ assert.match(html,/Configurar datos/);
+ assert.match(js,/portal-features\.mjs\?v=20261004-fiscal61/);
+ for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
+  assert.ok(feat.includes('"'+territory+'"'),territory);
+ assert.match(feat,/Territorio común · IVA \/ AEAT/);
+ assert.match(feat,/Canarias · IGIC/);
+ assert.match(feat,/Ceuta · IPSI/);
+ assert.match(feat,/País Vasco · normativa foral \/ TicketBAI/);
+ assert.match(feat,/Emisión fiscal protegida/);
+ assert.match(feat,/fiscalIssuanceSupported===false/);
+ assert.match(feat,/if\(taxTerritory==="COMMON"\)/);
+ assert.match(feat,/invoiceSeriesLocked===true/);
+ assert.doesNotMatch(feat,/NIF \/ CIF \*/);
+ assert.match(css,/V61 — structured workshop\/fiscal settings/);
+ assert.match(css,/#feature-dialog\[data-mode="business-profile"\]/);
+});
+
+test("V61 business profile separates identity documents and fiscal configuration",async()=>{
+ const feat=await source("public/portal-features.mjs");
+ for(const heading of ["Datos fiscales del taller","Documentos comerciales","Facturación e impuestos"])
+  assert.ok(feat.includes(heading),heading);
+ assert.match(feat,/País \*"[\s\S]*?\[\["ES","España"\]\]/);
+ assert.match(feat,/Normativa de consumo/);
+ assert.match(feat,/Validez del presupuesto \(días\)/);
+ assert.match(feat,/Series protegidas/);
+ assert.match(feat,/Guardar cambios/);
+ assert.match(feat,/syncBusinessProfileForm\(e\.target\.name\)/);
 });
 
 test("V60 keeps one consolidated dashboard system with four core KPIs",async()=>{

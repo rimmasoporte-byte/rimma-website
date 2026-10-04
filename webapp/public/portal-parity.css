@@ -2247,3 +2247,168 @@ button:disabled,.feature-button[disabled]{
   padding-right:29px
  }
 }
+
+
+/* V61 — structured workshop/fiscal settings with territory safety. */
+#feature-dialog[data-mode="business-profile"]{
+ width:min(96vw,860px)
+}
+#feature-dialog[data-mode="business-profile"] #feature-body{
+ padding-right:8px
+}
+.business-profile-intro{
+ margin:0 0 18px;
+ max-width:720px;
+ font-size:13px;
+ line-height:1.55
+}
+.business-profile-section{
+ margin:0 0 18px;
+ padding:18px;
+ border:1px solid #e6dccd;
+ border-radius:12px;
+ background:#fffdfa
+}
+.business-profile-section:last-child{margin-bottom:2px}
+.business-profile-section-head{
+ display:grid;
+ grid-template-columns:30px minmax(0,1fr);
+ gap:11px;
+ align-items:start;
+ margin-bottom:16px
+}
+.business-profile-section-head>span{
+ display:grid;
+ place-items:center;
+ width:28px;
+ height:28px;
+ border-radius:999px;
+ background:#f0e6d6;
+ color:#7c5e34;
+ font:700 12px/1 var(--font)
+}
+.business-profile-section-head h4{
+ margin:0;
+ color:#243229;
+ font:600 22px/1.15 var(--serif)
+}
+.business-profile-section-head p{
+ margin:4px 0 0;
+ color:#766e64;
+ font:400 12px/1.45 var(--font)
+}
+.business-profile-fields{
+ grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:14px 18px
+}
+.business-profile-field{
+ display:grid;
+ grid-template-columns:minmax(0,1fr);
+ align-content:start;
+ gap:6px;
+ min-width:0
+}
+.business-profile-field>label{
+ margin:0;
+ color:#514c45;
+ font:650 12px/1.3 var(--font)
+}
+.business-profile-field>input,
+.business-profile-field>select{
+ width:100%
+}
+.profile-field-help{
+ display:block;
+ margin:0;
+ color:#82796e;
+ font:400 11px/1.42 var(--font)
+}
+.tax-territory-note{
+ margin:14px 0 0;
+ padding:12px 14px;
+ border:1px solid #e3d5bf;
+ border-radius:9px;
+ background:#faf7f0
+}
+.tax-territory-note strong{
+ display:block;
+ color:#334237;
+ font:700 12px/1.35 var(--font)
+}
+.tax-territory-note p{
+ margin:4px 0 0;
+ color:#6f675e;
+ font:400 12px/1.48 var(--font)
+}
+.tax-territory-note-ok{
+ border-color:#cddbcf;
+ background:#f5faf5
+}
+.tax-territory-note-warning{
+ border-color:#e2cba4;
+ background:#fff9ee
+}
+.tax-territory-note-lock{
+ border-color:#d8c4a0;
+ background:#fbf6ec
+}
+#common-tax-settings[hidden],
+#catalonia-document-note[hidden]{
+ display:none!important
+}
+#feature-dialog[data-mode="business-profile"] input[readonly]{
+ background:#f4f1eb;
+ color:#756d62;
+ cursor:not-allowed
+}
+.tax-territory-blocked{
+ display:grid;
+ grid-template-columns:34px minmax(0,1fr);
+ gap:12px;
+ align-items:start;
+ margin-bottom:18px;
+ padding:15px 16px;
+ border:1px solid #dcbf8b;
+ border-radius:10px;
+ background:#fff8ea
+}
+.tax-territory-blocked>span{
+ display:grid;
+ place-items:center;
+ width:30px;
+ height:30px;
+ border-radius:999px;
+ background:#ead2a3;
+ color:#604a27;
+ font:800 15px/1 var(--font)
+}
+.tax-territory-blocked strong{
+ display:block;
+ color:#413721;
+ font:700 14px/1.35 var(--font)
+}
+.tax-territory-blocked p{
+ margin:4px 0 0;
+ color:#6c5e43;
+ font:400 12px/1.5 var(--font)
+}
+
+@media(max-width:700px){
+ #feature-dialog[data-mode="business-profile"]{
+  width:min(96vw,700px)
+ }
+ .business-profile-section{
+  padding:15px
+ }
+ .business-profile-fields{
+  grid-template-columns:minmax(0,1fr);
+  gap:12px
+ }
+ .business-profile-section-head h4{
+  font-size:21px
+ }
+ .tax-territory-blocked{
+  grid-template-columns:30px minmax(0,1fr);
+  padding:13px
+ }
+}
