@@ -151,7 +151,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261004-v69/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v1/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -184,8 +184,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/const orderCreate=method==='POST' && route==='\/orders'/);
  assert.match(server,/items\\\/\[a-f0-9-\]\{36\}.*works/);
  assert.match(server,/order_item_work_lines/);
- assert.match(js,/portal-features\.mjs\?v=20261004-v63/);
- assert.match(js,/confirm-dialog\.mjs\?v=20261004-v69/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
+ assert.match(js,/confirm-dialog\.mjs\?v=20261005-v1/);
  assert.match(server,/duplicate-check/);
  assert.match(js,/api\("\/clients\/duplicate-check\?"/);
  assert.match(js,/Posible cliente duplicado/);
@@ -279,7 +279,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-v72/);
+  assert.match(html,/site\.js\?v=20261005-v1/);
   assert.match(html,/app\.css\?v=20261005-v1/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
@@ -294,7 +294,7 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
- assert.match(js,/portal-features\.mjs\?v=20261004-v63/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
  for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
   assert.ok(feat.includes('"'+territory+'"'),territory);
  assert.match(feat,/Territorio común · IVA \/ AEAT/);
