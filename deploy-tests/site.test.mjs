@@ -18,8 +18,7 @@ test('The production home is indexable, canonical and has the original RIMMA log
   assert.match(h,/\.\/assets-v3\/logo\.webp/);
   assert.match(h,/\.\/demo\//);
   assert.match(h,/4,99 €/);
-  assert.match(h,/moneda local/);
-  assert.match(h,/impuestos aplicables/);
+  assert.doesNotMatch(h,/En otros países|moneda local|impuestos aplicables/);
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
@@ -88,19 +87,19 @@ test('Legal pages provide clear return actions at the top and bottom',()=>{
   assert.match(js,/Volver al registro/);
   assert.match(js,/app\.rimmaapp\.com\/app\/register\.html/);
 });
-test('Public pricing lets trial users choose subscription immediately',()=>{
+test('Public pricing keeps trial primary while allowing immediate subscription',()=>{
   const h=read('index.html');
+  assert.match(h,/Probar 5 días gratis/);
   assert.match(h,/Suscribirme ahora/);
   assert.match(h,/app\.rimmaapp\.com\/app\/\?view=suscripcion/);
-  assert.match(h,/también durante los 5 días de prueba/);
+  assert.match(h,/También puedes suscribirte durante la prueba/);
   assert.match(h,/No necesitas esperar a que termine la prueba/);
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
-  assert.match(read('assets-v3/v3.css'),/\.v3-plan-request/);
 });
 
 test('trial is the primary conversion path while demo remains secondary',()=>{
   const h=read('index.html');
-  assert.match(h,/Empieza 5 días gratis/);
+  assert.match(h,/Probar 5 días gratis/);
   assert.match(h,/https:\/\/app\.rimmaapp\.com\/app\/register\.html/);
   assert.match(h,/Ver demo/);
   const demo=read('demo/index.html');
@@ -198,15 +197,17 @@ test('no public HTML page contains a literal \\n marker',()=>{
   assert.deepEqual(offenders,[]);
 });
 
-test('production landing leads with a concrete workshop value proposition and real interface capture',()=>{
+test('production landing is a focused five-section conversion page',()=>{
   const h=read('index.html');
   assert.match(h,/SOFTWARE PARA TALLERES DE COSTURA Y ARREGLOS/);
   assert.match(h,/Cada prenda, bajo control/);
-  assert.match(h,/De la recepción a la entrega/);
+  assert.match(h,/LO ESENCIAL, SIN RUIDO/);
+  assert.match(h,/DE LA RECEPCIÓN A LA ENTREGA/);
+  assert.match(h,/PRECIO CLARO/);
+  assert.match(h,/PREGUNTAS FRECUENTES/);
   assert.match(h,/rimma-dashboard-real\.png/);
   assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-dashboard-real.png')));
-  assert.match(h,/TODO EL VIAJE DE LA PRENDA/);
-  assert.match(h,/Fotos antes y después/);
-  assert.match(h,/WhatsApp en un clic/);
+  assert.equal((h.match(/<section\b/g)||[]).length,5);
+  assert.doesNotMatch(h,/TODO EL VIAJE DE LA PRENDA|HECHA PARA EL TRABAJO REAL|SIMPLE A PROPÓSITO|class="closing"/);
   assert.doesNotMatch(h,/precio mostrado es orientativo|lanzamiento y la configuración de Google Play todavía se están preparando|Solicitar invitación de prueba/i);
 });
