@@ -1789,3 +1789,43 @@ button:disabled,.feature-button[disabled]{
 @media(max-width:720px){
  #view-inicio #today-cards .atelier-kpi>strong{font-size:30px}
 }
+
+
+/* V54 — align every KPI value on one horizontal baseline. */
+#view-inicio #today-cards .atelier-kpi{
+ display:grid;
+ grid-template-rows:30px 32px minmax(28px,1fr) 14px;
+ row-gap:2px;
+ align-content:stretch;
+ align-items:start
+}
+#view-inicio #today-cards .atelier-kpi>span:not(.metric-icon):not(.metric-jump){
+ grid-row:1;
+ align-self:start;
+ min-height:30px;
+ margin:0
+}
+#view-inicio #today-cards .atelier-kpi>strong{
+ grid-row:2;
+ align-self:start;
+ margin:0
+}
+#view-inicio #today-cards .atelier-kpi>small{
+ grid-row:3;
+ align-self:start;
+ margin:0
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump{
+ grid-row:4;
+ align-self:end;
+ margin:0;
+ padding-top:0
+}
+@media(max-width:720px){
+ #view-inicio #today-cards .atelier-kpi{
+   grid-template-rows:28px 30px minmax(26px,1fr) 13px
+ }
+ #view-inicio #today-cards .atelier-kpi>span:not(.metric-icon):not(.metric-jump){
+   min-height:28px
+ }
+}
