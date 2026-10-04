@@ -1,4 +1,4 @@
-const DRAFT_KEY="rimma.order.draft.v62";
+const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -26,12 +26,13 @@ const toMinor=value=>{
 };
 const safeCurrency=value=>/^[A-Z]{3}$/.test(String(value||"").toUpperCase())?String(value).toUpperCase():"EUR";
 const makeWork=()=>({
-  key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0"
+  key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0",
+  assignedUserId:"",photoFiles:[],photoNames:[]
 });
 const makeItem=(currency="EUR")=>({
-  key:uid(),garmentType:"",label:"",works:[makeWork()],
-  brand:"",color:"",sizeLabel:"",storageLocation:"",dueDate:"",assignedUserId:"",
-  photoFile:null,photoName:"",currencyCode:currency
+  key:uid(),categoryId:"",garmentType:"",label:"",works:[makeWork()],
+  brand:"",color:"",sizeLabel:"",storageLocation:"",dueDate:"",useCustomDueDate:false,
+  currencyCode:currency
 });
 const blankState=currency=>({
   step:0,creationKey:requestKey(),clientId:"",clientLabel:"",branchId:"",currencyCode:safeCurrency(currency),dueDate:"",notes:"",
@@ -52,7 +53,7 @@ export function createOrderWizard({
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
-  let branches=[],services=[],members=[],defaultAssignedUserId="";
+  let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null;
   const preparedPhotos=new Map();
@@ -71,16 +72,19 @@ export function createOrderWizard({
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
     state.items.some(item=>
-      item.garmentType.trim()||item.photoName||
-      (item.works||[]).some(work=>work.work.trim()||Number(work.price)>0)
+      item.garmentType.trim()||item.label.trim()||
+      (item.works||[]).some(work=>work.work.trim()||Number(work.price)>0||(work.photoNames||[]).length)
     )
   );
   const serializable=()=>({
-    version:62,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
+    version:63,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
     creationKey:state.creationKey,clientId:state.clientId,clientLabel:state.clientLabel,
     branchId:state.branchId,currencyCode:state.currencyCode,
     dueDate:state.dueDate,notes:state.notes,
-    items:state.items.map(({photoFile,...item})=>item)
+    items:state.items.map(item=>({
+      ...item,
+      works:(item.works||[]).map(({photoFiles,...work})=>work)
+    }))
   });
   function persist(){
     clearTimeout(saveClock);
@@ -102,7 +106,7 @@ export function createOrderWizard({
   function readDraft(){
     try{
       const draft=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||"null");
-      if(!draft||draft.version!==62||!Number.isFinite(draft.savedAt)||Date.now()-draft.savedAt>DRAFT_TTL){
+      if(!draft||draft.version!==63||!Number.isFinite(draft.savedAt)||Date.now()-draft.savedAt>DRAFT_TTL){
         sessionStorage.removeItem(DRAFT_KEY);
         return null;
       }
@@ -114,9 +118,9 @@ export function createOrderWizard({
         items:draft.items.slice(0,30).map(item=>{
           const baseItem=makeItem(draft.currencyCode);
           const works=Array.isArray(item.works)&&item.works.length
-            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid()}))
+            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[]}))
             :baseItem.works;
-          return {...baseItem,...item,key:item.key||uid(),works,photoFile:null};
+          return {...baseItem,...item,key:item.key||uid(),works};
         })
       };
     }catch{return null}
