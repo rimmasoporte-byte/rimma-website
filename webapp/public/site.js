@@ -4,6 +4,7 @@ const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const L=window.RimmaLocale||{isPt:false,locale:"es-ES",currency:"EUR",t:(es)=>es};
+const lt=es=>L.t?L.t(es):es;
 const tr=(es,pt)=>L.isPt?pt:es;
 const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency}).format(Number(value||0)/100);
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
@@ -378,7 +379,7 @@ async function hydrateGarmentCards(rows){
  await Promise.allSettled(jobs);
 }
 function compactActionRows(rows,kind){
- if(!rows?.length)return '<p class="empty">Nada pendiente.</p>';
+ if(!rows?.length)return '<p class="empty">'+esc(lt("Nada pendiente."))+'</p>';
  return '<div class="today-action-list">'+rows.slice(0,8).map(entry=>{
   const client=entry.client?.name||"Cliente",item=entry.item?.name||"Prenda";
   return '<button type="button" class="today-action-row" data-action="garment-open" data-order="'+esc(entry.orderId)+'" data-item="'+esc(entry.item?.id||"")+'"><span><strong>'+esc(item)+'</strong><small>#'+esc(entry.orderNumber)+' · '+esc(client)+'</small></span><span>'+esc(kind==="overdue"?"Atrasada":kind==="ready"?"Lista":date(entry.item?.dueDate))+'</span></button>';
@@ -391,12 +392,12 @@ async function loadToday(){
   const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
   $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
   $("#unpaid-count").textContent=n(s.unpaidBalance);$("#appointments-count").textContent=n(s.appointmentsToday);$("#overloaded-count").textContent=n(s.overloadedWorkers);
-  const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):"Sin cobros pendientes";
+  const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):lt("Sin cobros pendientes");
   $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
   const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
   $("#today-attention").innerHTML=compactActionRows(attention,attention.length&&d.overdue?.length?"overdue":"due");
-  $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">No hay citas hoy.</p>';
-  $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div><strong>'+esc(w.name)+'</strong><small>'+esc(w.branch?.name||"Taller")+' · '+n(w.activeItems)+' prendas activas</small></div><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div>').join("")+'</div>':'<p class="empty">Añade responsables a las prendas para ver la carga.</p>';
+  $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">'+esc(lt("No hay citas hoy."))+'</p>';
+  $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div class="worker-copy"><strong>'+esc(w.name)+'</strong><small><span>'+esc(w.branch?.name||lt("Taller"))+'</span><span>'+n(w.activeItems)+' '+esc(lt("prendas activas"))+'</span></small></div><div class="worker-load-meterline"><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div></div>').join("")+'</div>':'<p class="empty">'+esc(lt("Añade responsables a las prendas para ver la carga."))+'</p>';
  }
  if(week.status==="fulfilled"){
   const w=week.value.dashboard||week.value.week||{};
