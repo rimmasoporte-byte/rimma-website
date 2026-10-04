@@ -7,35 +7,32 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Brazil is a supported signup market with BRL and São Paulo timezone',()=>{
-  const signup=read('public/signup-client.mjs');
-  assert.match(signup,/\['BR','Brasil','BRL','America\/Sao_Paulo'\]/);
-  assert.match(signup,/RimmaLocale\?\.country/);
-  assert.match(signup,/withLocale/);
+test('legacy non-Spain UI locales are removed from the portal',()=>{
+  const base=read('public/locale.js');
+  const intl=read('public/locale-intl.js');
+  const picker=read('public/locale-picker.js');
+  for(const legacy of ['pt-BR','fr-FR','de-DE','it-IT','el-GR','sk-SK','sr-Latn-RS','tr-TR']){
+    assert.doesNotMatch(base,new RegExp(legacy.replaceAll('-','\\-')));
+    assert.doesNotMatch(intl,new RegExp(legacy.replaceAll('-','\\-')));
+    assert.doesNotMatch(picker,new RegExp(legacy.replaceAll('-','\\-')));
+  }
 });
 
-test('portal loads pt-BR localization before application code',()=>{
+test('unsupported stored or query locales safely fall back to Spanish',()=>{
+  const base=read('public/locale.js');
+  assert.match(base,/return'es-ES'/);
+  assert.match(base,/normalize\(paramLocale\)\|\|normalize\(storedLocale\)\|\|browserLocale\|\|'es-ES'/);
+  assert.match(base,/localStorage\.setItem\(COUNTRY_KEY,country\)/);
+  assert.match(base,/const country='ES'/);
+});
+
+test('Spain locale assets load before portal and registration code',()=>{
   const login=read('public/index.html');
   const register=read('public/register.html');
   assert.ok(login.indexOf('/app/locale.js')<login.indexOf('/app/site.js'));
+  assert.ok(login.indexOf('/app/locale-intl.js')<login.indexOf('/app/site.js'));
   assert.ok(register.indexOf('/app/locale.js')<register.indexOf('/app/signup-client.mjs'));
-  assert.match(login,/locale=pt-BR&country=BR/);
-  assert.match(register,/locale=pt-BR&country=BR/);
-});
-
-test('Brazilian portal uses pt-BR formats and BRL defaults without changing Spanish fallback',()=>{
-  const locale=read('public/locale.js');
-  const site=read('public/site.js');
-  const billing=read('public/billing-view.mjs');
-  assert.match(locale,/locale=isPt\?'pt-BR':'es-ES'/);
-  assert.match(locale,/currency:isPt\?'BRL':'EUR'/);
-  assert.match(site,/L\.currency/);
-  assert.match(billing,/America\/Sao_Paulo/);
-  assert.match(billing,/R\$ 29,90\/mês/);
-});
-
-test('pt-BR observer does not rewrite unchanged text forever',()=>{
-  const locale=read('public/locale.js');
-  assert.match(locale,/if\(next!==root\.nodeValue\)root\.nodeValue=next/);
-  assert.match(locale,/if\(next!==node\.nodeValue\)node\.nodeValue=next/);
+  assert.ok(register.indexOf('/app/locale-intl.js')<register.indexOf('/app/signup-client.mjs'));
+  assert.doesNotMatch(login,/data-pt-br-url/);
+  assert.doesNotMatch(register,/data-pt-br-url/);
 });
