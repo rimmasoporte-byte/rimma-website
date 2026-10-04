@@ -13,8 +13,7 @@ const report={
 };
 test("reference dress-form artwork is no longer attached behind the menu",async()=>{
  const html=await load("public/index.html");
- const css=await load("public/atelier-polish.css");
- const photo=await load("public/maison-reference.css");
+ const css=await load("public/app.css");
  const sidebar=html.slice(html.indexOf('<aside class="sidebar"'),html.indexOf('</aside>'));
  assert.ok(sidebar.indexOf("nav-help-link") < sidebar.indexOf('class="sidebar-luxe-art"'));
  assert.ok(sidebar.indexOf('class="sidebar-luxe-art"') < sidebar.indexOf('class="sidebar-bottom"'));
@@ -23,8 +22,9 @@ test("reference dress-form artwork is no longer attached behind the menu",async(
  assert.match(css,/max-height:820px/);
  assert.match(css,/max-height:620px/);
  assert.match(css,/max-width:930px/);
- assert.match(photo,/\.sidebar-luxe-art::before\{[\s\S]*?data:image\/webp;base64/);
- assert.ok(html.indexOf("/app/atelier-polish.css")>html.indexOf("/app/maison-reference.css"));
+ assert.match(css,/\.sidebar-luxe-art::before\{[\s\S]*?data:image\/webp;base64/);
+ assert.match(html,/\/app\/app\.css\?v=20261005-v1/);
+ assert.doesNotMatch(html,/atelier-polish\.css|maison-reference\.css/);
  assert.match(css,/\.sidebar-bottom\{[\s\S]*?flex:0 0 auto/);
 });
 test("period calculations use real previous ranges, including leap-year dates",()=>{
@@ -66,10 +66,11 @@ test("empty and malformed report inputs show no fabricated revenue or unsafe mar
 test("new secure report assets do not introduce mixed HTTP requests or weaken CSP",async()=>{
  const html=await load("public/index.html");
  const server=await load("server.mjs");
- const css=await load("public/atelier-polish.css");
+ const css=await load("public/app.css");
  const js=await load("public/site.js");
  assert.match(server,/pathname==='\/app\/report-view\.mjs'/);
- assert.match(server,/pathname==='\/app\/atelier-polish\.css'/);
+ assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.doesNotMatch(server,/pathname==='\/app\/atelier-polish\.css'/);
  assert.match(server,/script-src 'self'/);
  assert.match(server,/frame-ancestors 'none'/);
  assert.match(server,/strict-transport-security/);
