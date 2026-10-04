@@ -1829,3 +1829,16 @@ button:disabled,.feature-button[disabled]{
    min-height:28px
  }
 }
+
+
+/* V55 — align the upper dashboard panels to the same outer width as Prendas recientes. */
+#view-inicio .atelier-ops-layout{
+ margin-left:-20px;
+ margin-right:-20px
+}
+@media(max-width:700px){
+ #view-inicio .atelier-ops-layout{
+  margin-left:0;
+  margin-right:0
+ }
+}
