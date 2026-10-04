@@ -229,7 +229,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261004-v63/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v63/);
+  assert.match(html,/site\.css\?v=20261004-v64/);
+  assert.match(html,/portal-parity\.css\?v=20261004-v64/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -403,4 +404,16 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
    }
   }
  }finally{globalThis.document=oldDoc;}
+});
+
+
+test("V64 focus rings stay inside controls and cannot be cropped by dialogs or native selects",async()=>{
+ const base=await source("public/site.css");
+ const css=await source("public/portal-parity.css");
+ assert.match(base,/\*:focus-visible\{outline:2px solid #B2955F!important;outline-offset:-3px!important\}/);
+ assert.match(css,/input:focus:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),[\s\S]*?outline-offset:-3px!important;[\s\S]*?box-shadow:inset 0 0 0 1px/);
+ assert.match(css,/select:focus:not\(\[multiple\]\)/);
+ assert.match(css,/textarea:focus:not\(\[readonly\]\)/);
+ assert.match(css,/input\[type="checkbox"\]:focus-visible,[\s\S]*?outline-offset:-2px!important/);
+ assert.match(css,/button:focus-visible:not\(:disabled\),[\s\S]*?outline-offset:-3px!important/);
 });
