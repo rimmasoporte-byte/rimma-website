@@ -1842,3 +1842,16 @@ button:disabled,.feature-button[disabled]{
   margin-right:0
  }
 }
+
+
+/* V56 — align the KPI strip to the same outer dashboard width. */
+#view-inicio #today-cards.atelier-today-grid{
+ margin-left:-20px;
+ margin-right:-20px
+}
+@media(max-width:700px){
+ #view-inicio #today-cards.atelier-today-grid{
+  margin-left:0;
+  margin-right:0
+ }
+}
