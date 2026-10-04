@@ -19,6 +19,122 @@ const normalizedNewClientPhone=value=>{
  const phone=String(value||"").trim();
  return currentCountry()==="ES"&&phone==="+34"?"":phone;
 };
+function duplicateMatchLabel(match){
+ const types=Array.isArray(match?.matchedBy)?match.matchedBy:[];
+ if(types.includes("phone")&&types.includes("email"))return "este teléfono y este email";
+ if(types.includes("phone"))return "este teléfono";
+ return "este email";
+}
+function renderClientDuplicateWarning(matches){
+ const box=$("#client-duplicate-warning");
+ if(!box)return;
+ const rows=Array.isArray(matches)?matches:[];
+ clientDuplicateMatches=rows;
+ if(!rows.length){box.hidden=true;box.replaceChildren();return;}
+ const title=document.createElement("strong");
+ title.textContent=rows.length===1?"Posible cliente duplicado":"Posibles clientes duplicados";
+ const list=document.createElement("div");
+ list.className="client-duplicate-list";
+ rows.slice(0,3).forEach(match=>{
+  const row=document.createElement("span");
+  const name=document.createElement("b");
+  name.textContent=String(match.name||"Cliente");
+  const reason=document.createElement("small");
+  reason.textContent="Ya usa "+duplicateMatchLabel(match)+".";
+  row.append(name,reason);list.append(row);
+ });
+ box.replaceChildren(title,list);
+ box.hidden=false;
+}
+async function fetchClientDuplicates(form,{excludeId=null,render=true}={}){
+ const phone=normalizedNewClientPhone(form.elements.namedItem("phone")?.value||"");
+ const email=String(form.elements.namedItem("email")?.value||"").trim();
+ if(!phone&&!email){
+  if(render)renderClientDuplicateWarning([]);
+  return [];
+ }
+ const params=new URLSearchParams();
+ if(phone)params.set("phone",phone);
+ if(email)params.set("email",email);
+ if(excludeId)params.set("excludeId",excludeId);
+ const sequence=++clientDuplicateSeq;
+ const result=await api("/clients/duplicate-check?"+params.toString());
+ if(sequence!==clientDuplicateSeq)return clientDuplicateMatches;
+ const matches=Array.isArray(result.duplicates)?result.duplicates:[];
+ if(render)renderClientDuplicateWarning(matches);
+ return matches;
+}
+function queueClientDuplicateCheck(){
+ clearTimeout(clientDuplicateClock);
+ const form=$("#modal-form");
+ if(!form||!(activeModal==="client"||activeModal==="edit-client"))return;
+ clientDuplicateClock=setTimeout(()=>{
+  const excludeId=activeModal==="edit-client"?activeRecord?.id||null:null;
+  void fetchClientDuplicates(form,{excludeId}).catch(()=>renderClientDuplicateWarning([]));
+ },280);
+}
+async function duplicateDecision(matches,{editing=false}={}){
+ if(!Array.isArray(matches)||!matches.length)return {action:"continue",allowDuplicate:false};
+ const first=matches[0];
+ const count=matches.length;
+ const name=String(first.name||"Cliente");
+ const message=count===1
+  ?name+" ya tiene "+duplicateMatchLabel(first)+". Para mantener una sola historia de pedidos, pagos y medidas, evita crear una ficha duplicada."
+  :"Hay "+count+" fichas que coinciden con estos datos. Revisa la ficha existente antes de crear otra.";
+ if(editing){
+  const decision=await confirmAction({
+   title:"Contacto ya utilizado",
+   message,
+   confirmLabel:"Volver y revisar",
+   danger:false,
+   alternativeLabel:"Guardar de todos modos",
+   alternativeDanger:true,
+   alternativeValue:"force"
+  });
+  return decision==="force"
+   ?{action:"continue",allowDuplicate:true}
+   :{action:"cancel",allowDuplicate:false};
+ }
+ const decision=await confirmAction({
+  title:"Posible cliente duplicado",
+  message,
+  confirmLabel:"Usar cliente existente",
+  danger:false,
+  alternativeLabel:"Crear de todos modos",
+  alternativeDanger:true,
+  alternativeValue:"force"
+ });
+ if(decision===true)return {action:"existing",client:first,allowDuplicate:false};
+ if(decision==="force")return {action:"continue",allowDuplicate:true};
+ return {action:"cancel",allowDuplicate:false};
+}
+async function createClientProtected(form){
+ const base={
+  name:String(form.elements.namedItem("name")?.value||"").trim(),
+  phone:normalizedNewClientPhone(form.elements.namedItem("phone")?.value||""),
+  email:String(form.elements.namedItem("email")?.value||"").trim(),
+  notes:String(form.elements.namedItem("notes")?.value||"").trim()
+ };
+ let allowDuplicate=false;
+ for(let attempt=0;attempt<2;attempt++){
+  if(!allowDuplicate){
+   const matches=await fetchClientDuplicates(form,{render:true});
+   const choice=await duplicateDecision(matches);
+   if(choice.action==="cancel")return {cancelled:true};
+   if(choice.action==="existing")return {existing:choice.client};
+   allowDuplicate=choice.allowDuplicate;
+  }
+  try{
+   return await api("/clients",{method:"POST",body:JSON.stringify({...base,allowDuplicate})});
+  }catch(error){
+   if(error.status===409&&error.message==="CLIENT_DUPLICATE"&&!allowDuplicate){
+    continue;
+   }
+   throw error;
+  }
+ }
+ throw new Error("Los datos coinciden con un cliente existente. Revisa la ficha antes de continuar.");
+}
 const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
 const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",citas:tr("Citas","Citas"),clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
 const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
@@ -26,6 +142,7 @@ let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
 let returnToOrderAfterClient=false,pendingOrderClientId="";
+let clientDuplicateClock=null,clientDuplicateSeq=0,clientDuplicateMatches=[];
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261004-v69").then(module=>module.confirmAction(options));
@@ -668,6 +785,9 @@ function openModal(type,record=null,options={}){
  if(type==="client"){
   returnToOrderAfterClient=options.returnToOrder===true;
   pendingOrderClientId="";
+  clearTimeout(clientDuplicateClock);
+  clientDuplicateSeq++;
+  clientDuplicateMatches=[];
  }
  if(type.startsWith("edit-") && (!record || !/^[a-f0-9-]{36}$/i.test(record.id||""))) {
   globalError("Selecciona un registro válido e inténtalo de nuevo.");return;
@@ -678,7 +798,7 @@ function openModal(type,record=null,options={}){
  box.dataset.catalog="";
  if(type==="client"){
   $("#modal-eyebrow").textContent="TUS CLIENTES";$("#modal-title").textContent="Nuevo cliente";
-  box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel" inputmode="tel" value="'+esc(newClientPhonePrefix())+'" placeholder="+34 600 000 000"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+  box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel" inputmode="tel" value="'+esc(newClientPhonePrefix())+'" placeholder="+34 600 000 000"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full client-duplicate-warning" id="client-duplicate-warning" hidden></div><div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
  }
  if(type==="order"){
   $("#modal-eyebrow").textContent="TUS ENCARGOS";
@@ -714,6 +834,7 @@ function openModal(type,record=null,options={}){
     field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+
     field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel"')+
     field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+
+    '<div class="full client-duplicate-warning" id="client-duplicate-warning" hidden></div>'+
     '<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    for(const key of ["name","phone","email","notes"])$("#f-"+key).value=client[key]||"";
   }).catch(e=>{if(activeModal===type)modalError("No se pudo cargar el cliente: "+e.message);});
@@ -770,8 +891,20 @@ async function saveModal(event){
  const get=k=>form.elements.namedItem(k)?.value??"";
  try {
   if(activeModal==="client"){
-   const result=await api("/clients",{method:"POST",body:JSON.stringify({name:get("name").trim(),phone:normalizedNewClientPhone(get("phone")),email:get("email").trim(),notes:get("notes").trim()})});
+   const result=await createClientProtected(form);
+   if(result?.cancelled)return;
    const resumeOrder=returnToOrderAfterClient===true;
+   if(result?.existing){
+    if(resumeOrder){
+     pendingOrderClientId=result.existing.id;
+     $("#modal").close();
+     success("Usando el cliente existente. Continúa con el pedido.");
+    }else{
+     $("#modal").close();go("clientes");
+     success("No se creó un duplicado: el cliente ya existía.");
+    }
+    return;
+   }
    if(resumeOrder){
     pendingOrderClientId=result?.client?.id||"";
     $("#modal").close();
@@ -790,7 +923,17 @@ async function saveModal(event){
    $("#modal").close();activeModal=null;await loadAtelierAccountSettings();success("Sucursal creada.");
   }else if(activeModal==="edit-client"){
    if(!activeRecord?.id || !Number.isInteger(Number(activeRecord.version)))throw new Error("Espera a que termine de cargar el cliente.");
-   const data={expectedVersion:Number(activeRecord.version),name:get("name").trim(),phone:get("phone").trim(),email:get("email").trim(),notes:get("notes").trim()};
+   const matches=await fetchClientDuplicates(form,{excludeId:activeRecord.id,render:true});
+   const choice=await duplicateDecision(matches,{editing:true});
+   if(choice.action==="cancel")return;
+   const data={
+    expectedVersion:Number(activeRecord.version),
+    name:get("name").trim(),
+    phone:get("phone").trim(),
+    email:get("email").trim(),
+    notes:get("notes").trim(),
+    allowDuplicate:choice.allowDuplicate
+   };
    await api("/clients/"+encodeURIComponent(activeRecord.id),{method:"PATCH",body:JSON.stringify(data)});
    $("#modal").close();go("clientes");success("Cliente actualizado correctamente.");
   }else if(activeModal==="edit-order"){
@@ -939,6 +1082,10 @@ document.addEventListener("click",event=>{
   el?.scrollIntoView({behavior:"smooth",block:"center"});
  }
 });
+$("#modal-fields").addEventListener("input",event=>{
+ if(!(activeModal==="client"||activeModal==="edit-client"))return;
+ if(event.target?.name==="phone"||event.target?.name==="email")queueClientDuplicateCheck();
+});
 $("#modal-form").addEventListener("submit",saveModal);
 async function requestModalClose(){
  if(activeModal==="order"){try{await (await orderWizard).requestClose();}catch(e){modalError(e.message||"No se pudo cerrar el pedido.");}return;}
@@ -954,6 +1101,11 @@ $("#modal").addEventListener("close",()=>{
  const preferredClientId=pendingOrderClientId;
  if(closingType==="order")void orderWizard.then(wizard=>wizard.closed());
  if(activeModal===closingType){activeModal=null;activeRecord=null;}
+ if(closingType==="client"||closingType==="edit-client"){
+  clearTimeout(clientDuplicateClock);
+  clientDuplicateSeq++;
+  clientDuplicateMatches=[];
+ }
  if(closingType==="client"){
   returnToOrderAfterClient=false;
   pendingOrderClientId="";

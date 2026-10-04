@@ -258,6 +258,23 @@ button:disabled,.feature-button[disabled]{
 .modal-actions,.feature-actions{flex-wrap:wrap}
 .modal-actions button,.feature-actions button{max-width:100%;white-space:normal}
 #modal .form-grid>*{min-width:0}
+.client-duplicate-warning{
+ margin-top:3px;padding:11px 12px;border:1px solid #dfc38d;border-radius:8px;
+ background:#fff8ea;color:#5f4a29
+}
+.client-duplicate-warning[hidden]{display:none}
+.client-duplicate-warning>strong{
+ display:block;margin-bottom:6px;color:#7b5926;font:700 11px/1.3 var(--font)
+}
+.client-duplicate-list{display:grid;gap:5px}
+.client-duplicate-list>span{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center
+}
+.client-duplicate-list b{font:650 11px/1.35 var(--font);overflow-wrap:anywhere}
+.client-duplicate-list small{
+ color:#7b6c55;font:500 10px/1.35 var(--font);text-align:right
+}
+
 .brand-dialog{
  width:min(92vw,560px);max-height:calc(100dvh - 24px);
  padding:0;overflow:hidden;
