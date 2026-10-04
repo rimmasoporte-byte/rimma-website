@@ -22,6 +22,9 @@ const featureUI=import("/app/portal-features.mjs?v=20261004-v33").then(module=>m
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
+const teamUI=import("/app/team-view.mjs?v=20261004a").then(module=>module.createTeamUI({
+ api,success,globalError,confirmAction,getMe:()=>me
+}));
 // The reports screen uses the shared document scroll; prevent a saved scroll
 // position from hiding its title behind the sticky header after navigation.
 if("scrollRestoration" in history)history.scrollRestoration="manual";
@@ -111,6 +114,12 @@ function applySubscriptionLockUi(locked){
   }
  });
 }
+function applyRoleUi(){
+ const owner=me?.workspace?.role==="owner";
+ $$("[data-owner-only]").forEach(element=>{element.hidden=!owner;});
+ const invite=$("#team-invite");
+ if(invite&&!owner)invite.hidden=true;
+}
 async function resolveSubscriptionGate(){
  try{
   const [data,view]=await Promise.all([api("/billing"),import("/app/billing-view.mjs?v=20261003b")]);
@@ -125,6 +134,7 @@ async function resolveSubscriptionGate(){
 async function start(){
  $("#workspace-name").textContent=String(me?.workspace?.name||"Mi taller").slice(0,150);
  $("#profile-chip").textContent=String(me?.user?.displayName||me?.user?.email||"R").trim().slice(0,1).toUpperCase();
+ applyRoleUi();
  await resolveSubscriptionGate();
  $("#loading-screen").hidden=true;$("#auth-screen").hidden=true;$("#portal").hidden=false;
  const requested=new URLSearchParams(location.search).get("view");
@@ -453,18 +463,20 @@ async function loadAppointments(){
 async function loadAtelierAccountSettings(){
  const branches=$("#branches-summary"),rules=$("#notifications-summary");
  try{
-  const [data,memberData]=await Promise.all([api("/branches"),api("/workspace/members")]),rows=data.branches||[],members=memberData.members||[];
-  const summaryPairs=await Promise.all(rows.map(async b=>{
-   try{const result=await api("/branches/"+encodeURIComponent(b.id)+"/summary");return [b.id,result.summary||null];}
-   catch{return [b.id,null];}
-  }));
-  const summaries=new Map(summaryPairs);
-  if(branches)branches.innerHTML=(rows.length?'<div class="branch-overview-grid">'+rows.map(b=>{
-    const s=summaries.get(b.id);
-    return '<article class="branch-overview"><div><strong>'+esc(b.name)+'</strong><small>'+esc(b.code)+' · '+esc(b.city||"Sin ciudad")+'</small></div>'+(s?'<div class="branch-stats"><span>Activos <b>'+n(s.activeOrders)+'</b></span><span>Listos <b>'+n(s.readyOrders)+'</b></span><span>Atrasados <b>'+n(s.overdueOrders)+'</b></span><span>Cobrado <b>'+esc(money(s.confirmedRevenueMinor,L.currency||"EUR"))+'</b></span></div>':'<small>Resumen no disponible</small>')+'</article>';
-   }).join("")+'</div>':'<p class="small">No hay sucursales.</p>')+
-   (members.length?'<div class="team-branch-list"><h3>Equipo por sucursal</h3>'+members.map(m=>'<div class="team-branch-row" data-member-row="'+esc(m.id)+'"><span><strong>'+esc(m.name||m.email)+'</strong><small>'+esc(m.role||"staff")+'</small></span><select data-member-branch>'+rows.filter(b=>b.status==="active").map(b=>'<option value="'+esc(b.id)+'" '+(b.id===m.branch?.id?'selected':'')+'>'+esc(b.name)+'</option>').join("")+'</select><label>Cap. <input data-member-capacity type="number" min="1" max="200" value="'+esc(String(m.dailyCapacityItems||8))+'"></label><button type="button" class="record-action" data-action="save-worker-settings" data-id="'+esc(m.id)+'">Guardar</button></div>').join("")+'</div>':"");
- }catch(e){if(branches)branches.textContent="No se pudieron cargar las sucursales.";}
+  const data=await api("/branches"),rows=data.branches||[],branch=rows[0]||null;
+  let summary=null;
+  if(branch?.id){
+   try{summary=(await api("/branches/"+encodeURIComponent(branch.id)+"/summary")).summary||null;}catch{}
+  }
+  if(branches){
+   branches.innerHTML=branch
+    ? '<div class="branch-overview-grid"><article class="branch-overview"><div><strong>'+esc(branch.name)+'</strong><small>Ubicación principal'+(branch.city?' · '+esc(branch.city):'')+'</small></div>'+
+      (summary?'<div class="branch-stats"><span>Activos <b>'+n(summary.activeOrders)+'</b></span><span>Listos <b>'+n(summary.readyOrders)+'</b></span><span>Atrasados <b>'+n(summary.overdueOrders)+'</b></span><span>Cobrado <b>'+esc(money(summary.confirmedRevenueMinor,L.currency||"EUR"))+'</b></span></div>':'')+
+      '</article></div><p class="small">Esta cuenta admite una sola ubicación.</p>'
+    : '<p class="small">No se pudo identificar la ubicación principal.</p>';
+  }
+ }catch(e){if(branches)branches.textContent="No se pudo cargar la ubicación.";}
+ if(me?.workspace?.role!=="owner")return;
  try{
   const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
   const names={order_received:"Pedido recibido",in_progress:"En proceso",ready_for_pickup:"Listo para recoger",pickup_reminder:"Recordatorio de recogida",payment_due:"Pago pendiente"};
@@ -601,12 +613,15 @@ async function refreshBilling(button){
 }
 async function loadAccount(){
  $("#account-info").innerHTML='<p>Cargando cuenta…</p>';
+ applyRoleUi();
  void loadAtelierAccountSettings();
+ void teamUI.then(ui=>ui.load()).catch(error=>globalError(error.message||"No se pudo cargar el equipo."));
  try{
   const a=(await api("/me")).me||me||{};
-  const info=[["Nombre",a.user?.displayName||"No indicado"],["Correo electrónico",a.user?.email||"—"],["Taller",a.workspace?.name||"—"],["Rol",a.workspace?.role==="owner"?"Propietario":a.workspace?.role||"Miembro"]];
+  const info=[["Nombre",a.user?.displayName||"No indicado"],["Correo electrónico",a.user?.email||"—"],["Taller",a.workspace?.name||"—"],["Rol",a.workspace?.role==="owner"?"Propietario · trabajador":"Empleado"]];
   $("#account-info").innerHTML='<dl>'+info.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>').join("")+'</dl>';
  }catch(e){$("#account-info").innerHTML='<p>La información de tu cuenta no está disponible.</p>';globalError(e.message);}
+ if(me?.workspace?.role!=="owner")return;
  try{
   const module=await import("/app/account-deletion.mjs");
   await module.renderAccountDeletionPanel({
@@ -645,7 +660,7 @@ function openModal(type,record=null){
    if(activeModal!=="order")return;
    lastClients=clients.clients||[];lastCatalog=catalog.priceList?.categories||[];const branches=(branchData.branches||[]).filter(b=>b.status==="active");
    const options=lastCatalog.flatMap(cat=>(cat.services||[]).filter(s=>s.status!=="inactive").map(s=>({catId:cat.id,service:s,label:cat.name+" · "+s.name})));
-   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div><label for="f-branchId">Sucursal *</label><select name="branchId" id="f-branchId" required>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
+   box.innerHTML='<div class="form-grid"><div class="full"><label for="f-clientId">Cliente *</label><select name="clientId" id="f-clientId" required><option value="">Selecciona un cliente</option>'+lastClients.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")+'</select>'+(lastClients.length?"":'<p class="helper">Añade primero un cliente en la sección Clientes.</p>')+'</div><div><label for="f-branchId">Ubicación</label><select name="branchId" id="f-branchId" required>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join("")+'</select></div><div class="full"><label for="f-service">Servicio</label><select name="service" id="f-service"><option value="">Trabajo manual</option>'+options.map((x,i)=>'<option value="'+i+'">'+esc(x.label)+'</option>').join("")+'</select></div>'+field("Trabajo *","name","text",'maxlength="160" required')+field("Precio *","price","number",'min="0" step="0.01" required value="0"')+field("Moneda *","currency","text",'maxlength="3" pattern="[A-Za-z]{3}" required value="'+esc(L.currency||"EUR")+'"')+field("Fecha de entrega","due","date")+field("Tipo de prenda","garmentType","text",'maxlength="80" placeholder="Pantalón, vestido, chaqueta…"')+field("Color","color","text",'maxlength="80"')+field("Talla","sizeLabel","text",'maxlength="60"')+field("Lugar de almacenamiento","storageLocation","text",'maxlength="120" placeholder="Ej. Estante B-12"')+'<div class="full"><label for="f-order-photo">Fotografía de la prenda</label><input id="f-order-photo" name="orderPhoto" type="file" accept="image/jpeg,image/png,image/webp"><p class="helper">Opcional. JPEG, PNG o WebP, hasta 150 KB. Se asociará a la primera prenda al crear el pedido.</p></div><div class="full" id="extra-order-items"><div class="extra-order-list"></div><button type="button" class="record-action" data-action="add-order-item">+ Añadir otra prenda</button></div>'+'<div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
    box.dataset.catalog=JSON.stringify(options.map(o=>({catId:o.catId,service:o.service})));
    $("#f-service").addEventListener("change",e=>{
     if(e.target.value==="")return;const pick=options[Number(e.target.value)];if(!pick)return;
@@ -868,24 +883,12 @@ document.addEventListener("click",event=>{
   case "new-client":openModal("client");break;
   case "new-order":openModal("order");break;
   case "new-appointment":openModal("appointment");break;
-  case "new-branch":openModal("branch");break;
-  case "refresh-notifications":void loadAtelierAccountSettings();break;
+    case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
   case "garment-edit":void featureUI.then(ui=>ui.openGarmentEdit(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo editar la prenda."));break;
   case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
   case "order-info":void featureUI.then(ui=>ui.openOrderInfo(b.dataset.id)).catch(e=>globalError(e.message||"No se pudo abrir el pedido."));break;
   case "order-payments":void featureUI.then(ui=>ui.openPayments(b.dataset.id)).catch(e=>globalError(e.message||"No se pudieron abrir los pagos."));break;
-  case "save-worker-settings":{
-   const row=document.querySelector('[data-member-row="'+CSS.escape(b.dataset.id||"")+'"]');
-   const branchId=row?.querySelector("[data-member-branch]")?.value||"";
-   const dailyCapacityItems=Number(row?.querySelector("[data-member-capacity]")?.value||8);
-   b.disabled=true;
-   void api("/workspace/members/"+encodeURIComponent(b.dataset.id)+"/atelier-settings",{method:"PATCH",body:JSON.stringify({branchId,dailyCapacityItems})})
-    .then(()=>{success("Equipo actualizado.");void loadAtelierAccountSettings();})
-    .catch(e=>globalError(e.message||"No se pudo actualizar el equipo."))
-    .finally(()=>{b.disabled=false;});
-   break;
-  }
   case "toggle-notification":{
    const checkbox=b;
    const enabled=Boolean(checkbox.checked),channel=b.dataset.channel||"email",eventKey=b.dataset.event;
