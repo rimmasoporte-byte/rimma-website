@@ -44,6 +44,7 @@ Start with:
 - `docs/ENGINEERING_STANDARDS.md`
 - `docs/QUALITY_GATES.md`
 - `docs/OPERATIONS.md`
+- `docs/GITHUB_SETTINGS.md`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 
