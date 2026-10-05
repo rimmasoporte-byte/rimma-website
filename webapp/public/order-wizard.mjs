@@ -361,7 +361,7 @@ export function createOrderWizard({
       '<p class="wizard-field-error" data-error-for="clientId"></p>'+
       (!state.clientId?'<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>':"")+
       '</div>'+
-      '<div class="wizard-inline-actions"><button type="button" class="record-action" data-wizard-action="new-client">+ Nuevo cliente</button></div>'+
+      '<div class="wizard-inline-actions"><button type="button" class="record-action wizard-new-client-button" data-action="new-client-from-order">+ Nuevo cliente</button></div>'+
       (singleBranch?'<div class="wizard-readonly wizard-branch-readonly"><small>Ubicación del taller</small><strong>'+
         esc(branches[0]?.name||"Taller")+'</strong></div>':
         '<div class="wizard-control"><label for="ow-branch">Ubicación *</label>'+
@@ -1529,6 +1529,25 @@ export function createOrderWizard({
     }
   }
 
+  function openClientFromOrder(){
+    if(!active||busy||created)return;
+    if(typeof onOpenClient!=="function"){
+      setError("No se pudo abrir el formulario de cliente.");
+      return;
+    }
+    persist();
+    clearTimeout(clientSearchTimer);
+    clientSearchSeq++;
+    clientMatches=[];
+    clientActiveIndex=-1;
+    clientSearchBusy=false;
+    active=false;
+    delete modal.dataset.wizardStep;
+    modal.classList.remove("order-wizard-modal");
+    if(back)back.hidden=true;
+    onOpenClient();
+  }
+
   function backStep(){
     if(active&&!busy&&!created&&state.step>0){
       state.step--;
@@ -1562,19 +1581,6 @@ export function createOrderWizard({
     }
     if(name==="discard-draft"){
       await discardDraft();
-      return;
-    }
-    if(name==="new-client"){
-      if(typeof onOpenClient!=="function"){
-        setError("No se pudo abrir el formulario de cliente.");
-        return;
-      }
-      persist();
-      // Switch views inside the already-open native dialog. Waiting for a
-      // dialog "close" event here is race-prone in Chromium and can leave
-      // the button looking clickable while no client form is opened.
-      closed();
-      onOpenClient();
       return;
     }
     if(name==="toggle-item-date"){
@@ -2047,6 +2053,7 @@ export function createOrderWizard({
     submit:submitStep,
     requestClose,
     back:backStep,
+    openClient:openClientFromOrder,
     closed,
     isActive:()=>active,
     isBusy:()=>busy
