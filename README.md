@@ -42,6 +42,8 @@ Start with:
 - `webapp/README.md`
 - `docs/ARCHITECTURE.md`
 - `docs/ENGINEERING_STANDARDS.md`
+- `docs/QUALITY_GATES.md`
+- `docs/OPERATIONS.md`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 
