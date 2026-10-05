@@ -78,6 +78,13 @@ export function createOrderWizard({
     const parsed=new Date(value);
     return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleDateString(locale?.locale||"es-ES");
   };
+  const formatDateTime=value=>{
+    if(!value)return "—";
+    const parsed=new Date(value);
+    return Number.isNaN(parsed.getTime())
+      ?String(value)
+      :parsed.toLocaleString(locale?.locale||"es-ES",{dateStyle:"short",timeStyle:"short"});
+  };
   const memberName=id=>{
     const member=members.find(row=>row.id===id);
     return member?.name||member?.email||"Sin asignar";
@@ -317,9 +324,25 @@ export function createOrderWizard({
         branchOptions()+'</select><p class="wizard-field-error" data-error-for="branchId"></p></div>')+
       '</section>';
   }
+  function mobileCapturePanel(work,itemIndex,workIndex){
+    const session=mobileCaptureSessions.get(work.key);
+    if(!session)return "";
+    return '<div class="wizard-mobile-capture">'+
+      '<div class="wizard-mobile-capture-copy"><strong>Haz la foto con el móvil</strong>'+
+      '<span>Escanea este QR. La foto aparecerá aquí automáticamente.</span>'+
+      '<small>Sesión segura hasta '+esc(formatDateTime(session.expiresAt))+'</small></div>'+
+      '<div class="wizard-mobile-capture-qr" data-mobile-qr-key="'+esc(work.key)+'"></div>'+
+      '<div class="wizard-mobile-capture-actions">'+
+      '<button type="button" class="record-action" data-wizard-action="refresh-mobile-photos" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Actualizar fotos</button>'+
+      '<button type="button" class="record-action" data-wizard-action="hide-mobile-capture" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Ocultar QR</button>'+
+      '</div></div>';
+  }
+
   function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
     const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
+    const mobileCount=Number(work.mobilePhotoCount||0);
+    const totalCount=photoNames.length+mobileCount;
     return '<section class="wizard-work-row" data-work-key="'+esc(work.key)+'">'+
       '<div class="wizard-work-row-head"><span>TRABAJO '+(workIndex+1)+'</span>'+
       (removable?'<button type="button" class="record-action danger" data-wizard-action="remove-work" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Quitar</button>':"")+
@@ -338,14 +361,22 @@ export function createOrderWizard({
       '<div class="wizard-control"><label>Responsable</label>'+
       '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="assignedUserId">'+memberOptions(work)+'</select></div>'+
       '<div class="wizard-control wizard-wide wizard-photo-control"><label>Fotografías de este trabajo</label>'+
+      '<div class="wizard-photo-source-actions">'+
       '<div class="wizard-file-picker">'+
       '<input id="ow-photo-'+itemIndex+'-'+workIndex+'" class="wizard-native-file" data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">'+
       '<label class="wizard-file-button" for="ow-photo-'+itemIndex+'-'+workIndex+'">Subir fotografías</label>'+
       '<span class="wizard-file-status" aria-live="polite">'+
       (photoNames.length?(photoNames.length===1?'1 archivo seleccionado':photoNames.length+' archivos seleccionados'):'Ningún archivo seleccionado')+
       '</span></div>'+
+      '<button type="button" class="wizard-mobile-photo-button" data-wizard-action="mobile-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'">Hacer foto con el móvil</button>'+
+      '</div>'+
       '<small>JPEG, PNG o WebP. RIMMA reduce cada foto automáticamente a un máximo de 150 KB.</small>'+
+      (totalCount?'<div class="wizard-photo-summary" aria-live="polite">'+
+        '<strong>'+totalCount+' foto'+(totalCount===1?"":"s")+'</strong>'+
+        (mobileCount?'<span>'+mobileCount+' desde móvil</span>':"")+
+        '</div>':"")+
       (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
+      mobileCapturePanel(work,itemIndex,workIndex)+
       '</div>'+
       '</div></section>';
   }
@@ -417,7 +448,7 @@ export function createOrderWizard({
       const workRows=(item.works||[]).map((work,workIndex)=>
         '<div class="wizard-review-work"><span>Trabajo '+(workIndex+1)+'</span><strong>'+esc(work.work||"—")+'</strong>'+
         '<small>Responsable: '+esc(memberName(work.assignedUserId))+
-        ' · Fotos: '+String((work.photoNames||[]).length)+'</small><b>'+esc(money(toMinor(work.price)))+'</b></div>'
+        ' · Fotos: '+String((work.photoNames||[]).length+Number(work.mobilePhotoCount||0))+'</small><b>'+esc(money(toMinor(work.price)))+'</b></div>'
       ).join("");
       const due=item.useCustomDueDate&&item.dueDate?item.dueDate:state.dueDate;
       return '<article class="wizard-review-garment">'+
