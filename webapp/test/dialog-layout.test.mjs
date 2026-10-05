@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const css=await fs.readFile(new URL('../public/app.css',import.meta.url),'utf8');
+const marker='/* The site has one scroll container. Dialog backgrounds cannot scroll at';
 
 test('order dialog has one canonical scroll geometry with no legacy modal-form patch',()=>{
-  const marker='/* The site has one scroll container. Dialog backgrounds cannot scroll at';
   const cut=css.indexOf(marker);
   assert.ok(cut>0,'canonical modal section exists');
   const legacy=css.slice(0,cut);
