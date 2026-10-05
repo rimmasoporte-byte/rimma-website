@@ -37,3 +37,27 @@ test('BFF owns authenticated photo downloads and emits attachment responses',()=
   assert.match(server,/attachment; filename=/);
   assert.match(server,/maxPhotoDownload=200\*1024/);
 });
+
+test('desktop uploads use the same canonical photo gallery and preview surface',()=>{
+  const row=wizard.slice(
+    wizard.indexOf('function workRow'),
+    wizard.indexOf('function itemCard',wizard.indexOf('function workRow'))
+  );
+  assert.match(wizard,/function localPhotoGallery\(work,itemIndex,workIndex\)/);
+  assert.match(wizard,/data-wizard-action="preview-local-photo"/);
+  assert.match(wizard,/data-wizard-action="'\+\(local\?'delete-local-photo':'delete-mobile-photo'\)\+'"/);
+  assert.match(row,/localPhotoGallery\(work,itemIndex,workIndex\)/);
+  assert.doesNotMatch(row,/wizard-photo-names/);
+  assert.match(css,/\.wizard-photo-gallery\{/);
+  assert.match(css,/\.wizard-photo-thumb\{/);
+  assert.doesNotMatch(css,/\.wizard-mobile-photo-gallery\{/);
+  assert.doesNotMatch(css,/\.wizard-photo-names\{/);
+});
+
+test('desktop preview object URLs are released when files leave the wizard',()=>{
+  assert.match(wizard,/const localPhotoUrls=new Map\(\)/);
+  assert.match(wizard,/URL\.revokeObjectURL\(url\)/);
+  assert.match(wizard,/function clearLocalPhotoUrls\(\)/);
+  assert.match(wizard,/function releaseWorkLocalPhotos\(work\)/);
+  assert.match(wizard,/photoFiles:\[\],photoNames:\[\],mobilePhotos:\[\]/);
+});
