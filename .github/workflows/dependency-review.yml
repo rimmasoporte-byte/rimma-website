@@ -1,4 +1,4 @@
-name: Dependency review
+name: Dependency security
 
 on:
   pull_request:
@@ -6,21 +6,31 @@ on:
     paths:
       - 'webapp/package.json'
       - 'webapp/package-lock.json'
-      - '.github/workflows/**'
+      - '.github/workflows/dependency-review.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: dependency-review-${{ github.ref }}
+  group: dependency-security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  dependency-review:
+  npm-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: webapp
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/setup-node@v4
         with:
-          fail-on-severity: high
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Reject high or critical production dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
