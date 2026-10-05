@@ -157,6 +157,18 @@ test('portal sidebar uses the official RIMMA logo asset',()=>{
 });
 
 
+test('native file-picker cancel cannot trigger the order exit confirmation',()=>{
+ const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
+ const start=js.indexOf('mainModal.addEventListener("cancel"');
+ assert.ok(start>=0,'main dialog cancel handler exists');
+ const end=js.indexOf('mainModal.addEventListener("close"',start);
+ assert.ok(end>start,'cancel handler is isolated from close handler');
+ const handler=js.slice(start,end);
+ assert.match(handler,/event\.target!==mainModal/);
+ assert.match(handler,/activeModal==="order"/);
+ assert.match(handler,/requestModalClose\(\)/);
+});
+
 test('subscription gate iterates all navigation controls safely',()=>{
  const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
  assert.match(js,/\$\$\("\[data-view\]"\)\.forEach/);
