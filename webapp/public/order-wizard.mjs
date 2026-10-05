@@ -918,7 +918,7 @@ export function createOrderWizard({
     renderOrderPreservingScroll();
   }
 
-  async function discardMobileCapture  async function discardMobileCapture(work){
+  async function discardMobileCapture(work){
     if(!UUID.test(String(work?.mobileCaptureId||"")))return;
     const id=work.mobileCaptureId;
     mobileCaptureSessions.delete(work.key);
