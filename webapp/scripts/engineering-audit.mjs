@@ -52,6 +52,13 @@ for(const item of requiredRepoFiles){
   if(!await exists(path.join(repoRoot,item)))fail("Missing engineering governance file: "+item);
 }
 
+for(const file of await walk(webappRoot)){
+  const relative=rel(file);
+  if(relative.startsWith(".github/workflows/")){
+    fail(relative+" is an inert nested workflow; GitHub only executes repository-level .github/workflows files");
+  }
+}
+
 const productionModules=[
   path.join(webappRoot,"server.mjs"),
   path.join(webappRoot,"session-store.mjs"),
