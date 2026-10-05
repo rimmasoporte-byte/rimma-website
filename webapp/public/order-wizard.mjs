@@ -1222,7 +1222,6 @@ export function createOrderWizard({
     const order=created?.order;
     if(!order?.id)return;
     if(name==="open-order"){
-      modal.close();
       await onOpenOrder?.(order.id);
       return;
     }
