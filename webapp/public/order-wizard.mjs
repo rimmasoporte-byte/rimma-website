@@ -27,7 +27,8 @@ const toMinor=value=>{
 const safeCurrency=value=>/^[A-Z]{3}$/.test(String(value||"").toUpperCase())?String(value).toUpperCase():"EUR";
 const makeWork=()=>({
   key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0",
-  assignedUserId:"",photoFiles:[],photoNames:[]
+  assignedUserId:"",photoFiles:[],photoNames:[],
+  mobileCaptureId:"",mobilePhotoCount:0
 });
 const makeItem=(currency="EUR")=>({
   key:uid(),categoryId:"",garmentType:"",label:"",works:[makeWork()],
@@ -55,10 +56,11 @@ export function createOrderWizard({
   let active=false,busy=false,dirty=false,restored=false,created=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
-  let saveClock=null;
+  let saveClock=null,capturePollTimer=null,capturePollBusy=false;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
   const uploadedPhotoIndexes=new Set();
+  const mobileCaptureSessions=new Map();
 
   const money=minor=>{
     try{
@@ -84,7 +86,9 @@ export function createOrderWizard({
     state.clientId||state.notes.trim()||
     state.items.some(item=>
       item.garmentType.trim()||item.label.trim()||
-      (item.works||[]).some(work=>work.work.trim()||Number(work.price)>0||(work.photoNames||[]).length)
+      (item.works||[]).some(work=>
+        work.work.trim()||Number(work.price)>0||(work.photoNames||[]).length||Number(work.mobilePhotoCount||0)>0
+      )
     )
   );
   const serializable=()=>({
