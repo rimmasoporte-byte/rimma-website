@@ -879,7 +879,7 @@ export function createOrderWizard({
     photoViewer.replaceChildren();
   }
 
-  async function setMobilePhotoCover(){  async function setMobilePhotoCover(){
+  async function setMobilePhotoCover(){
     const preview=photoPreview;
     if(!preview||preview.source!=="mobile"||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
     const result=await api(
