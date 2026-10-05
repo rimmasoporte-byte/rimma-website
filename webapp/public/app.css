@@ -4484,12 +4484,6 @@ button:disabled,.feature-button[disabled]{
   min-width:0;
   padding-top:2px
 }
-.wizard-photo-names{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.wizard-photo-names span{
-  max-width:100%;padding:4px 7px;border:1px solid #ded3c0;border-radius:999px;
-  background:#fffdfa;color:#655d52;font:600 10px/1.2 var(--font-ui);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
-}
 .wizard-delivery-title{padding-top:7px;min-width:0}
 .wizard-inherited-date{
   display:grid;gap:4px;align-content:start;padding:8px 10px;
@@ -4685,13 +4679,13 @@ button:disabled,.feature-button[disabled]{
 
 
 /* ===== ORDER PHOTO PREVIEW ===== */
-.wizard-mobile-photo-gallery{
+.wizard-photo-gallery{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
   margin-top:9px
 }
-.wizard-mobile-photo-thumb{
+.wizard-photo-thumb{
   position:relative;
   width:84px;
   height:84px;
@@ -4703,44 +4697,57 @@ button:disabled,.feature-button[disabled]{
   cursor:pointer;
   box-shadow:0 1px 2px rgba(24,38,29,.05)
 }
-.wizard-mobile-photo-thumb:hover{
+.wizard-photo-thumb:hover{
   border-color:#ad8a54;
   box-shadow:0 4px 12px rgba(24,38,29,.10)
 }
-.wizard-mobile-photo-thumb:focus-visible{
+.wizard-photo-thumb:focus-visible{
   outline:2px solid #2f5a42;
   outline-offset:2px
 }
-.wizard-mobile-photo-thumb.is-cover{
+.wizard-photo-thumb.is-cover{
   border-color:#a67e3d;
   box-shadow:0 0 0 2px rgba(166,126,61,.12)
 }
-.wizard-mobile-photo-thumb img{
+.wizard-photo-thumb img{
   display:block;
   width:100%;
   height:100%;
   object-fit:cover;
   object-position:center
 }
-.wizard-mobile-photo-source,
-.wizard-mobile-photo-cover{
+.wizard-photo-source,
+.wizard-photo-cover,
+.wizard-photo-pending{
   position:absolute;
-  left:5px;
   padding:3px 5px;
   border-radius:999px;
   font:700 8px/1 var(--font-ui);
   letter-spacing:.03em
 }
-.wizard-mobile-photo-source{
+.wizard-photo-source{
+  left:5px;
   bottom:5px;
+  max-width:calc(100% - 10px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   background:rgba(24,44,32,.88);
   color:#fff
 }
-.wizard-mobile-photo-cover{
+.wizard-photo-cover{
   top:5px;
+  left:5px;
   background:#f6e8c7;
   color:#70501f;
   border:1px solid rgba(166,126,61,.45)
+}
+.wizard-photo-pending{
+  top:5px;
+  right:5px;
+  background:rgba(255,253,250,.92);
+  color:#70501f;
+  border:1px solid rgba(166,126,61,.38)
 }
 
 .wizard-photo-preview-backdrop{
