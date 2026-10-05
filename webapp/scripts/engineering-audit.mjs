@@ -42,6 +42,7 @@ const requiredRepoFiles=[
   "docs/ENGINEERING_STANDARDS.md",
   "docs/QUALITY_GATES.md",
   "docs/OPERATIONS.md",
+  "docs/GITHUB_SETTINGS.md",
   "docs/ADR/0001-application-module-boundaries.md",
   "docs/ADR/0002-server-side-web-sessions.md",
   ".github/ISSUE_TEMPLATE/bug.yml",
