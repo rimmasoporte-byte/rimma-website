@@ -54,6 +54,8 @@ export function createOrderWizard({
   const cancel=document.querySelector("#modal-cancel");
   const back=document.querySelector("#modal-back");
   const error=document.querySelector("#modal-error");
+  const photoViewer=document.querySelector("#order-photo-viewer");
+  if(!photoViewer)throw Error("No se pudo inicializar el visor de fotografías.");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null,photoPreview=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
@@ -401,7 +403,7 @@ export function createOrderWizard({
     return markup?'<div class="wizard-photo-gallery" aria-label="Fotografías del trabajo">'+markup+'</div>':"";
   }
 
-  function photoViewerOverlay(){
+  function photoViewerMarkup(){
     const preview=photoPreview;
     const photo=preview?.photo;
     if(!preview||!photo)return "";
@@ -423,20 +425,19 @@ export function createOrderWizard({
     const zoom=PHOTO_ZOOMS[zoomIndex];
     const canvasZoom=Math.max(100,zoom);
     const imageZoom=Math.min(100,zoom);
-    return '<div class="wizard-photo-viewer" role="dialog" aria-modal="true" aria-label="Visor de fotografía" data-photo-viewer>'+
-      '<header class="wizard-photo-viewer-bar">'+
+    return '<header class="wizard-photo-viewer-bar">'+
       '<div class="wizard-photo-viewer-title"><span>FOTOGRAFÍA</span><strong>'+esc(preview.workName||"Trabajo")+'</strong></div>'+
       '<div class="wizard-photo-viewer-actions">'+
       '<div class="wizard-photo-zoom" role="group" aria-label="Escala de fotografía">'+
-      '<button type="button" data-wizard-action="photo-zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>−</button>'+
+      '<button type="button" data-photo-action="zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>−</button>'+
       '<span data-photo-zoom-label aria-live="polite">'+zoom+'%</span>'+
-      '<button type="button" data-wizard-action="photo-zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>+</button>'+
-      '<button type="button" class="wizard-photo-fit" data-wizard-action="photo-zoom-reset">Ajustar</button>'+
+      '<button type="button" data-photo-action="zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>+</button>'+
+      '<button type="button" class="wizard-photo-fit" data-photo-action="zoom-reset">Ajustar</button>'+
       '</div>'+
       (downloadPath?'<a class="wizard-photo-viewer-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
-      (!local&&!photo.isCover?'<button type="button" class="wizard-photo-viewer-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
-      '<button type="button" class="wizard-photo-viewer-action danger" data-wizard-action="delete-photo">Eliminar</button>'+
-      '<button type="button" class="wizard-photo-viewer-close" data-wizard-action="close-photo-preview" aria-label="Cerrar visor">×</button>'+
+      (!local&&!photo.isCover?'<button type="button" class="wizard-photo-viewer-action" data-photo-action="set-cover">Usar como portada</button>':"")+
+      '<button type="button" class="wizard-photo-viewer-action danger" data-photo-action="delete">Eliminar</button>'+
+      '<button type="button" class="wizard-photo-viewer-close" data-photo-action="close" aria-label="Cerrar visor">×</button>'+
       '</div></header>'+
       '<div class="wizard-photo-viewport'+(zoom>100?' can-pan':'')+'" data-photo-viewport>'+
       '<div class="wizard-photo-canvas" data-photo-canvas style="width:'+canvasZoom+'%;height:'+canvasZoom+'%">'+
@@ -446,8 +447,23 @@ export function createOrderWizard({
       '<span>Fotografía · '+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
       (!local&&photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+
       '<small>Arrastra la imagen para desplazarte cuando esté ampliada.</small>'+
-      '</footer>'+
-      '</div>';
+      '</footer>';
+  }
+
+  function renderPhotoViewer(){
+    if(!photoPreview){
+      if(photoViewer.open)photoViewer.close();
+      photoViewer.replaceChildren();
+      return;
+    }
+    photoViewer.innerHTML=photoViewerMarkup();
+    if(!photoViewer.open)photoViewer.showModal();
+  }
+
+  function renderOrderPreservingScroll(){
+    const top=fields.scrollTop;
+    render();
+    requestAnimationFrame(()=>{fields.scrollTop=top});
   }
 
   function workRow(item,itemIndex,work,workIndex){
@@ -522,7 +538,7 @@ export function createOrderWizard({
       '<p>Elige la prenda y registra cada trabajo con su precio, responsable y fotografías.</p></div>'+
       '<div class="wizard-garment-list">'+state.items.map(itemCard).join("")+'</div>'+
       '<button type="button" class="wizard-add-garment" data-wizard-action="add-item">+ Añadir otra prenda</button>'+
-      '</section>'+photoViewerOverlay();
+      '</section>';
   }
 
   function deliveryRow(item,index){
@@ -746,10 +762,9 @@ export function createOrderWizard({
       workName:work.work||"Trabajo",
       captureId:work.mobileCaptureId,
       zoomIndex:PHOTO_ZOOM_DEFAULT,
-      returnScrollTop:fields.scrollTop,
       photo
     };
-    render();
+    renderPhotoViewer();
   }
 
   function openLocalPhotoPreview(itemIndex,workIndex,fileIndex){
@@ -765,7 +780,6 @@ export function createOrderWizard({
       workKey:work.key,
       workName:work.work||"Trabajo",
       zoomIndex:PHOTO_ZOOM_DEFAULT,
-      returnScrollTop:fields.scrollTop,
       photo:{
         fileName:file.name||"Fotografía",
         sizeBytes:Number(file.size||0),
@@ -773,18 +787,18 @@ export function createOrderWizard({
         localIndex:Number(fileIndex)
       }
     };
-    render();
+    renderPhotoViewer();
   }
 
   function applyPhotoZoom(nextIndex,{preserveCenter=true}={}){
     if(!photoPreview)return;
     const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,Number(nextIndex)));
-    const viewport=fields.querySelector("[data-photo-viewport]");
-    const canvas=fields.querySelector("[data-photo-canvas]");
-    const image=fields.querySelector("[data-photo-image]");
-    const label=fields.querySelector("[data-photo-zoom-label]");
-    const out=fields.querySelector('[data-wizard-action="photo-zoom-out"]');
-    const zoomIn=fields.querySelector('[data-wizard-action="photo-zoom-in"]');
+    const viewport=photoViewer.querySelector("[data-photo-viewport]");
+    const canvas=photoViewer.querySelector("[data-photo-canvas]");
+    const image=photoViewer.querySelector("[data-photo-image]");
+    const label=photoViewer.querySelector("[data-photo-zoom-label]");
+    const out=photoViewer.querySelector('[data-photo-action="zoom-out"]');
+    const zoomIn=photoViewer.querySelector('[data-photo-action="zoom-in"]');
     if(!viewport||!canvas||!image)return;
 
     const oldWidth=Math.max(1,viewport.scrollWidth);
@@ -821,17 +835,16 @@ export function createOrderWizard({
   function resetPhotoZoom(){
     if(!photoPreview)return;
     applyPhotoZoom(PHOTO_ZOOM_DEFAULT,{preserveCenter:false});
-    const viewport=fields.querySelector("[data-photo-viewport]");
+    const viewport=photoViewer.querySelector("[data-photo-viewport]");
     if(viewport){viewport.scrollLeft=0;viewport.scrollTop=0}
   }
 
   function closePhotoViewer(){
-    if(!photoPreview)return;
-    const returnScrollTop=Number(photoPreview.returnScrollTop||0);
+    if(!photoPreview&&!photoViewer.open)return;
     photoPreview=null;
     photoPan=null;
-    render();
-    requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
+    if(photoViewer.open)photoViewer.close();
+    photoViewer.replaceChildren();
   }
 
   async function setMobilePhotoCover(){
@@ -854,13 +867,13 @@ export function createOrderWizard({
       photoPreview=fresh?{...preview,photo:fresh}:null;
       schedulePersist();
     }
-    render();
+    renderOrderPreservingScroll();
+    renderPhotoViewer();
   }
 
   async function deletePhoto(){
     const preview=photoPreview;
     if(!preview)return;
-    const returnScrollTop=Number(preview.returnScrollTop||0);
     const local=preview.source==="local";
     if(!local&&(
       !UUID.test(String(preview.captureId||""))||
@@ -883,33 +896,29 @@ export function createOrderWizard({
       releaseLocalPhotoUrl(file);
       work.photoFiles.splice(index,1);
       work.photoNames=work.photoFiles.map(row=>row.name);
-      photoPreview=null;
-      photoPan=null;
-      schedulePersist();
-      render();
-      requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
-      return;
+    }else{
+      const result=await api(
+        "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+        "/photos/"+encodeURIComponent(preview.photo.id),
+        {method:"DELETE"}
+      );
+      const {work}=workAt(preview.itemIndex,preview.workIndex);
+      if(work){
+        const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
+        work.mobilePhotos=photos;
+        work.mobilePhotoCount=photos.length;
+      }
     }
 
-    const result=await api(
-      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
-      "/photos/"+encodeURIComponent(preview.photo.id),
-      {method:"DELETE"}
-    );
-    const {work}=workAt(preview.itemIndex,preview.workIndex);
-    if(work){
-      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
-      work.mobilePhotos=photos;
-      work.mobilePhotoCount=photos.length;
-      schedulePersist();
-    }
     photoPreview=null;
     photoPan=null;
-    render();
-    requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
+    schedulePersist();
+    if(photoViewer.open)photoViewer.close();
+    photoViewer.replaceChildren();
+    renderOrderPreservingScroll();
   }
 
-  async function discardMobileCapture(work){
+  async function discardMobileCapture  async function discardMobileCapture(work){
     if(!UUID.test(String(work?.mobileCaptureId||"")))return;
     const id=work.mobileCaptureId;
     mobileCaptureSessions.delete(work.key);
@@ -1527,18 +1536,6 @@ export function createOrderWizard({
       void openMobilePhotoPreview(index,workIndex,photoId).catch(e=>setError(humanError(e)));
       return;
     }
-    if(actionName==="photo-zoom-out"){changePhotoZoom(-1);return;}
-    if(actionName==="photo-zoom-in"){changePhotoZoom(1);return;}
-    if(actionName==="photo-zoom-reset"){resetPhotoZoom();return;}
-    if(actionName==="close-photo-preview"){closePhotoViewer();return;}
-    if(actionName==="set-mobile-cover"){
-      void setMobilePhotoCover().catch(e=>setError(humanError(e)));
-      return;
-    }
-    if(actionName==="delete-photo"){
-      void deletePhoto().catch(e=>setError(humanError(e)));
-      return;
-    }
     if(actionName==="mobile-photo"){
       const index=Number(button.dataset.index);
       const workIndex=Number(button.dataset.workIndex);
@@ -1606,12 +1603,6 @@ export function createOrderWizard({
     void action(actionName);
   });
   fields.addEventListener("keydown",event=>{
-    if(photoPreview){
-      if(event.key==="Escape"){event.preventDefault();closePhotoViewer();return;}
-      if(event.key==="+"||event.key==="="){event.preventDefault();changePhotoZoom(1);return;}
-      if(event.key==="-"){event.preventDefault();changePhotoZoom(-1);return;}
-      if(event.key==="0"){event.preventDefault();resetPhotoZoom();return;}
-    }
     if(!active||created||event.target.id!=="ow-client-search")return;
     if(event.key==="Escape"){
       event.preventDefault();
@@ -1649,45 +1640,73 @@ export function createOrderWizard({
     setTimeout(()=>renderClientResults(),0);
   });
   fields.addEventListener("pointerdown",event=>{
-    const viewport=event.target.closest?.("[data-photo-viewport]");
-    const zoom=photoPreview&&PHOTO_ZOOMS[Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT];
-    if(viewport&&photoPreview&&zoom>100&&event.button===0){
-      photoPan={
-        pointerId:event.pointerId,
-        startX:event.clientX,
-        startY:event.clientY,
-        scrollLeft:viewport.scrollLeft,
-        scrollTop:viewport.scrollTop
-      };
-      viewport.classList.add("is-panning");
-      viewport.setPointerCapture?.(event.pointerId);
-      event.preventDefault();
-      return;
-    }
     if(event.target.closest(".wizard-client-result"))event.preventDefault();
   });
-  fields.addEventListener("pointermove",event=>{
+
+  photoViewer.addEventListener("click",event=>{
+    if(!photoPreview)return;
+    const control=event.target.closest("[data-photo-action]");
+    if(!control)return;
+    const action=control.dataset.photoAction;
+    if(action==="zoom-out"){changePhotoZoom(-1);return}
+    if(action==="zoom-in"){changePhotoZoom(1);return}
+    if(action==="zoom-reset"){resetPhotoZoom();return}
+    if(action==="close"){closePhotoViewer();return}
+    if(action==="set-cover"){
+      void setMobilePhotoCover().catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(action==="delete"){
+      void deletePhoto().catch(e=>setError(humanError(e)));
+    }
+  });
+  photoViewer.addEventListener("cancel",event=>{
+    event.preventDefault();
+    closePhotoViewer();
+  });
+  photoViewer.addEventListener("keydown",event=>{
+    if(!photoPreview)return;
+    if(event.key==="+"||event.key==="="){event.preventDefault();changePhotoZoom(1);return}
+    if(event.key==="-"){event.preventDefault();changePhotoZoom(-1);return}
+    if(event.key==="0"){event.preventDefault();resetPhotoZoom()}
+  });
+  photoViewer.addEventListener("pointerdown",event=>{
+    const viewport=event.target.closest?.("[data-photo-viewport]");
+    const zoom=photoPreview&&PHOTO_ZOOMS[Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT];
+    if(!viewport||!photoPreview||zoom<=100||event.button!==0)return;
+    photoPan={
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      scrollLeft:viewport.scrollLeft,
+      scrollTop:viewport.scrollTop
+    };
+    viewport.classList.add("is-panning");
+    viewport.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  });
+  photoViewer.addEventListener("pointermove",event=>{
     if(!photoPan||event.pointerId!==photoPan.pointerId)return;
-    const viewport=fields.querySelector("[data-photo-viewport]");
+    const viewport=photoViewer.querySelector("[data-photo-viewport]");
     if(!viewport)return;
     viewport.scrollLeft=photoPan.scrollLeft-(event.clientX-photoPan.startX);
     viewport.scrollTop=photoPan.scrollTop-(event.clientY-photoPan.startY);
   });
   const endPhotoPan=event=>{
     if(!photoPan||event.pointerId!==photoPan.pointerId)return;
-    const viewport=fields.querySelector("[data-photo-viewport]");
+    const viewport=photoViewer.querySelector("[data-photo-viewport]");
     viewport?.classList.remove("is-panning");
     try{viewport?.releasePointerCapture?.(event.pointerId)}catch{}
     photoPan=null;
   };
-  fields.addEventListener("pointerup",endPhotoPan);
-  fields.addEventListener("pointercancel",endPhotoPan);
-  fields.addEventListener("wheel",event=>{
+  photoViewer.addEventListener("pointerup",endPhotoPan);
+  photoViewer.addEventListener("pointercancel",endPhotoPan);
+  photoViewer.addEventListener("wheel",event=>{
     if(!photoPreview||!event.ctrlKey||!event.target.closest?.("[data-photo-viewport]"))return;
     event.preventDefault();
     changePhotoZoom(event.deltaY<0?1:-1);
   },{passive:false});
-  fields.addEventListener("dblclick",event=>{
+  photoViewer.addEventListener("dblclick",event=>{
     if(!photoPreview||!event.target.closest?.("[data-photo-viewport]"))return;
     event.preventDefault();
     const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
@@ -1809,6 +1828,9 @@ export function createOrderWizard({
     mobileCaptureSessions.clear();
     clearLocalPhotoUrls();
     photoPreview=null;
+    photoPan=null;
+    if(photoViewer.open)photoViewer.close();
+    photoViewer.replaceChildren();
     clientSearchSeq++;
     clientMatches=[];
     clientActiveIndex=-1;
