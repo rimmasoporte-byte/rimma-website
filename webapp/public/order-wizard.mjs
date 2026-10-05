@@ -58,7 +58,7 @@ export function createOrderWizard({
   let active=false,busy=false,dirty=false,restored=false,created=null,photoPreview=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
-  let saveClock=null,capturePollTimer=null,capturePollBusy=false;
+  let saveClock=null,capturePollTimer=null,capturePollBusy=false,photoPan=null;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
   const uploadedPhotoIndexes=new Set();
@@ -401,7 +401,7 @@ export function createOrderWizard({
     return markup?'<div class="wizard-photo-gallery" aria-label="Fotografías del trabajo">'+markup+'</div>':"";
   }
 
-  function photoPreviewOverlay(){
+  function photoViewerOverlay(){
     const preview=photoPreview;
     const photo=preview?.photo;
     if(!preview||!photo)return "";
@@ -421,28 +421,33 @@ export function createOrderWizard({
       Number.isInteger(preview.zoomIndex)?preview.zoomIndex:PHOTO_ZOOM_DEFAULT
     ));
     const zoom=PHOTO_ZOOMS[zoomIndex];
-    return '<div class="wizard-photo-preview-backdrop" data-photo-preview-backdrop>'+
-      '<section class="wizard-photo-preview" role="dialog" aria-modal="true" aria-label="Vista previa de fotografía" data-photo-preview-panel>'+
-      '<header><div><span>FOTOGRAFÍA · '+esc(preview.workName||"Trabajo")+'</span>'+
-      '<strong>Fotografía del trabajo</strong></div>'+
-      '<button type="button" class="wizard-photo-preview-close" data-wizard-action="close-photo-preview" aria-label="Cerrar">×</button></header>'+
-      '<div class="wizard-photo-preview-toolbar" role="group" aria-label="Escala de fotografía">'+
+    const canvasZoom=Math.max(100,zoom);
+    const imageZoom=Math.min(100,zoom);
+    return '<div class="wizard-photo-viewer" role="dialog" aria-modal="true" aria-label="Visor de fotografía" data-photo-viewer>'+
+      '<header class="wizard-photo-viewer-bar">'+
+      '<div class="wizard-photo-viewer-title"><span>FOTOGRAFÍA</span><strong>'+esc(preview.workName||"Trabajo")+'</strong></div>'+
+      '<div class="wizard-photo-viewer-actions">'+
+      '<div class="wizard-photo-zoom" role="group" aria-label="Escala de fotografía">'+
       '<button type="button" data-wizard-action="photo-zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>−</button>'+
-      '<span aria-live="polite">'+zoom+'%</span>'+
+      '<span data-photo-zoom-label aria-live="polite">'+zoom+'%</span>'+
       '<button type="button" data-wizard-action="photo-zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>+</button>'+
       '<button type="button" class="wizard-photo-fit" data-wizard-action="photo-zoom-reset">Ajustar</button>'+
       '</div>'+
-      '<div class="wizard-photo-preview-image"><div class="wizard-photo-preview-stage zoom-'+zoom+'">'+
-      '<img src="'+esc(viewUrl)+'" alt="Fotografía del trabajo"></div></div>'+
-      '<div class="wizard-photo-preview-meta"><span>Fotografía</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
-      '<span>Pendiente de guardar</span>'+
-      (!local&&photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+'</div>'+
-      '<footer>'+
-      (downloadPath?'<a class="wizard-photo-preview-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
-      (!local&&!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
-      '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="delete-photo">Eliminar fotografía</button>'+
-      '<button type="button" class="wizard-photo-preview-action primary" data-wizard-action="close-photo-preview">Cerrar</button>'+
-      '</footer></section></div>';
+      (downloadPath?'<a class="wizard-photo-viewer-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
+      (!local&&!photo.isCover?'<button type="button" class="wizard-photo-viewer-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
+      '<button type="button" class="wizard-photo-viewer-action danger" data-wizard-action="delete-photo">Eliminar</button>'+
+      '<button type="button" class="wizard-photo-viewer-close" data-wizard-action="close-photo-preview" aria-label="Cerrar visor">×</button>'+
+      '</div></header>'+
+      '<div class="wizard-photo-viewport'+(zoom>100?' can-pan':'')+'" data-photo-viewport>'+
+      '<div class="wizard-photo-canvas" data-photo-canvas style="width:'+canvasZoom+'%;height:'+canvasZoom+'%">'+
+      '<img data-photo-image src="'+esc(viewUrl)+'" alt="Fotografía del trabajo" style="width:'+imageZoom+'%;height:'+imageZoom+'%">'+
+      '</div></div>'+
+      '<footer class="wizard-photo-viewer-meta">'+
+      '<span>Fotografía · '+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
+      (!local&&photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+
+      '<small>Arrastra la imagen para desplazarte cuando esté ampliada.</small>'+
+      '</footer>'+
+      '</div>';
   }
 
   function workRow(item,itemIndex,work,workIndex){
@@ -517,7 +522,7 @@ export function createOrderWizard({
       '<p>Elige la prenda y registra cada trabajo con su precio, responsable y fotografías.</p></div>'+
       '<div class="wizard-garment-list">'+state.items.map(itemCard).join("")+'</div>'+
       '<button type="button" class="wizard-add-garment" data-wizard-action="add-item">+ Añadir otra prenda</button>'+
-      '</section>'+photoPreviewOverlay();
+      '</section>'+photoViewerOverlay();
   }
 
   function deliveryRow(item,index){
@@ -741,6 +746,7 @@ export function createOrderWizard({
       workName:work.work||"Trabajo",
       captureId:work.mobileCaptureId,
       zoomIndex:PHOTO_ZOOM_DEFAULT,
+      returnScrollTop:fields.scrollTop,
       photo
     };
     render();
@@ -759,6 +765,7 @@ export function createOrderWizard({
       workKey:work.key,
       workName:work.work||"Trabajo",
       zoomIndex:PHOTO_ZOOM_DEFAULT,
+      returnScrollTop:fields.scrollTop,
       photo:{
         fileName:file.name||"Fotografía",
         sizeBytes:Number(file.size||0),
@@ -769,20 +776,62 @@ export function createOrderWizard({
     render();
   }
 
+  function applyPhotoZoom(nextIndex,{preserveCenter=true}={}){
+    if(!photoPreview)return;
+    const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,Number(nextIndex)));
+    const viewport=fields.querySelector("[data-photo-viewport]");
+    const canvas=fields.querySelector("[data-photo-canvas]");
+    const image=fields.querySelector("[data-photo-image]");
+    const label=fields.querySelector("[data-photo-zoom-label]");
+    const out=fields.querySelector('[data-wizard-action="photo-zoom-out"]');
+    const zoomIn=fields.querySelector('[data-wizard-action="photo-zoom-in"]');
+    if(!viewport||!canvas||!image)return;
+
+    const oldWidth=Math.max(1,viewport.scrollWidth);
+    const oldHeight=Math.max(1,viewport.scrollHeight);
+    const centerX=(viewport.scrollLeft+viewport.clientWidth/2)/oldWidth;
+    const centerY=(viewport.scrollTop+viewport.clientHeight/2)/oldHeight;
+
+    photoPreview.zoomIndex=next;
+    const zoom=PHOTO_ZOOMS[next];
+    const canvasZoom=Math.max(100,zoom);
+    const imageZoom=Math.min(100,zoom);
+    canvas.style.width=canvasZoom+"%";
+    canvas.style.height=canvasZoom+"%";
+    image.style.width=imageZoom+"%";
+    image.style.height=imageZoom+"%";
+    viewport.classList.toggle("can-pan",zoom>100);
+    if(label)label.textContent=zoom+"%";
+    if(out)out.disabled=next===0;
+    if(zoomIn)zoomIn.disabled=next===PHOTO_ZOOMS.length-1;
+
+    requestAnimationFrame(()=>{
+      if(!preserveCenter||!photoPreview)return;
+      viewport.scrollLeft=Math.max(0,centerX*viewport.scrollWidth-viewport.clientWidth/2);
+      viewport.scrollTop=Math.max(0,centerY*viewport.scrollHeight-viewport.clientHeight/2);
+    });
+  }
+
   function changePhotoZoom(delta){
     if(!photoPreview)return;
     const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
-    const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,current+delta));
-    if(next===current)return;
-    photoPreview.zoomIndex=next;
-    render();
+    applyPhotoZoom(current+delta);
   }
 
   function resetPhotoZoom(){
     if(!photoPreview)return;
-    if(photoPreview.zoomIndex===PHOTO_ZOOM_DEFAULT)return;
-    photoPreview.zoomIndex=PHOTO_ZOOM_DEFAULT;
+    applyPhotoZoom(PHOTO_ZOOM_DEFAULT,{preserveCenter:false});
+    const viewport=fields.querySelector("[data-photo-viewport]");
+    if(viewport){viewport.scrollLeft=0;viewport.scrollTop=0}
+  }
+
+  function closePhotoViewer(){
+    if(!photoPreview)return;
+    const returnScrollTop=Number(photoPreview.returnScrollTop||0);
+    photoPreview=null;
+    photoPan=null;
     render();
+    requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
   }
 
   async function setMobilePhotoCover(){
@@ -811,6 +860,7 @@ export function createOrderWizard({
   async function deletePhoto(){
     const preview=photoPreview;
     if(!preview)return;
+    const returnScrollTop=Number(preview.returnScrollTop||0);
     const local=preview.source==="local";
     if(!local&&(
       !UUID.test(String(preview.captureId||""))||
@@ -834,8 +884,10 @@ export function createOrderWizard({
       work.photoFiles.splice(index,1);
       work.photoNames=work.photoFiles.map(row=>row.name);
       photoPreview=null;
+      photoPan=null;
       schedulePersist();
       render();
+      requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
       return;
     }
 
@@ -852,7 +904,9 @@ export function createOrderWizard({
       schedulePersist();
     }
     photoPreview=null;
+    photoPan=null;
     render();
+    requestAnimationFrame(()=>{fields.scrollTop=returnScrollTop});
   }
 
   async function discardMobileCapture(work){
@@ -1425,11 +1479,6 @@ export function createOrderWizard({
   });
   fields.addEventListener("click",event=>{
     if(!active)return;
-    if(photoPreview&&event.target.matches?.("[data-photo-preview-backdrop]")){
-      photoPreview=null;
-      render();
-      return;
-    }
     const stepButton=event.target.closest("[data-wizard-step]");
     if(stepButton&&!created){
       const next=Number(stepButton.dataset.wizardStep);
@@ -1481,7 +1530,7 @@ export function createOrderWizard({
     if(actionName==="photo-zoom-out"){changePhotoZoom(-1);return;}
     if(actionName==="photo-zoom-in"){changePhotoZoom(1);return;}
     if(actionName==="photo-zoom-reset"){resetPhotoZoom();return;}
-    if(actionName==="close-photo-preview"){photoPreview=null;render();return;}
+    if(actionName==="close-photo-preview"){closePhotoViewer();return;}
     if(actionName==="set-mobile-cover"){
       void setMobilePhotoCover().catch(e=>setError(humanError(e)));
       return;
@@ -1558,7 +1607,7 @@ export function createOrderWizard({
   });
   fields.addEventListener("keydown",event=>{
     if(photoPreview){
-      if(event.key==="Escape"){event.preventDefault();photoPreview=null;render();return;}
+      if(event.key==="Escape"){event.preventDefault();closePhotoViewer();return;}
       if(event.key==="+"||event.key==="="){event.preventDefault();changePhotoZoom(1);return;}
       if(event.key==="-"){event.preventDefault();changePhotoZoom(-1);return;}
       if(event.key==="0"){event.preventDefault();resetPhotoZoom();return;}
@@ -1600,7 +1649,49 @@ export function createOrderWizard({
     setTimeout(()=>renderClientResults(),0);
   });
   fields.addEventListener("pointerdown",event=>{
+    const viewport=event.target.closest?.("[data-photo-viewport]");
+    const zoom=photoPreview&&PHOTO_ZOOMS[Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT];
+    if(viewport&&photoPreview&&zoom>100&&event.button===0){
+      photoPan={
+        pointerId:event.pointerId,
+        startX:event.clientX,
+        startY:event.clientY,
+        scrollLeft:viewport.scrollLeft,
+        scrollTop:viewport.scrollTop
+      };
+      viewport.classList.add("is-panning");
+      viewport.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      return;
+    }
     if(event.target.closest(".wizard-client-result"))event.preventDefault();
+  });
+  fields.addEventListener("pointermove",event=>{
+    if(!photoPan||event.pointerId!==photoPan.pointerId)return;
+    const viewport=fields.querySelector("[data-photo-viewport]");
+    if(!viewport)return;
+    viewport.scrollLeft=photoPan.scrollLeft-(event.clientX-photoPan.startX);
+    viewport.scrollTop=photoPan.scrollTop-(event.clientY-photoPan.startY);
+  });
+  const endPhotoPan=event=>{
+    if(!photoPan||event.pointerId!==photoPan.pointerId)return;
+    const viewport=fields.querySelector("[data-photo-viewport]");
+    viewport?.classList.remove("is-panning");
+    try{viewport?.releasePointerCapture?.(event.pointerId)}catch{}
+    photoPan=null;
+  };
+  fields.addEventListener("pointerup",endPhotoPan);
+  fields.addEventListener("pointercancel",endPhotoPan);
+  fields.addEventListener("wheel",event=>{
+    if(!photoPreview||!event.ctrlKey||!event.target.closest?.("[data-photo-viewport]"))return;
+    event.preventDefault();
+    changePhotoZoom(event.deltaY<0?1:-1);
+  },{passive:false});
+  fields.addEventListener("dblclick",event=>{
+    if(!photoPreview||!event.target.closest?.("[data-photo-viewport]"))return;
+    event.preventDefault();
+    const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
+    applyPhotoZoom(current===PHOTO_ZOOM_DEFAULT?5:PHOTO_ZOOM_DEFAULT,{preserveCenter:false});
   });
 
   window.addEventListener("beforeunload",event=>{

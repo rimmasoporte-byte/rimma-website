@@ -159,7 +159,7 @@ let orderWizardLoad=null;
 function getOrderWizard(){
  if(orderWizardInstance)return Promise.resolve(orderWizardInstance);
  if(orderWizardLoad)return orderWizardLoad;
- orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v13")
+ orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v14")
   .then(module=>{
    orderWizardInstance=module.createOrderWizard({
     api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
