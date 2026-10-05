@@ -65,14 +65,10 @@ test('order wizard exposes the current step to CSS and removes it when the wizar
 });
 
 
-test('new client action switches directly to the client form without relying on dialog close timing',()=>{
-  const start=wizard.indexOf('if(name==="new-client")');
-  const end=wizard.indexOf('if(name==="toggle-item-date")',start);
-  assert.ok(start>=0&&end>start,'new-client action exists');
-  const block=wizard.slice(start,end);
-  assert.match(block,/persist\(\)/);
-  assert.match(block,/closed\(\)/);
-  assert.match(block,/onOpenClient\(\)/);
-  assert.doesNotMatch(block,/modal\.addEventListener\("close"/);
-  assert.doesNotMatch(block,/modal\.close\(\)/);
+test('new client action uses the portal dispatcher and a dedicated wizard transition',()=>{
+  assert.match(wizard,/data-action="new-client-from-order"/);
+  assert.match(wizard,/function openClientFromOrder\(\)\{[\s\S]*?persist\(\);[\s\S]*?active=false;[\s\S]*?modal\.classList\.remove\("order-wizard-modal"\);[\s\S]*?onOpenClient\(\)/);
+  assert.match(wizard,/openClient:openClientFromOrder/);
+  assert.match(js,/case "new-client-from-order":[\s\S]*?getOrderWizard\(\)[\s\S]*?wizard=>wizard\.openClient\(\)/);
+  assert.doesNotMatch(wizard,/data-wizard-action="new-client"/);
 });
