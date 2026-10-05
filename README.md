@@ -22,7 +22,7 @@ The authenticated web application is governed by:
 - repository-specific engineering audits;
 - automated regression tests with PostgreSQL in CI;
 - CodeQL static security analysis;
-- dependency review on pull requests;
+- locked-dependency vulnerability audits on pull requests;
 - Dependabot dependency maintenance;
 - CODEOWNERS and pull-request review checklists;
 - documented architecture, security, and contribution standards.
