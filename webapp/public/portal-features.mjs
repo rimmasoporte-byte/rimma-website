@@ -633,8 +633,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const customer=o.client?.name||tr("Cliente sin nombre","Cliente sem nome");
   const branch=o.branch?.name||tr("Sin sucursal","Sem filial");
   const due=localDate(o.dueDate);
-  layout("order-info",tr("Información del pedido","Informações do pedido")+" #"+esc(o.orderNumber||""),
-   '<div class="order-info-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(o.orderNumber||"")+'</span><h3>'+esc(customer)+'</h3>'+
+  const orderNumber=String(o.orderNumber||"").padStart(4,"0");
+  layout("order-info",tr("Información del pedido","Informações do pedido")+" #"+esc(orderNumber),
+   '<div class="order-info-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(orderNumber)+'</span><h3>'+esc(customer)+'</h3>'+
     '<span class="status '+esc(o.status||"accepted")+'">'+esc(passportStatusLabel(o.status))+'</span></div>'+
     '<div class="order-info-total"><small>'+tr("Total","Total")+'</small><strong>'+esc(money(o.totalMinor,o.currencyCode))+'</strong></div></div>'+
    '<div class="feature-summary order-info-summary"><div><small>'+tr("Entrega","Entrega")+'</small><strong>'+esc(due)+'</strong></div>'+
