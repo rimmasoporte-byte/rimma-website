@@ -61,6 +61,18 @@ function send(res, status, data, headers={}) {
   res.writeHead(status,{...securityHeaders('application/json; charset=utf-8'),'cache-control':'no-store',...headers});
   res.end(JSON.stringify(data));
 }
+function safeAttachmentName(value) {
+  const raw=String(value||'rimma-foto.jpg').replace(/[\r\n"]/g,'_').slice(0,180)||'rimma-foto.jpg';
+  const ascii=raw.normalize('NFKD').replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,120)||'rimma-foto.jpg';
+  return {raw,ascii};
+}
+function trustedSignedPhotoUrl(value) {
+  try{
+    const url=new URL(String(value||''));
+    if(url.protocol!=='https:'||url.username||url.password||url.hash)return null;
+    return url;
+  }catch{return null;}
+}
 function random() { return crypto.randomBytes(32).toString('base64url'); }
 function cookie(sid) {
   return 'rimma_web=' + (sid || '') + '; HttpOnly; SameSite=Lax; Path=/; Max-Age=' + (sid ? Math.floor(sessionMaxMs/1000) : 0) + (live ? '; Secure' : '');
@@ -473,6 +485,65 @@ export const server=http.createServer(async(req,res)=>{
       const status=await fromBackend('POST','/public/account-deletion-status',input);
       return send(res,status.status,status.data);
     }
+    const draftPhotoDownload=pathname.match(
+      /^\/api\/data\/draft-photo-captures\/([a-f0-9-]{36})\/photos\/([a-f0-9-]{36})\/download$/
+    );
+    if(method==='GET'&&draftPhotoDownload){
+      const session=await requireSession(req,res);if(!session)return;
+      const [,captureId,photoId]=draftPhotoDownload;
+      let captureResult;
+      try{
+        captureResult=await callWithSession(
+          session,
+          'GET',
+          '/draft-photo-captures/'+encodeURIComponent(captureId)
+        );
+      }catch(error){
+        if(String(error?.message).includes('refresh')){
+          await forget(session);
+          return send(res,401,{error:'La sesión ha caducado.'},{'set-cookie':cookie(null)});
+        }
+        throw error;
+      }
+      if(captureResult.status!==200||!captureResult.data?.capture){
+        return send(res,captureResult.status===404?404:503,{error:'No se pudo preparar la fotografía.'});
+      }
+      const photo=(captureResult.data.capture.photos||[]).find(row=>row?.id===photoId);
+      const signed=trustedSignedPhotoUrl(photo?.downloadUrl);
+      if(!photo||!signed)return send(res,404,{error:'Fotografía no disponible.'});
+
+      const file=await timeoutFetch(signed.href,{
+        method:'GET',
+        headers:{accept:'image/jpeg,image/png,image/webp'},
+        redirect:'error'
+      });
+      const type=String(file.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+      const allowedType=new Set(['image/jpeg','image/png','image/webp']);
+      const declared=Number(file.headers.get('content-length')||0);
+      const maxPhotoDownload=200*1024;
+      if(file.status!==200||!allowedType.has(type)||declared>maxPhotoDownload){
+        file.body?.cancel?.().catch(()=>{});
+        return send(res,file.status===404?404:503,{error:'No se pudo descargar la fotografía.'});
+      }
+      let total=0;const chunks=[];
+      for await(const chunk of file.body){
+        total+=chunk.length;
+        if(total>maxPhotoDownload){
+          file.body?.cancel?.().catch(()=>{});
+          return send(res,413,{error:'La fotografía supera el límite permitido.'});
+        }
+        chunks.push(Buffer.from(chunk));
+      }
+      const name=safeAttachmentName(photo.fileName);
+      res.writeHead(200,{
+        ...securityHeaders(type),
+        'cache-control':'private, no-store',
+        'content-length':String(total),
+        'content-disposition':`attachment; filename="${name.ascii}"; filename*=UTF-8''${encodeURIComponent(name.raw)}`
+      });
+      return res.end(Buffer.concat(chunks,total));
+    }
+
     if(pathname.startsWith('/api/data/')){
       const s=await requireSession(req,res);if(!s)return;
       const route=pathname.slice('/api/data'.length);
