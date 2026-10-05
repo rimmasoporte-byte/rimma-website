@@ -513,7 +513,7 @@ export function createOrderWizard({
     if(!globalThis.QRCode)return;
     for(const [workKey,session] of mobileCaptureSessions){
       const holder=fields.querySelector('[data-mobile-qr-key="'+CSS.escape(workKey)+'"]');
-      if(!holder||holder.childNodes.length)continue;
+      if(!holder||(holder.childNodes?.length||0)>0)continue;
       try{
         new QRCode(holder,{
           text:session.url,
