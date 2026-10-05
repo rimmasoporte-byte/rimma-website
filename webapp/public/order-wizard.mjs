@@ -346,6 +346,47 @@ export function createOrderWizard({
       '</div></div>';
   }
 
+  function mobilePhotoGallery(work,itemIndex,workIndex){
+    const photos=Array.isArray(work.mobilePhotos)?work.mobilePhotos:[];
+    if(!photos.length)return "";
+    return '<div class="wizard-mobile-photo-gallery" aria-label="Fotografías desde móvil">'+
+      photos.map(photo=>{
+        const url=safePhotoUrl(photo.viewUrl);
+        if(!url)return "";
+        return '<button type="button" class="wizard-mobile-photo-thumb'+(photo.isCover?' is-cover':'')+'" '+
+          'data-wizard-action="preview-mobile-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-photo-id="'+esc(photo.id)+'" '+
+          'aria-label="Abrir '+esc(photo.fileName||"fotografía")+'">'+
+          '<img src="'+esc(url)+'" alt="">'+
+          '<span class="wizard-mobile-photo-source">Móvil</span>'+
+          (photo.isCover?'<span class="wizard-mobile-photo-cover">Portada</span>':"")+
+          '</button>';
+      }).join("")+
+      '</div>';
+  }
+
+  function photoPreviewOverlay(){
+    const preview=photoPreview;
+    const photo=preview?.photo;
+    if(!preview||!photo)return "";
+    const viewUrl=safePhotoUrl(photo.viewUrl);
+    const downloadUrl=safePhotoUrl(photo.downloadUrl);
+    if(!viewUrl)return "";
+    return '<div class="wizard-photo-preview-backdrop" data-wizard-action="close-photo-preview">'+
+      '<section class="wizard-photo-preview" role="dialog" aria-modal="true" aria-label="Vista previa de fotografía" data-photo-preview-panel>'+
+      '<header><div><span>FOTOGRAFÍA · '+esc(preview.workName||"Trabajo")+'</span>'+
+      '<strong>'+esc(photo.fileName||"Fotografía")+'</strong></div>'+
+      '<button type="button" class="wizard-photo-preview-close" data-wizard-action="close-photo-preview" aria-label="Cerrar">×</button></header>'+
+      '<div class="wizard-photo-preview-image"><img src="'+esc(viewUrl)+'" alt="'+esc(photo.fileName||"Fotografía")+'"></div>'+
+      '<div class="wizard-photo-preview-meta"><span>Móvil</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
+      (photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+'</div>'+
+      '<footer>'+
+      (downloadUrl?'<a class="wizard-photo-preview-action" href="'+esc(downloadUrl)+'">Descargar</a>':"")+
+      (!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
+      '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="delete-mobile-photo">Eliminar fotografía</button>'+
+      '<button type="button" class="wizard-photo-preview-action primary" data-wizard-action="close-photo-preview">Cerrar</button>'+
+      '</footer></section></div>';
+  }
+
   function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
     const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
@@ -384,6 +425,7 @@ export function createOrderWizard({
         (mobileCount?'<span>'+mobileCount+' desde móvil</span>':"")+
         '</div>':"")+
       (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
+      mobilePhotoGallery(work,itemIndex,workIndex)+
       mobileCapturePanel(work,itemIndex,workIndex)+
       '</div>'+
       '</div></section>';
@@ -418,7 +460,7 @@ export function createOrderWizard({
       '<p>Elige la prenda y registra cada trabajo con su precio, responsable y fotografías.</p></div>'+
       '<div class="wizard-garment-list">'+state.items.map(itemCard).join("")+'</div>'+
       '<button type="button" class="wizard-add-garment" data-wizard-action="add-item">+ Añadir otra prenda</button>'+
-      '</section>';
+      '</section>'+photoPreviewOverlay();
   }
 
   function deliveryRow(item,index){
