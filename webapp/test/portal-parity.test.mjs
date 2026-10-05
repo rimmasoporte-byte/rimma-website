@@ -199,7 +199,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/client-duplicate-warning/);
  assert.match(css,/\.client-duplicate-warning\{/);
  assert.match(js,/if\(activeModal==="order"\|\|\$\("#modal"\)\.classList\.contains\("order-wizard-modal"\)\)/);
- assert.match(js,/if\(resumeOrder\)\{[\s\S]*?activeModal="order";[\s\S]*?wizard\.open\(preferredClientId\)/);
+ assert.match(js,/if\(resumeOrder\)\{[\s\S]*?activeModal="order";[\s\S]*?openNewOrder\(preferredClientId\)/);
  assert.match(js,/const newClientPhonePrefix=\(\)=>currentCountry\(\)==="ES"\?"\+34 ":""/);
  assert.match(js,/normalizedNewClientPhone/);
  assert.match(js,/placeholder="\+34 600 000 000"/);
