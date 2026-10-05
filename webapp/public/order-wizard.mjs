@@ -61,6 +61,31 @@ export function createOrderWizard({
   const photoFailures=new Map();
   const uploadedPhotoIndexes=new Set();
   const mobileCaptureSessions=new Map();
+  const localPhotoUrls=new Map();
+
+  const localPhotoUrl=file=>{
+    if(!file||typeof URL.createObjectURL!=="function")return "";
+    const existing=localPhotoUrls.get(file);
+    if(existing)return existing;
+    const url=URL.createObjectURL(file);
+    localPhotoUrls.set(file,url);
+    return url;
+  };
+  const releaseLocalPhotoUrl=file=>{
+    const url=localPhotoUrls.get(file);
+    if(!url)return;
+    try{URL.revokeObjectURL(url)}catch{}
+    localPhotoUrls.delete(file);
+  };
+  const releaseWorkLocalPhotos=work=>{
+    for(const file of Array.isArray(work?.photoFiles)?work.photoFiles:[])releaseLocalPhotoUrl(file);
+  };
+  const clearLocalPhotoUrls=()=>{
+    for(const url of localPhotoUrls.values()){
+      try{URL.revokeObjectURL(url)}catch{}
+    }
+    localPhotoUrls.clear();
+  };
 
   const safePhotoUrl=value=>{
     try{
@@ -113,7 +138,7 @@ export function createOrderWizard({
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(item=>({
       ...item,
-      works:(item.works||[]).map(({photoFiles,mobilePhotos,...work})=>work)
+      works:(item.works||[]).map(({photoFiles,photoNames,mobilePhotos,...work})=>work)
     }))
   });
   function persist(){
@@ -148,7 +173,7 @@ export function createOrderWizard({
         items:draft.items.slice(0,30).map(item=>{
           const baseItem=makeItem(draft.currencyCode);
           const works=Array.isArray(item.works)&&item.works.length
-            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[],mobilePhotos:[]}))
+            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[],photoNames:[],mobilePhotos:[]}))
             :baseItem.works;
           return {...baseItem,...item,key:item.key||uid(),works};
         })
@@ -349,16 +374,34 @@ export function createOrderWizard({
   function mobilePhotoGallery(work,itemIndex,workIndex){
     const photos=Array.isArray(work.mobilePhotos)?work.mobilePhotos:[];
     if(!photos.length)return "";
-    return '<div class="wizard-mobile-photo-gallery" aria-label="Fotografías desde móvil">'+
+    return '<div class="wizard-photo-gallery" aria-label="Fotografías desde móvil">'+
       photos.map(photo=>{
         const url=safePhotoUrl(photo.viewUrl);
         if(!url)return "";
-        return '<button type="button" class="wizard-mobile-photo-thumb'+(photo.isCover?' is-cover':'')+'" '+
+        return '<button type="button" class="wizard-photo-thumb'+(photo.isCover?' is-cover':'')+'" '+
           'data-wizard-action="preview-mobile-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-photo-id="'+esc(photo.id)+'" '+
           'aria-label="Abrir '+esc(photo.fileName||"fotografía")+'">'+
           '<img src="'+esc(url)+'" alt="">'+
-          '<span class="wizard-mobile-photo-source">Móvil</span>'+
-          (photo.isCover?'<span class="wizard-mobile-photo-cover">Portada</span>':"")+
+          '<span class="wizard-photo-source">Móvil</span>'+
+          (photo.isCover?'<span class="wizard-photo-cover">Portada</span>':"")+
+          '</button>';
+      }).join("")+
+      '</div>';
+  }
+
+  function localPhotoGallery(work,itemIndex,workIndex){
+    const files=Array.isArray(work.photoFiles)?work.photoFiles:[];
+    if(!files.length)return "";
+    return '<div class="wizard-photo-gallery" aria-label="Fotografías seleccionadas en este dispositivo">'+
+      files.map((file,fileIndex)=>{
+        const url=localPhotoUrl(file);
+        if(!url)return "";
+        return '<button type="button" class="wizard-photo-thumb" '+
+          'data-wizard-action="preview-local-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-file-index="'+fileIndex+'" '+
+          'aria-label="Abrir '+esc(file.name||"fotografía")+'">'+
+          '<img src="'+esc(url)+'" alt="">'+
+          '<span class="wizard-photo-source">Este dispositivo</span>'+
+          '<span class="wizard-photo-pending">Sin guardar</span>'+
           '</button>';
       }).join("")+
       '</div>';
@@ -368,8 +411,11 @@ export function createOrderWizard({
     const preview=photoPreview;
     const photo=preview?.photo;
     if(!preview||!photo)return "";
-    const viewUrl=safePhotoUrl(photo.viewUrl);
-    const downloadPath=
+    const local=preview.source==="local";
+    const viewUrl=local&&String(photo.viewUrl||"").startsWith("blob:")
+      ?String(photo.viewUrl)
+      :safePhotoUrl(photo.viewUrl);
+    const downloadPath=!local&&
       UUID.test(String(preview.captureId||""))&&UUID.test(String(photo.id||""))
         ?"/api/data/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
           "/photos/"+encodeURIComponent(photo.id)+"/download"
@@ -381,12 +427,14 @@ export function createOrderWizard({
       '<strong>'+esc(photo.fileName||"Fotografía")+'</strong></div>'+
       '<button type="button" class="wizard-photo-preview-close" data-wizard-action="close-photo-preview" aria-label="Cerrar">×</button></header>'+
       '<div class="wizard-photo-preview-image"><img src="'+esc(viewUrl)+'" alt="'+esc(photo.fileName||"Fotografía")+'"></div>'+
-      '<div class="wizard-photo-preview-meta"><span>Móvil</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
-      (photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+'</div>'+
+      '<div class="wizard-photo-preview-meta"><span>'+(local?'Este dispositivo':'Móvil')+'</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
+      (!local&&photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+
+      (local?'<span>Se guardará al crear el pedido</span>':"")+'</div>'+
       '<footer>'+
       (downloadPath?'<a class="wizard-photo-preview-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
-      (!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
-      '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="delete-mobile-photo">Eliminar fotografía</button>'+
+      (!local&&!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
+      '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="'+(local?'delete-local-photo':'delete-mobile-photo')+'">'+
+      (local?'Quitar de la selección':'Eliminar fotografía')+'</button>'+
       '<button type="button" class="wizard-photo-preview-action primary" data-wizard-action="close-photo-preview">Cerrar</button>'+
       '</footer></section></div>';
   }
@@ -428,7 +476,7 @@ export function createOrderWizard({
         '<strong>'+totalCount+' foto'+(totalCount===1?"":"s")+'</strong>'+
         (mobileCount?'<span>'+mobileCount+' desde móvil</span>':"")+
         '</div>':"")+
-      (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
+      localPhotoGallery(work,itemIndex,workIndex)+
       mobilePhotoGallery(work,itemIndex,workIndex)+
       mobileCapturePanel(work,itemIndex,workIndex)+
       '</div>'+
@@ -688,6 +736,43 @@ export function createOrderWizard({
       captureId:work.mobileCaptureId,
       photo
     };
+    render();
+  }
+
+  function openLocalPhotoPreview(itemIndex,workIndex,fileIndex){
+    const {work}=workAt(itemIndex,workIndex);
+    const file=work?.photoFiles?.[Number(fileIndex)];
+    if(!work||!file)return;
+    const viewUrl=localPhotoUrl(file);
+    if(!viewUrl)throw Error("No se pudo preparar la vista previa de esta fotografía.");
+    photoPreview={
+      source:"local",
+      itemIndex:Number(itemIndex),
+      workIndex:Number(workIndex),
+      workKey:work.key,
+      workName:work.work||"Trabajo",
+      photo:{
+        fileName:file.name||"Fotografía",
+        sizeBytes:Number(file.size||0),
+        viewUrl,
+        localIndex:Number(fileIndex)
+      }
+    };
+    render();
+  }
+
+  function deleteLocalPhoto(){
+    const preview=photoPreview;
+    if(!preview||preview.source!=="local")return;
+    const {work}=workAt(preview.itemIndex,preview.workIndex);
+    const index=Number(preview.photo?.localIndex);
+    const file=work?.photoFiles?.[index];
+    if(!work||!file)return;
+    releaseLocalPhotoUrl(file);
+    work.photoFiles.splice(index,1);
+    work.photoNames=work.photoFiles.map(row=>row.name);
+    photoPreview=null;
+    schedulePersist();
     render();
   }
 
@@ -1082,9 +1167,14 @@ export function createOrderWizard({
     if(!work)return;
 
     if(field==="photos"){
+      const previous=Array.isArray(work.photoFiles)?work.photoFiles:[];
       const files=[...(target?.files||[])].slice(0,12);
+      for(const file of previous){
+        if(!files.includes(file))releaseLocalPhotoUrl(file);
+      }
       work.photoFiles=files;
       work.photoNames=files.map(file=>file.name);
+      if(photoPreview?.source==="local"&&photoPreview.workKey===work.key)photoPreview=null;
       schedulePersist();
       render();
       return;
@@ -1131,6 +1221,7 @@ export function createOrderWizard({
       if(!approved)return;
     }
     await discardAllMobileCaptures();
+    clearLocalPhotoUrls();
     clearDraft();
     restored=false;
     dirty=false;
@@ -1162,6 +1253,7 @@ export function createOrderWizard({
       await discardAllMobileCaptures();
       clearDraft();
       dirty=false;
+      clearLocalPhotoUrls();
       preparedPhotos.clear();
       uploadedPhotoIndexes.clear();
       photoFailures.clear();
@@ -1340,6 +1432,16 @@ export function createOrderWizard({
       }
       return;
     }
+    if(actionName==="preview-local-photo"){
+      try{
+        openLocalPhotoPreview(
+          Number(button.dataset.index),
+          Number(button.dataset.workIndex),
+          Number(button.dataset.fileIndex)
+        );
+      }catch(e){setError(humanError(e))}
+      return;
+    }
     if(actionName==="preview-mobile-photo"){
       const index=Number(button.dataset.index);
       const workIndex=Number(button.dataset.workIndex);
@@ -1350,6 +1452,10 @@ export function createOrderWizard({
     if(actionName==="close-photo-preview"){
       photoPreview=null;
       render();
+      return;
+    }
+    if(actionName==="delete-local-photo"){
+      deleteLocalPhoto();
       return;
     }
     if(actionName==="set-mobile-cover"){
@@ -1400,7 +1506,10 @@ export function createOrderWizard({
       const item=state.items[index];
       if(item&&item.works.length>1&&Number.isInteger(workIndex)){
         const removed=item.works[workIndex];
-        if(removed)void discardMobileCapture(removed);
+        if(removed){
+          releaseWorkLocalPhotos(removed);
+          void discardMobileCapture(removed);
+        }
         item.works.splice(workIndex,1);
         schedulePersist();
         render();
@@ -1411,7 +1520,10 @@ export function createOrderWizard({
       const index=Number(button.dataset.index);
       if(Number.isInteger(index)&&state.items.length>1){
         const removed=state.items[index];
-        for(const work of removed?.works||[])void discardMobileCapture(work);
+        for(const work of removed?.works||[]){
+          releaseWorkLocalPhotos(work);
+          void discardMobileCapture(work);
+        }
         state.items.splice(index,1);
         schedulePersist();
         render();
@@ -1580,6 +1692,7 @@ export function createOrderWizard({
     capturePollTimer=null;
     capturePollBusy=false;
     mobileCaptureSessions.clear();
+    clearLocalPhotoUrls();
     photoPreview=null;
     clientSearchSeq++;
     clientMatches=[];
