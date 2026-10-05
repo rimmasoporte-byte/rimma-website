@@ -231,6 +231,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
  assert.match(css,/\.wizard-mobile-capture-qr\{/);
+ assert.match(css,/\.wizard-mobile-capture\{[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr\{[\s\S]*?box-sizing:border-box[\s\S]*?max-width:166px[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr img,\.wizard-mobile-capture-qr canvas\{[\s\S]*?width:100%!important[\s\S]*?height:auto!important/);
+
  assert.match(css,/\.wizard-mobile-photo-gallery\{/);
  assert.match(css,/\.wizard-photo-preview-backdrop\{/);
  assert.match(css,/\.wizard-photo-preview-action\.danger/);
