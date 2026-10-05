@@ -429,9 +429,11 @@ export function createOrderWizard({
       '<div class="wizard-photo-viewer-title"><span>FOTOGRAFÍA</span><strong>'+esc(preview.workName||"Trabajo")+'</strong></div>'+
       '<div class="wizard-photo-viewer-actions">'+
       '<div class="wizard-photo-zoom" role="group" aria-label="Escala de fotografía">'+
-      '<button type="button" data-photo-action="zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>−</button>'+
+      '<button type="button" data-photo-action="zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>'+
+      '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>'+
       '<span data-photo-zoom-label aria-live="polite">'+zoom+'%</span>'+
-      '<button type="button" data-photo-action="zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>+</button>'+
+      '<button type="button" data-photo-action="zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>'+
+      '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7h8M7 3v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>'+
       '<button type="button" class="wizard-photo-fit" data-photo-action="zoom-reset">Ajustar</button>'+
       '</div>'+
       (downloadPath?'<a class="wizard-photo-viewer-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
