@@ -990,6 +990,7 @@ export function createOrderWizard({
       });
       if(!approved)return;
     }
+    await discardAllMobileCaptures();
     clearDraft();
     restored=false;
     dirty=false;
@@ -1018,6 +1019,7 @@ export function createOrderWizard({
       alternativeValue:"discard"
     });
     if(decision==="discard"){
+      await discardAllMobileCaptures();
       clearDraft();
       dirty=false;
       preparedPhotos.clear();
@@ -1194,6 +1196,27 @@ export function createOrderWizard({
       }
       return;
     }
+    if(actionName==="mobile-photo"){
+      const index=Number(button.dataset.index);
+      const workIndex=Number(button.dataset.workIndex);
+      void openMobileCapture(index,workIndex).catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="refresh-mobile-photos"){
+      const item=state.items[Number(button.dataset.index)];
+      const work=item?.works?.[Number(button.dataset.workIndex)];
+      if(work)void refreshMobileCapture(work).catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="hide-mobile-capture"){
+      const item=state.items[Number(button.dataset.index)];
+      const work=item?.works?.[Number(button.dataset.workIndex)];
+      if(work){
+        mobileCaptureSessions.delete(work.key);
+        render();
+      }
+      return;
+    }
     if(actionName==="add-work"){
       const index=Number(button.dataset.index);
       const item=state.items[index];
@@ -1212,6 +1235,8 @@ export function createOrderWizard({
       const workIndex=Number(button.dataset.workIndex);
       const item=state.items[index];
       if(item&&item.works.length>1&&Number.isInteger(workIndex)){
+        const removed=item.works[workIndex];
+        if(removed)void discardMobileCapture(removed);
         item.works.splice(workIndex,1);
         schedulePersist();
         render();
@@ -1221,6 +1246,8 @@ export function createOrderWizard({
     if(actionName==="remove-item"){
       const index=Number(button.dataset.index);
       if(Number.isInteger(index)&&state.items.length>1){
+        const removed=state.items[index];
+        for(const work of removed?.works||[])void discardMobileCapture(work);
         state.items.splice(index,1);
         schedulePersist();
         render();
@@ -1378,6 +1405,10 @@ export function createOrderWizard({
   function closed(){
     persist();
     clearTimeout(clientSearchTimer);
+    clearInterval(capturePollTimer);
+    capturePollTimer=null;
+    capturePollBusy=false;
+    mobileCaptureSessions.clear();
     clientSearchSeq++;
     clientMatches=[];
     clientActiveIndex=-1;
