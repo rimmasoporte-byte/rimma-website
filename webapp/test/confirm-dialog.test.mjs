@@ -7,7 +7,7 @@ function harness() {
   const doc = {activeElement: {id: "opener"}, body: {append() {}}};
   class Element extends EventTarget {
     constructor() {
-      super(); this.textContent = ""; this.open = false;
+      super(); this.textContent = ""; this.open = false; this.scrollTop = 0; this.isConnected = true;
       this.attributes = new Map(); this.classes = new Set();
       this.classList = {toggle: (name, on) => on ? this.classes.add(name) : this.classes.delete(name)};
     }
@@ -21,6 +21,23 @@ function harness() {
     close() { this.open = false; doc.activeElement = this.opener; }
     getBoundingClientRect() { return {left: 100, right: 500, top: 100, bottom: 400}; }
   }
+  const pageForm = new Element();
+  const pageFields = new Element();
+  const pageModal = new Element();
+  pageModal.open = true;
+  pageModal.querySelector = selector => selector === "#modal-form"
+    ? pageForm
+    : selector === "#modal-fields"
+      ? pageFields
+      : null;
+  doc.querySelector = selector => selector === "#modal"
+    ? pageModal
+    : selector === "#modal-form"
+      ? pageForm
+      : selector === "#modal-fields"
+        ? pageFields
+        : null;
+
   const dialog = new Element();
   doc.createElement = () => dialog;
   const event = (element, type, x = 0, y = 0) => {
@@ -29,7 +46,11 @@ function harness() {
     element.dispatchEvent(ev);
     return ev;
   };
-  return {doc, dialog, event, ask: createConfirmationDialog(doc), get: selector => elements.get(selector)};
+  return {
+    doc, dialog, pageModal, pageForm, pageFields, event,
+    ask: createConfirmationDialog(doc),
+    get: selector => elements.get(selector)
+  };
 }
 
 test("confirmation is named, uses plain text, and defaults to Cancelar", async () => {
@@ -137,4 +158,31 @@ test("optional third action resolves its explicit value and resets on the next p
   assert.equal(h.get("#confirm-alternative").hidden, true);
   h.event(h.get("#confirm-cancel"), "click");
   assert.equal(await next, false);
+});
+
+test("closing a nested confirmation restores only the wizard content scroll", async () => {
+  const h = harness();
+  const opener = h.doc.activeElement;
+  let focusOptions = null;
+  opener.focus = options => { focusOptions = options; h.doc.activeElement = opener; };
+  h.pageForm.scrollTop = 0;
+  h.pageFields.scrollTop = 284;
+
+  const nativeClose = h.dialog.close.bind(h.dialog);
+  h.dialog.close = () => {
+    nativeClose();
+    // Chromium can focus the underlying footer and programmatically scroll an
+    // overflow-hidden form. Simulate that browser behavior here.
+    h.pageForm.scrollTop = 190;
+    h.pageFields.scrollTop = 999;
+  };
+
+  const answer = h.ask({title: "Salir del nuevo pedido"});
+  h.event(h.get(".brand-dialog-close"), "click");
+  assert.equal(await answer, false);
+  await Promise.resolve();
+
+  assert.equal(h.pageForm.scrollTop, 0);
+  assert.equal(h.pageFields.scrollTop, 284);
+  assert.deepEqual(focusOptions, {preventScroll: true});
 });
