@@ -509,6 +509,120 @@ export function createOrderWizard({
       '</details></div></section>';
   }
 
+  function renderMobileCaptureQrs(){
+    if(!globalThis.QRCode)return;
+    for(const [workKey,session] of mobileCaptureSessions){
+      const holder=fields.querySelector('[data-mobile-qr-key="'+CSS.escape(workKey)+'"]');
+      if(!holder||holder.childNodes.length)continue;
+      try{
+        new QRCode(holder,{
+          text:session.url,
+          width:150,
+          height:150,
+          correctLevel:QRCode.CorrectLevel.M
+        });
+      }catch{}
+    }
+  }
+
+  function captureWorks(){
+    const rows=[];
+    state.items.forEach((item,itemIndex)=>{
+      (item.works||[]).forEach((work,workIndex)=>{
+        if(UUID.test(String(work.mobileCaptureId||""))){
+          rows.push({item,itemIndex,work,workIndex});
+        }
+      });
+    });
+    return rows;
+  }
+
+  async function refreshMobileCapture(work,{rerender=true}={}){
+    if(!UUID.test(String(work?.mobileCaptureId||"")))return false;
+    const result=await api("/draft-photo-captures/"+encodeURIComponent(work.mobileCaptureId));
+    const photos=Array.isArray(result.capture?.photos)
+      ?result.capture.photos.filter(photo=>photo.status==="active"||photo.status==="claimed")
+      :[];
+    const next=photos.length;
+    if(next===Number(work.mobilePhotoCount||0))return false;
+    work.mobilePhotoCount=next;
+    schedulePersist();
+    if(rerender&&active&&!created&&state.step===1)render();
+    return true;
+  }
+
+  async function pollMobileCaptures(){
+    if(capturePollBusy||!active||created)return;
+    const rows=captureWorks();
+    if(!rows.length)return;
+    capturePollBusy=true;
+    let changed=false;
+    try{
+      for(const row of rows){
+        try{
+          if(await refreshMobileCapture(row.work,{rerender:false}))changed=true;
+        }catch{}
+      }
+    }finally{
+      capturePollBusy=false;
+    }
+    if(changed&&active&&!created&&state.step===1)render();
+  }
+
+  function syncCapturePolling(){
+    clearInterval(capturePollTimer);
+    capturePollTimer=null;
+    if(!active||created||!captureWorks().length)return;
+    capturePollTimer=setInterval(()=>void pollMobileCaptures(),3000);
+  }
+
+  async function openMobileCapture(itemIndex,workIndex){
+    const item=state.items[itemIndex];
+    const work=item?.works?.[workIndex];
+    if(!item||!work)return;
+    const result=await api("/draft-photo-captures",{
+      method:"POST",
+      body:JSON.stringify({
+        draftKey:state.creationKey,
+        itemKey:item.key,
+        workKey:work.key,
+        garmentName:item.garmentType||"Prenda",
+        workName:work.work||"Trabajo"
+      })
+    });
+    const capture=result.capture||{};
+    if(!UUID.test(String(capture.id||""))||!capture.token){
+      throw Error("No se pudo preparar la cámara del móvil.");
+    }
+    work.mobileCaptureId=capture.id;
+    mobileCaptureSessions.set(work.key,{
+      id:capture.id,
+      url:location.origin+"/capture/"+encodeURIComponent(capture.token),
+      expiresAt:capture.expiresAt
+    });
+    schedulePersist();
+    try{await refreshMobileCapture(work,{rerender:false})}catch{}
+    render();
+  }
+
+  async function discardMobileCapture(work){
+    if(!UUID.test(String(work?.mobileCaptureId||"")))return;
+    const id=work.mobileCaptureId;
+    mobileCaptureSessions.delete(work.key);
+    work.mobileCaptureId="";
+    work.mobilePhotoCount=0;
+    try{
+      await api("/draft-photo-captures/"+encodeURIComponent(id),{method:"DELETE"});
+    }catch{}
+  }
+
+  async function discardAllMobileCaptures(){
+    const rows=captureWorks();
+    await Promise.allSettled(rows.map(row=>discardMobileCapture(row.work)));
+    mobileCaptureSessions.clear();
+    syncCapturePolling();
+  }
+
   function render(){
     if(!active)return;
     setError("");
@@ -519,6 +633,8 @@ export function createOrderWizard({
       ?renderCreated()
       :stepper()+(state.step===0?renderClient():state.step===1?renderGarments():state.step===2?renderDelivery():renderReview());
     syncFooter();
+    if(!created&&state.step===1)setTimeout(renderMobileCaptureQrs,0);
+    syncCapturePolling();
   }
   function clearValidation(){
     fields.querySelectorAll('[aria-invalid="true"]').forEach(element=>element.removeAttribute("aria-invalid"));
