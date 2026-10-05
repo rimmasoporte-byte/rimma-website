@@ -423,8 +423,8 @@ export function createOrderWizard({
       Number.isInteger(preview.zoomIndex)?preview.zoomIndex:PHOTO_ZOOM_DEFAULT
     ));
     const zoom=PHOTO_ZOOMS[zoomIndex];
-    const canvasZoom=Math.max(100,zoom);
-    const imageZoom=Math.min(100,zoom);
+    const panX=Number.isFinite(preview.panX)?preview.panX:0;
+    const panY=Number.isFinite(preview.panY)?preview.panY:0;
     return '<header class="wizard-photo-viewer-bar">'+
       '<div class="wizard-photo-viewer-title"><span>FOTOGRAFÍA</span><strong>'+esc(preview.workName||"Trabajo")+'</strong></div>'+
       '<div class="wizard-photo-viewer-actions">'+
@@ -440,8 +440,9 @@ export function createOrderWizard({
       '<button type="button" class="wizard-photo-viewer-close" data-photo-action="close" aria-label="Cerrar visor">×</button>'+
       '</div></header>'+
       '<div class="wizard-photo-viewport'+(zoom>100?' can-pan':'')+'" data-photo-viewport>'+
-      '<div class="wizard-photo-canvas" data-photo-canvas style="width:'+canvasZoom+'%;height:'+canvasZoom+'%">'+
-      '<img data-photo-image src="'+esc(viewUrl)+'" alt="Fotografía del trabajo" style="width:'+imageZoom+'%;height:'+imageZoom+'%">'+
+      '<div class="wizard-photo-stage">'+
+      '<img data-photo-image src="'+esc(viewUrl)+'" alt="Fotografía del trabajo" '+
+      'style="transform:translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom/100)+')">'+
       '</div></div>'+
       '<footer class="wizard-photo-viewer-meta">'+
       '<span>Fotografía · '+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
@@ -466,7 +467,7 @@ export function createOrderWizard({
     requestAnimationFrame(()=>{fields.scrollTop=top});
   }
 
-  function workRow(item,itemIndex,work,workIndex){
+  function workRow  function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
     const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
     const mobileCount=Number(work.mobilePhotoCount||0);
@@ -762,6 +763,8 @@ export function createOrderWizard({
       workName:work.work||"Trabajo",
       captureId:work.mobileCaptureId,
       zoomIndex:PHOTO_ZOOM_DEFAULT,
+      panX:0,
+      panY:0,
       photo
     };
     renderPhotoViewer();
@@ -780,6 +783,8 @@ export function createOrderWizard({
       workKey:work.key,
       workName:work.work||"Trabajo",
       zoomIndex:PHOTO_ZOOM_DEFAULT,
+      panX:0,
+      panY:0,
       photo:{
         fileName:file.name||"Fotografía",
         sizeBytes:Number(file.size||0),
@@ -790,40 +795,66 @@ export function createOrderWizard({
     renderPhotoViewer();
   }
 
-  function applyPhotoZoom(nextIndex,{preserveCenter=true}={}){
-    if(!photoPreview)return;
-    const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,Number(nextIndex)));
+  function photoScale(){
+    const index=Number.isInteger(photoPreview?.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
+    return PHOTO_ZOOMS[Math.max(0,Math.min(PHOTO_ZOOMS.length-1,index))]/100;
+  }
+
+  function photoPanLimits(){
     const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    const canvas=photoViewer.querySelector("[data-photo-canvas]");
     const image=photoViewer.querySelector("[data-photo-image]");
+    if(!viewport||!image)return {maxX:0,maxY:0};
+    const scale=photoScale();
+    return {
+      maxX:Math.max(0,(image.offsetWidth*scale-viewport.clientWidth)/2),
+      maxY:Math.max(0,(image.offsetHeight*scale-viewport.clientHeight)/2)
+    };
+  }
+
+  function clampPhotoPan(){
+    if(!photoPreview)return;
+    if(photoScale()<=1){
+      photoPreview.panX=0;
+      photoPreview.panY=0;
+      return;
+    }
+    const {maxX,maxY}=photoPanLimits();
+    photoPreview.panX=Math.max(-maxX,Math.min(maxX,Number(photoPreview.panX)||0));
+    photoPreview.panY=Math.max(-maxY,Math.min(maxY,Number(photoPreview.panY)||0));
+  }
+
+  function applyPhotoTransform(){
+    if(!photoPreview)return;
+    const image=photoViewer.querySelector("[data-photo-image]");
+    const viewport=photoViewer.querySelector("[data-photo-viewport]");
     const label=photoViewer.querySelector("[data-photo-zoom-label]");
     const out=photoViewer.querySelector('[data-photo-action="zoom-out"]');
     const zoomIn=photoViewer.querySelector('[data-photo-action="zoom-in"]');
-    if(!viewport||!canvas||!image)return;
-
-    const oldWidth=Math.max(1,viewport.scrollWidth);
-    const oldHeight=Math.max(1,viewport.scrollHeight);
-    const centerX=(viewport.scrollLeft+viewport.clientWidth/2)/oldWidth;
-    const centerY=(viewport.scrollTop+viewport.clientHeight/2)/oldHeight;
-
-    photoPreview.zoomIndex=next;
-    const zoom=PHOTO_ZOOMS[next];
-    const canvasZoom=Math.max(100,zoom);
-    const imageZoom=Math.min(100,zoom);
-    canvas.style.width=canvasZoom+"%";
-    canvas.style.height=canvasZoom+"%";
-    image.style.width=imageZoom+"%";
-    image.style.height=imageZoom+"%";
+    if(!image||!viewport)return;
+    clampPhotoPan();
+    const index=Math.max(0,Math.min(
+      PHOTO_ZOOMS.length-1,
+      Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT
+    ));
+    const zoom=PHOTO_ZOOMS[index];
+    image.style.transform='translate3d('+(Number(photoPreview.panX)||0)+'px,'+
+      (Number(photoPreview.panY)||0)+'px,0) scale('+(zoom/100)+')';
     viewport.classList.toggle("can-pan",zoom>100);
     if(label)label.textContent=zoom+"%";
-    if(out)out.disabled=next===0;
-    if(zoomIn)zoomIn.disabled=next===PHOTO_ZOOMS.length-1;
+    if(out)out.disabled=index===0;
+    if(zoomIn)zoomIn.disabled=index===PHOTO_ZOOMS.length-1;
+  }
 
-    requestAnimationFrame(()=>{
-      if(!preserveCenter||!photoPreview)return;
-      viewport.scrollLeft=Math.max(0,centerX*viewport.scrollWidth-viewport.clientWidth/2);
-      viewport.scrollTop=Math.max(0,centerY*viewport.scrollHeight-viewport.clientHeight/2);
-    });
+  function applyPhotoZoom(nextIndex){
+    if(!photoPreview)return;
+    const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,Number(nextIndex)));
+    if(next===photoPreview.zoomIndex)return;
+    photoPreview.zoomIndex=next;
+    if(PHOTO_ZOOMS[next]<=100){
+      photoPreview.panX=0;
+      photoPreview.panY=0;
+    }
+    applyPhotoTransform();
   }
 
   function changePhotoZoom(delta){
@@ -834,9 +865,10 @@ export function createOrderWizard({
 
   function resetPhotoZoom(){
     if(!photoPreview)return;
-    applyPhotoZoom(PHOTO_ZOOM_DEFAULT,{preserveCenter:false});
-    const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    if(viewport){viewport.scrollLeft=0;viewport.scrollTop=0}
+    photoPreview.zoomIndex=PHOTO_ZOOM_DEFAULT;
+    photoPreview.panX=0;
+    photoPreview.panY=0;
+    applyPhotoTransform();
   }
 
   function closePhotoViewer(){
@@ -847,7 +879,7 @@ export function createOrderWizard({
     photoViewer.replaceChildren();
   }
 
-  async function setMobilePhotoCover(){
+  async function setMobilePhotoCover(){  async function setMobilePhotoCover(){
     const preview=photoPreview;
     if(!preview||preview.source!=="mobile"||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
     const result=await api(
@@ -1672,25 +1704,31 @@ export function createOrderWizard({
   });
   photoViewer.addEventListener("pointerdown",event=>{
     const viewport=event.target.closest?.("[data-photo-viewport]");
-    const zoom=photoPreview&&PHOTO_ZOOMS[Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT];
-    if(!viewport||!photoPreview||zoom<=100||event.button!==0)return;
+    const image=photoViewer.querySelector("[data-photo-image]");
+    if(!viewport||!image||!photoPreview||photoScale()<=1||event.button!==0)return;
+    const {maxX,maxY}=photoPanLimits();
     photoPan={
       pointerId:event.pointerId,
       startX:event.clientX,
       startY:event.clientY,
-      scrollLeft:viewport.scrollLeft,
-      scrollTop:viewport.scrollTop
+      panX:Number(photoPreview.panX)||0,
+      panY:Number(photoPreview.panY)||0,
+      maxX,
+      maxY
     };
     viewport.classList.add("is-panning");
     viewport.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   });
   photoViewer.addEventListener("pointermove",event=>{
-    if(!photoPan||event.pointerId!==photoPan.pointerId)return;
-    const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    if(!viewport)return;
-    viewport.scrollLeft=photoPan.scrollLeft-(event.clientX-photoPan.startX);
-    viewport.scrollTop=photoPan.scrollTop-(event.clientY-photoPan.startY);
+    if(!photoPan||event.pointerId!==photoPan.pointerId||!photoPreview)return;
+    const image=photoViewer.querySelector("[data-photo-image]");
+    if(!image)return;
+    photoPreview.panX=Math.max(-photoPan.maxX,Math.min(photoPan.maxX,
+      photoPan.panX+(event.clientX-photoPan.startX)));
+    photoPreview.panY=Math.max(-photoPan.maxY,Math.min(photoPan.maxY,
+      photoPan.panY+(event.clientY-photoPan.startY)));
+    image.style.transform='translate3d('+photoPreview.panX+'px,'+photoPreview.panY+'px,0) scale('+photoScale()+')';
   });
   const endPhotoPan=event=>{
     if(!photoPan||event.pointerId!==photoPan.pointerId)return;
@@ -1710,7 +1748,7 @@ export function createOrderWizard({
     if(!photoPreview||!event.target.closest?.("[data-photo-viewport]"))return;
     event.preventDefault();
     const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
-    applyPhotoZoom(current===PHOTO_ZOOM_DEFAULT?5:PHOTO_ZOOM_DEFAULT,{preserveCenter:false});
+    applyPhotoZoom(current===PHOTO_ZOOM_DEFAULT?5:PHOTO_ZOOM_DEFAULT);
   });
 
   window.addEventListener("beforeunload",event=>{
