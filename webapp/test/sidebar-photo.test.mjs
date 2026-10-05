@@ -31,7 +31,7 @@ test("full photo is displayed with no cover crop, remains separate from navigati
  assert.match(css,/background-size:100% 100%,100% 100%,auto 100%/);
  assert.match(js,/brandArtwork\.showModal\(\)/);
  assert.match(js,/brandArtwork\.close\(\)/);
- assert.match(html,/\/app\/app\.css\?v=20261005-v8/);
+ assert.match(html,/\/app\/app\.css\?v=20261005-v9/);
  assert.doesNotMatch(html,/sidebar-finish\.css|sidebar-photo\.css/);
 });
 test("new visual-only assets preserve existing HTTPS, session and CSP security",async()=>{
