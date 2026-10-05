@@ -771,8 +771,8 @@ export function createOrderWizard({
     });
   }
 
-  async function uploadAllPhotos(){
-    photoFailures.clear();
+  async function uploadAllPhotos({resetFailures=true}={}){
+    if(resetFailures)photoFailures.clear();
     const order=created?.order;
     if(!order?.id)return;
     for(let itemIndex=0;itemIndex<state.items.length;itemIndex++){
@@ -792,6 +792,38 @@ export function createOrderWizard({
           }catch(e){
             photoFailures.set(key,e.message||"No se pudo subir la fotografía.");
           }
+        }
+      }
+    }
+  }
+
+  async function claimAllMobilePhotos({resetFailures=true}={}){
+    if(resetFailures)photoFailures.clear();
+    const order=created?.order;
+    if(!order?.id)return;
+    for(let itemIndex=0;itemIndex<state.items.length;itemIndex++){
+      const sourceItem=state.items[itemIndex];
+      const item=order.items?.[itemIndex];
+      if(!item?.id)continue;
+      for(let workIndex=0;workIndex<(sourceItem.works||[]).length;workIndex++){
+        const sourceWork=sourceItem.works[workIndex];
+        const work=item.works?.[workIndex];
+        if(!UUID.test(String(sourceWork.mobileCaptureId||""))||!work?.id)continue;
+        const key="mobile:"+itemIndex+":"+workIndex;
+        try{
+          await api("/draft-photo-captures/"+encodeURIComponent(sourceWork.mobileCaptureId)+"/claim",{
+            method:"POST",
+            body:JSON.stringify({
+              orderId:order.id,
+              itemId:item.id,
+              workLineId:work.id
+            })
+          });
+          mobileCaptureSessions.delete(sourceWork.key);
+          sourceWork.mobileCaptureId="";
+          photoFailures.delete(key);
+        }catch(e){
+          photoFailures.set(key,e.message||"No se pudieron guardar las fotografías del móvil.");
         }
       }
     }
@@ -843,7 +875,11 @@ export function createOrderWizard({
       created=response;
       clearDraft();
       dirty=false;
-      await uploadAllPhotos();
+      clearInterval(capturePollTimer);
+      capturePollTimer=null;
+      photoFailures.clear();
+      await claimAllMobilePhotos({resetFailures:false});
+      await uploadAllPhotos({resetFailures:false});
       render();
       success(photoFailures.size
         ?"Pedido guardado; revisa las fotografías pendientes."
@@ -1008,7 +1044,9 @@ export function createOrderWizard({
     if(!created||busy)return;
     busyUi(true,"Reintentando…");
     try{
-      await uploadAllPhotos();
+      photoFailures.clear();
+      await claimAllMobilePhotos({resetFailures:false});
+      await uploadAllPhotos({resetFailures:false});
       render();
       success(photoFailures.size
         ?"Quedan fotografías pendientes."
