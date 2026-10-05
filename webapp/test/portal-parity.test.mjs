@@ -258,7 +258,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="payment"/);
  assert.match(wizard,/data-wizard-action="whatsapp"/);
  assert.match(wizard,/data-wizard-action="label"/);
- assert.match(wizard,/function syncFooter\(\)\{[\s\S]*?cancel\.disabled=busy;[\s\S]*?const clientStepReady=[\s\S]*?submit\.disabled=busy\|\|\(state\.step===0&&!clientStepReady\);[\s\S]*?back\.disabled=busy/);
+ assert.match(wizard,/function syncFooter\(\)\{[\s\S]*?cancel\.disabled=busy;[\s\S]*?back\.disabled=busy;[\s\S]*?const clientStepReady=[\s\S]*?submit\.disabled=busy\|\|\(state\.step===0&&!clientStepReady\)/);
  assert.match(js,/function garmentCardOrderActions\(/);
  assert.match(js,/class="garment-quick-actions"/);
  assert.match(js,/>Abrir prenda<\/button>/);
