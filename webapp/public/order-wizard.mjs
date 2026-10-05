@@ -550,12 +550,18 @@ export function createOrderWizard({
     const photos=Array.isArray(result.capture?.photos)
       ?result.capture.photos.filter(photo=>photo.status==="active"||photo.status==="claimed")
       :[];
-    const next=photos.length;
-    if(next===Number(work.mobilePhotoCount||0))return false;
-    work.mobilePhotoCount=next;
-    schedulePersist();
-    if(rerender&&active&&!created&&state.step===1)render();
-    return true;
+    const previous=JSON.stringify((work.mobilePhotos||[]).map(photo=>[
+      photo.id,photo.status,photo.isCover,photo.viewUrl,photo.downloadUrl
+    ]));
+    work.mobilePhotos=photos;
+    work.mobilePhotoCount=photos.length;
+    const next=JSON.stringify(photos.map(photo=>[
+      photo.id,photo.status,photo.isCover,photo.viewUrl,photo.downloadUrl
+    ]));
+    const changed=previous!==next;
+    if(changed)schedulePersist();
+    if(changed&&rerender&&active&&!created&&state.step===1)render();
+    return changed;
   }
 
   async function pollMobileCaptures(){
@@ -618,6 +624,8 @@ export function createOrderWizard({
     mobileCaptureSessions.delete(work.key);
     work.mobileCaptureId="";
     work.mobilePhotoCount=0;
+    work.mobilePhotos=[];
+    if(photoPreview?.workKey===work.key)photoPreview=null;
     try{
       await api("/draft-photo-captures/"+encodeURIComponent(id),{method:"DELETE"});
     }catch{}
