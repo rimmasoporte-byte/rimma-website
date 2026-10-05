@@ -231,6 +231,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
  assert.match(css,/\.wizard-mobile-capture-qr\{/);
+ assert.match(css,/\.wizard-mobile-capture\{[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr\{[\s\S]*?box-sizing:border-box[\s\S]*?max-width:166px[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr img,\.wizard-mobile-capture-qr canvas\{[\s\S]*?width:100%!important[\s\S]*?height:auto!important/);
+
  assert.match(css,/\.wizard-mobile-photo-gallery\{/);
  assert.match(css,/\.wizard-photo-preview-backdrop\{/);
  assert.match(css,/\.wizard-photo-preview-action\.danger/);
@@ -315,7 +319,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v5/);
-  assert.match(html,/app\.css\?v=20261005-v5/);
+  assert.match(html,/app\.css\?v=20261005-v6/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
