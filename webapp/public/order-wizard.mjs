@@ -371,7 +371,7 @@ export function createOrderWizard({
     const viewUrl=safePhotoUrl(photo.viewUrl);
     const downloadUrl=safePhotoUrl(photo.downloadUrl);
     if(!viewUrl)return "";
-    return '<div class="wizard-photo-preview-backdrop" data-wizard-action="close-photo-preview">'+
+    return '<div class="wizard-photo-preview-backdrop" data-photo-preview-backdrop>'+
       '<section class="wizard-photo-preview" role="dialog" aria-modal="true" aria-label="Vista previa de fotografía" data-photo-preview-panel>'+
       '<header><div><span>FOTOGRAFÍA · '+esc(preview.workName||"Trabajo")+'</span>'+
       '<strong>'+esc(photo.fileName||"Fotografía")+'</strong></div>'+
@@ -597,6 +597,10 @@ export function createOrderWizard({
     ]));
     work.mobilePhotos=photos;
     work.mobilePhotoCount=photos.length;
+    if(photoPreview?.workKey===work.key){
+      const fresh=photos.find(photo=>photo.id===photoPreview.photo?.id);
+      photoPreview=fresh?{...photoPreview,photo:fresh}:null;
+    }
     const next=JSON.stringify(photos.map(photo=>[
       photo.id,photo.status,photo.isCover,photo.viewUrl,photo.downloadUrl
     ]));
@@ -657,6 +661,79 @@ export function createOrderWizard({
     });
     schedulePersist();
     try{await refreshMobileCapture(work,{rerender:false})}catch{}
+    render();
+  }
+
+  function workAt(itemIndex,workIndex){
+    const item=state.items[Number(itemIndex)];
+    const work=item?.works?.[Number(workIndex)];
+    return {item,work};
+  }
+
+  async function openMobilePhotoPreview(itemIndex,workIndex,photoId){
+    const {work}=workAt(itemIndex,workIndex);
+    if(!work||!UUID.test(String(work.mobileCaptureId||"")))return;
+    await refreshMobileCapture(work,{rerender:false});
+    const photo=(work.mobilePhotos||[]).find(row=>row.id===photoId);
+    if(!photo)throw Error("La fotografía ya no está disponible.");
+    photoPreview={
+      itemIndex:Number(itemIndex),
+      workIndex:Number(workIndex),
+      workKey:work.key,
+      workName:work.work||"Trabajo",
+      captureId:work.mobileCaptureId,
+      photo
+    };
+    render();
+  }
+
+  async function setMobilePhotoCover(){
+    const preview=photoPreview;
+    if(!preview||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
+    const result=await api(
+      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+      "/photos/"+encodeURIComponent(preview.photo.id)+"/cover",
+      {method:"PATCH",body:JSON.stringify({})}
+    );
+    state.items.forEach(item=>(item.works||[]).forEach(work=>
+      (work.mobilePhotos||[]).forEach(photo=>{photo.isCover=false})
+    ));
+    const {work}=workAt(preview.itemIndex,preview.workIndex);
+    if(work){
+      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
+      work.mobilePhotos=photos;
+      work.mobilePhotoCount=photos.length;
+      const fresh=photos.find(photo=>photo.id===preview.photo.id);
+      photoPreview=fresh?{...preview,photo:fresh}:null;
+      schedulePersist();
+    }
+    render();
+  }
+
+  async function deleteMobilePhoto(){
+    const preview=photoPreview;
+    if(!preview||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
+    const approved=await confirmAction({
+      title:"Eliminar fotografía",
+      message:"¿Eliminar esta fotografía del borrador? Esta acción no se puede deshacer.",
+      cancelLabel:"Conservar",
+      confirmLabel:"Eliminar fotografía",
+      danger:true
+    });
+    if(!approved)return;
+    const result=await api(
+      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+      "/photos/"+encodeURIComponent(preview.photo.id),
+      {method:"DELETE"}
+    );
+    const {work}=workAt(preview.itemIndex,preview.workIndex);
+    if(work){
+      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
+      work.mobilePhotos=photos;
+      work.mobilePhotoCount=photos.length;
+      schedulePersist();
+    }
+    photoPreview=null;
     render();
   }
 
