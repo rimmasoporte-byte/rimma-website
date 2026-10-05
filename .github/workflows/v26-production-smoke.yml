@@ -1,4 +1,4 @@
-name: RIMMA V26 production smoke
+name: RIMMA production smoke
 
 on:
   pull_request:
@@ -11,14 +11,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: production-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   production-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify live V26 portal and protected APIs
+      - name: Verify live portal and protected APIs
         run: node --test ops/v26-production-smoke.test.mjs

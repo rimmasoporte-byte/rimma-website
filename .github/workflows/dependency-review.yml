@@ -1,0 +1,38 @@
+name: Dependency security
+
+on:
+  pull_request:
+    branches: [main, feat/webapp-prod-prep-20260927]
+    paths:
+      - 'webapp/package.json'
+      - 'webapp/package-lock.json'
+      - '.github/workflows/dependency-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Reject high or critical production dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high

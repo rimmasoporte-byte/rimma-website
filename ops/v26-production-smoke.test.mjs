@@ -8,6 +8,12 @@ async function get(url, options={}){
   return fetch(url,{...options,signal:AbortSignal.timeout(20000),redirect:'follow'});
 }
 
+function assetPath(source,pattern,label){
+  const match=source.match(pattern);
+  assert.ok(match?.[1],label+' asset reference is present');
+  return match[1];
+}
+
 test('production web and backend are healthy',async()=>{
   const [webHealth,apiHealth]=await Promise.all([get(app+'/health'),get(api+'/health')]);
   assert.equal(webHealth.status,200);
@@ -16,25 +22,41 @@ test('production web and backend are healthy',async()=>{
   assert.equal((await apiHealth.json()).ok,true);
 });
 
-test('production portal serves V26 atelier-first shell and same-origin QR asset',async()=>{
+test('production portal serves the atelier shell and current same-origin assets',async()=>{
   const page=await get(app+'/app/');
   assert.equal(page.status,200);
   const html=await page.text();
-  assert.match(html,/PARA HOY/);
-  assert.match(html,/CITAS HOY/);
+
+  // Assert stable product structure, not marketing copy that may change safely.
+  assert.match(html,/id="view-inicio"/);
+  assert.match(html,/id="today-cards"/);
+  assert.match(html,/data-action="new-order"/);
   assert.match(html,/id="view-citas"/);
   assert.match(html,/id="order-branch"/);
   assert.match(html,/vendor\/qrcode\.min\.js/);
 
-  const [site,features,qr]=await Promise.all([
-    get(app+'/app/site.js?v=20261003-v26'),
-    get(app+'/app/portal-features.mjs?v=20261003-v26'),
+  const sitePath=assetPath(
+    html,
+    /src="(\/app\/site\.js\?v=[^"]+)"/,
+    'site.js'
+  );
+  const site=await get(app+sitePath);
+  assert.equal(site.status,200);
+  const js=await site.text();
+
+  const featurePath=assetPath(
+    js,
+    /import\("(\/app\/portal-features\.mjs\?v=[^"]+)"\)/,
+    'portal-features.mjs'
+  );
+
+  const [features,qr]=await Promise.all([
+    get(app+featurePath),
     get(app+'/app/vendor/qrcode.min.js')
   ]);
-  assert.equal(site.status,200);
   assert.equal(features.status,200);
   assert.equal(qr.status,200);
-  const js=await site.text();
+
   const featureJs=await features.text();
   assert.match(js,/loadAppointments/);
   assert.match(js,/printGarmentLabel/);
@@ -42,7 +64,7 @@ test('production portal serves V26 atelier-first shell and same-origin QR asset'
   assert.match(featureJs,/measurementSetId/);
 });
 
-test('new V26 business routes stay protected without a session',async()=>{
+test('protected business routes reject unauthenticated requests',async()=>{
   for(const path of ['/api/data/branches','/api/data/appointments','/api/data/notification-settings']){
     const response=await get(app+path);
     assert.equal(response.status,401,path);

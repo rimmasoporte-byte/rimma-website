@@ -1,35 +1,63 @@
-# RIMMA — official website
+# RIMMA
 
-The official website is published at **https://rimmaapp.com/** from the GitHub
-Pages site served by the `main` branch of this repository.
+This repository contains the public RIMMA website, legal/support surfaces, demo assets, deployment smoke tests, and the authenticated web application.
 
-## Premium site and existing legal addresses
+## Repository map
 
-- The updated premium homepage lives at `index.html`.
-- Its optimized original brand and licensed, locally hosted fonts are under
-  `assets-v3/`; old `assets/` is intentionally preserved for the existing
-  Google Play URLs at `/privacy/`, `/terms/`, `/support/` and
-  `/delete-account/`. Never overwrite these paths without validating them.
-- New pages with matching branding are under `/legal/`.
-- `/demo/` is strictly a fictitious, in-browser preview. It is not an
-  authenticated portal and contains no production data or billable purchases.
-  Its login UI does not request real credentials.
-- The published legal policies are linked from the legal pages; account
-  deletion remains a manual support request until separately implemented.
+- `index.html`, `assets-v3/` — public marketing site;
+- `legal/`, `privacy/`, `terms/`, `support/`, `delete-account/` — public policy/support routes;
+- `demo/` — fictitious browser-only product demonstration;
+- `webapp/` — authenticated web portal and BFF;
+- `deploy-tests/`, `ops/` — public-site and deployment smoke tests;
+- `.github/workflows/` — CI, security scanning, and release checks;
+- `docs/` — architecture decisions and engineering standards.
 
-The source design is maintained in the `feat/premium-web-v3` branch under
-`new-site/`. The deployment branch uses `assets-v3/` rather than `assets/`
-to preserve backwards compatibility for old Google Play policy pages.
+The public demo is not an authenticated production portal and must not contain production credentials or customer data.
 
-Pricing shown on the site is an indicative 5 EUR/month pending the final
-Google Play publication and regional pricing confirmation.
+## Engineering quality
 
-## Verify before deployment
+The authenticated web application is governed by:
 
-Run `node --test deploy-tests/site.test.mjs`. The GitHub Actions
-`Official RIMMA Site Preflight` workflow runs for the main and staging
-branches and relevant pull requests.
+- syntax checks;
+- repository-specific engineering audits;
+- automated regression tests with PostgreSQL in CI;
+- CodeQL static security analysis;
+- locked-dependency vulnerability audits on pull requests;
+- Dependabot dependency maintenance;
+- CODEOWNERS and pull-request review checklists;
+- documented architecture, security, and contribution standards.
 
-To roll back a failed launch, restore the pre-launch commit from branch
-`backup/official-site-20260927` without removing CNAME or breaking existing
-legal links. Do not edit DNS mail records when changing web hosting.
+For the web application:
+
+```bash
+cd webapp
+npm ci
+npm run quality
+```
+
+## Documentation
+
+Start with:
+
+- `webapp/README.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ENGINEERING_STANDARDS.md`
+- `docs/QUALITY_GATES.md`
+- `docs/OPERATIONS.md`
+- `docs/GITHUB_SETTINGS.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+
+## Deployment discipline
+
+The public website and authenticated portal have separate deployment responsibilities. Do not infer production readiness from a branch name or a successful build alone.
+
+Before a production change:
+
+1. run the relevant CI and smoke tests;
+2. verify user-facing behavior manually when UI flows changed;
+3. review security and data-boundary implications;
+4. confirm configuration and rollback steps;
+5. preserve public legal/support URLs and existing DNS dependencies.
+
+Production secrets must never be stored in Git.

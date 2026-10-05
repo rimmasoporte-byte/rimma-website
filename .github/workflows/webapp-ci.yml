@@ -2,16 +2,44 @@ name: RIMMA Web Portal CI
 on:
   push:
     branches: [feat/webapp-prod-prep-20260927, fix/web-session-hardening-20260929]
-    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+    paths:
+      - 'webapp/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - '.editorconfig'
+      - '.gitattributes'
+      - '.github/CODEOWNERS'
+      - '.github/pull_request_template.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/webapp-ci.yml'
   pull_request:
     branches: [main, feat/webapp-prod-prep-20260927]
-    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+    paths:
+      - 'webapp/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - '.editorconfig'
+      - '.gitattributes'
+      - '.github/CODEOWNERS'
+      - '.github/pull_request_template.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/webapp-ci.yml'
   workflow_dispatch:
 permissions:
   contents: read
+
+concurrency:
+  group: webapp-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   staging-bff-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -33,6 +61,8 @@ jobs:
       TEST_WEB_SESSION_DATABASE_URL: postgres://rimma_ci:rimma_local_ci_only@localhost:5432/rimma_web_ci
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -40,5 +70,9 @@ jobs:
           cache-dependency-path: webapp/package-lock.json
       - run: npm ci
       - run: node scripts/ci-prepare-session-schema.mjs
-      - run: npm run check
-      - run: npm test
+      - name: Syntax check
+        run: npm run check
+      - name: Engineering audit
+        run: npm run engineering:audit
+      - name: Regression tests
+        run: npm test

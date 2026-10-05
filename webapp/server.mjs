@@ -585,5 +585,5 @@ export const server=http.createServer(async(req,res)=>{
   }
 });
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
-  server.listen(port,'0.0.0.0',()=>console.log('RIMMA web portal listening on '+port));
+  server.listen(port,'0.0.0.0',()=>console.info('RIMMA web portal listening on '+port));
 }
