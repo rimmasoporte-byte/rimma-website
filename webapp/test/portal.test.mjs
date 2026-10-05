@@ -135,7 +135,14 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   assert.equal(r.status,413,"non-photo writes retain 32KB max");
   for(const f of ['site.js','confirm-dialog.mjs','billing-view.mjs','portal-features.mjs','order-wizard.mjs','app.css','site.css','premium.css','team.css','onboarding.mjs','photo-capture.js','photo-capture.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200,f+' is served');}
   for(const legacy of ['luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css','onboarding.css']){r=await fetch(base+'/app/'+legacy);assert.equal(r.status,404,legacy+' stays removed');}
-  r=await fetch(base+'/app/');assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy').includes('fonts.googleapis.com'));assert.ok(!r.headers.get('content-security-policy').includes('unsafe-inline'));assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
+  r=await fetch(base+'/app/');assert.equal(r.status,200);
+  const csp=r.headers.get('content-security-policy')||'';
+  assert.ok(csp.includes('fonts.googleapis.com'));
+  assert.ok(!csp.includes('unsafe-inline'));
+  assert.match(csp,/img-src[^;]*\\bblob:/,'local photo previews are allowed only as image resources');
+  assert.doesNotMatch(csp,/script-src[^;]*\\bblob:/,'blob URLs must never become executable script sources');
+  assert.doesNotMatch(csp,/connect-src[^;]*\\bblob:/,'blob URLs are not network destinations');
+  assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);
   for(let i=0;i<5;i++){
