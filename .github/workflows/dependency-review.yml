@@ -1,0 +1,26 @@
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main, feat/webapp-prod-prep-20260927]
+    paths:
+      - 'webapp/package.json'
+      - 'webapp/package-lock.json'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
