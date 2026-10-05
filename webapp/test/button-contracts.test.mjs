@@ -25,6 +25,16 @@ test("all portal buttons declare an explicit type and never use inline click han
   }
 });
 
+test("a button belongs to only one action namespace",()=>{
+  const namespaces=["data-action","data-wizard-action","data-feature","data-photo-action","data-mobile-capture-action"];
+  for(const [name,source] of Object.entries({html,site,wizard,features})){
+    for(const tag of buttonStarts(source)){
+      const owners=namespaces.filter(attribute=>tag.includes(attribute+"="));
+      assert.ok(owners.length<=1,name+": conflicting button action owners "+owners.join(", ")+" in "+tag);
+    }
+  }
+});
+
 test("every application-level data-action emitted by the UI has a site dispatcher case",()=>{
   const emitted=[...new Set([
     ...values(html,"data-action"),
