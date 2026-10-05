@@ -2,10 +2,32 @@ name: RIMMA Web Portal CI
 on:
   push:
     branches: [feat/webapp-prod-prep-20260927, fix/web-session-hardening-20260929]
-    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+    paths:
+      - 'webapp/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - '.editorconfig'
+      - '.gitattributes'
+      - '.github/CODEOWNERS'
+      - '.github/pull_request_template.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/webapp-ci.yml'
   pull_request:
     branches: [main, feat/webapp-prod-prep-20260927]
-    paths: ['webapp/**', '.github/workflows/webapp-ci.yml']
+    paths:
+      - 'webapp/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - '.editorconfig'
+      - '.gitattributes'
+      - '.github/CODEOWNERS'
+      - '.github/pull_request_template.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/webapp-ci.yml'
   workflow_dispatch:
 permissions:
   contents: read
