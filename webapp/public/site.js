@@ -1136,11 +1136,21 @@ async function requestModalClose(){
  if(activeModal==="order"){try{await (await orderWizard).requestClose();}catch(e){modalError(e.message||"No se pudo cerrar el pedido.");}return;}
  $("#modal").close();
 }
+const mainModal=$("#modal");
 $("#modal-close").addEventListener("click",()=>void requestModalClose());
 $("#modal-cancel").addEventListener("click",()=>void requestModalClose());
 $("#modal-back").addEventListener("click",()=>void orderWizard.then(wizard=>wizard.back()));
-$("#modal").addEventListener("cancel",event=>{if(activeModal==="order"){event.preventDefault();void requestModalClose();}});
-$("#modal").addEventListener("close",()=>{
+mainModal.addEventListener("cancel",event=>{
+ // <input type="file"> dispatches a bubbling "cancel" event when the native
+ // file picker is dismissed. Only the dialog's own Escape/cancel event may
+ // start the "Salir del nuevo pedido" flow.
+ if(event.target!==mainModal)return;
+ if(activeModal==="order"){
+  event.preventDefault();
+  void requestModalClose();
+ }
+});
+mainModal.addEventListener("close",()=>{
  const closingType=activeModal;
  const resumeOrder=closingType==="client"&&returnToOrderAfterClient===true;
  const preferredClientId=pendingOrderClientId;
