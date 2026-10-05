@@ -28,7 +28,7 @@ const safeCurrency=value=>/^[A-Z]{3}$/.test(String(value||"").toUpperCase())?Str
 const makeWork=()=>({
   key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0",
   assignedUserId:"",photoFiles:[],photoNames:[],
-  mobileCaptureId:"",mobilePhotoCount:0
+  mobileCaptureId:"",mobilePhotoCount:0,mobilePhotos:[]
 });
 const makeItem=(currency="EUR")=>({
   key:uid(),categoryId:"",garmentType:"",label:"",works:[makeWork()],
@@ -53,7 +53,7 @@ export function createOrderWizard({
   const back=document.querySelector("#modal-back");
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
-  let active=false,busy=false,dirty=false,restored=false,created=null;
+  let active=false,busy=false,dirty=false,restored=false,created=null,photoPreview=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null,capturePollTimer=null,capturePollBusy=false;
@@ -62,6 +62,14 @@ export function createOrderWizard({
   const uploadedPhotoIndexes=new Set();
   const mobileCaptureSessions=new Map();
 
+  const safePhotoUrl=value=>{
+    try{
+      const url=new URL(String(value||""),location.origin);
+      return url.protocol==="https:"||(url.protocol==="http:"&&url.origin===location.origin)
+        ?url.href
+        :null;
+    }catch{return null}
+  };
   const money=minor=>{
     try{
       return new Intl.NumberFormat(locale?.locale||"es-ES",{
@@ -105,7 +113,7 @@ export function createOrderWizard({
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(item=>({
       ...item,
-      works:(item.works||[]).map(({photoFiles,...work})=>work)
+      works:(item.works||[]).map(({photoFiles,mobilePhotos,...work})=>work)
     }))
   });
   function persist(){
@@ -140,7 +148,7 @@ export function createOrderWizard({
         items:draft.items.slice(0,30).map(item=>{
           const baseItem=makeItem(draft.currencyCode);
           const works=Array.isArray(item.works)&&item.works.length
-            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[]}))
+            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[],mobilePhotos:[]}))
             :baseItem.works;
           return {...baseItem,...item,key:item.key||uid(),works};
         })
