@@ -621,9 +621,9 @@ async function printGarmentLabel(orderId,itemId){
    try{
     popup.focus();
     popup.print();
-   }catch(error){
+   }catch{
     closeAfterPrint();
-    throw error;
+    globalError("No se pudo abrir el diálogo de impresión.");
    }
   },250);
  }catch(e){
