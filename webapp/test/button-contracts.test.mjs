@@ -26,6 +26,30 @@ const values=(source,attribute)=>{
 };
 const buttonStarts=source=>[...source.matchAll(/<button\b[^>]*>/g)].map(match=>match[0]);
 
+
+test("required startup listeners only bind to elements that exist exactly once",()=>{
+  const htmlIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+  const counts=new Map();
+  for(const id of htmlIds)counts.set(id,(counts.get(id)||0)+1);
+
+  const requiredListenerIds=[...new Set(
+    [...site.matchAll(/\$\("#([^"]+)"\)\.addEventListener/g)].map(match=>match[1])
+  )].sort();
+
+  assert.ok(requiredListenerIds.length>=15,"expected the portal startup binding contract to cover its required controls");
+  assert.deepEqual(
+    requiredListenerIds.filter(id=>counts.get(id)!==1),
+    [],
+    "every hard-bound startup control must exist exactly once so one missing node cannot abort later button registration"
+  );
+});
+
+test("portal markup contains no duplicate ids",()=>{
+  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+  const duplicates=[...new Set(ids.filter((id,index)=>ids.indexOf(id)!==index))].sort();
+  assert.deepEqual(duplicates,[]);
+});
+
 test("all portal buttons declare an explicit type and never use inline click handlers",()=>{
   const buttonFiles=Object.entries(sources).filter(([,source])=>source.includes("<button"));
   assert.ok(buttonFiles.length>=8,"expected all button-bearing public modules to be audited");
