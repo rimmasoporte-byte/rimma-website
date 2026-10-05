@@ -57,7 +57,7 @@ test("mobile API parity features render real catalog/measurements/payments/photo
    works:[{id:UUID,name:"Dobladillo",priceMinor:3000,assignedWorker:{id:ITEM,name:"Ana"},photoCount:2}],
    photos:[{
     id:ITEM,workLineId:UUID,fileName:"recepcion.webp",photoType:"intake",caption:"Ajuste",
-    source:"desktop_upload",isCover:true,viewUrl:"https://object.example/signed?token=example",status:"active",version:1
+    source:"desktop_upload",isCover:true,viewUrl:"https://object.example/signed?token=example",downloadUrl:"https://object.example/download?token=example",status:"active",version:1
    },{id:UUID,workLineId:UUID,fileName:"bad.jpg",photoType:"other",source:"desktop_upload",
     isCover:false,viewUrl:"javascript:alert(1)",status:"active",version:1}]
   }};
@@ -87,7 +87,9 @@ test("mobile API parity features render real catalog/measurements/payments/photo
   await ui.openPhotos(UUID,ITEM);
   const photos=h.elements("#feature-body").innerHTML;
   assert.match(photos,/Ver ↗/);
+  assert.match(photos,/Descargar/);
   assert.match(photos,/https:\/\/object\.example\/signed/);
+  assert.match(photos,/https:\/\/object\.example\/download/);
   assert.match(photos,/Fotografiar con móvil/);
   assert.match(photos,/Portada/);
   assert.doesNotMatch(photos,/href="javascript:/);
@@ -151,7 +153,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261005-v3/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v5/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -184,7 +186,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/const orderCreate=method==='POST' && route==='\/orders'/);
  assert.match(server,/items\\\/\[a-f0-9-\]\{36\}.*works/);
  assert.match(server,/order_item_work_lines/);
- assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v5/);
  assert.match(js,/confirm-dialog\.mjs\?v=20261005-v1/);
  assert.match(server,/duplicate-check/);
  assert.match(js,/api\("\/clients\/duplicate-check\?"/);
@@ -217,9 +219,24 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="mobile-photo"/);
  assert.match(wizard,/data-mobile-qr-key/);
  assert.match(wizard,/claimAllMobilePhotos/);
+ assert.match(wizard,/wizard-mobile-photo-gallery/);
+ assert.match(wizard,/data-wizard-action="preview-mobile-photo"/);
+ assert.match(wizard,/data-wizard-action="set-mobile-cover"/);
+ assert.match(wizard,/data-wizard-action="delete-mobile-photo"/);
+ assert.match(wizard,/Descargar/);
+ assert.match(wizard,/Eliminar fotografía/);
+ assert.match(wizard,/Usar como portada/);
+ assert.match(wizard,/downloadUrl/);
+
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
  assert.match(css,/\.wizard-mobile-capture-qr\{/);
+ assert.match(css,/\.wizard-mobile-photo-gallery\{/);
+ assert.match(css,/\.wizard-photo-preview-backdrop\{/);
+ assert.match(css,/\.wizard-photo-preview-action\.danger/);
+ assert.ok(server.includes("draft-photo-captures\\/[a-f0-9-]{36}\\/photos"));
+ assert.match(server,/img-src 'self' data: https:/);
+
 
  assert.match(css,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
  assert.match(css,/\.wizard-file-button\{/);
@@ -297,8 +314,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261005-v4/);
-  assert.match(html,/app\.css\?v=20261005-v3/);
+  assert.match(html,/site\.js\?v=20261005-v5/);
+  assert.match(html,/app\.css\?v=20261005-v5/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
@@ -312,7 +329,7 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
- assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v5/);
  for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
   assert.ok(feat.includes('"'+territory+'"'),territory);
  assert.match(feat,/Territorio común · IVA \/ AEAT/);

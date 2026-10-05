@@ -28,7 +28,7 @@ const safeCurrency=value=>/^[A-Z]{3}$/.test(String(value||"").toUpperCase())?Str
 const makeWork=()=>({
   key:uid(),serviceIndex:"",categoryId:null,serviceId:null,work:"",price:"0",
   assignedUserId:"",photoFiles:[],photoNames:[],
-  mobileCaptureId:"",mobilePhotoCount:0
+  mobileCaptureId:"",mobilePhotoCount:0,mobilePhotos:[]
 });
 const makeItem=(currency="EUR")=>({
   key:uid(),categoryId:"",garmentType:"",label:"",works:[makeWork()],
@@ -53,7 +53,7 @@ export function createOrderWizard({
   const back=document.querySelector("#modal-back");
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
-  let active=false,busy=false,dirty=false,restored=false,created=null;
+  let active=false,busy=false,dirty=false,restored=false,created=null,photoPreview=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null,capturePollTimer=null,capturePollBusy=false;
@@ -62,6 +62,14 @@ export function createOrderWizard({
   const uploadedPhotoIndexes=new Set();
   const mobileCaptureSessions=new Map();
 
+  const safePhotoUrl=value=>{
+    try{
+      const url=new URL(String(value||""),location.origin);
+      return url.protocol==="https:"||(url.protocol==="http:"&&url.origin===location.origin)
+        ?url.href
+        :null;
+    }catch{return null}
+  };
   const money=minor=>{
     try{
       return new Intl.NumberFormat(locale?.locale||"es-ES",{
@@ -105,7 +113,7 @@ export function createOrderWizard({
     dueDate:state.dueDate,notes:state.notes,
     items:state.items.map(item=>({
       ...item,
-      works:(item.works||[]).map(({photoFiles,...work})=>work)
+      works:(item.works||[]).map(({photoFiles,mobilePhotos,...work})=>work)
     }))
   });
   function persist(){
@@ -140,7 +148,7 @@ export function createOrderWizard({
         items:draft.items.slice(0,30).map(item=>{
           const baseItem=makeItem(draft.currencyCode);
           const works=Array.isArray(item.works)&&item.works.length
-            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[]}))
+            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[],mobilePhotos:[]}))
             :baseItem.works;
           return {...baseItem,...item,key:item.key||uid(),works};
         })
@@ -338,6 +346,47 @@ export function createOrderWizard({
       '</div></div>';
   }
 
+  function mobilePhotoGallery(work,itemIndex,workIndex){
+    const photos=Array.isArray(work.mobilePhotos)?work.mobilePhotos:[];
+    if(!photos.length)return "";
+    return '<div class="wizard-mobile-photo-gallery" aria-label="Fotografías desde móvil">'+
+      photos.map(photo=>{
+        const url=safePhotoUrl(photo.viewUrl);
+        if(!url)return "";
+        return '<button type="button" class="wizard-mobile-photo-thumb'+(photo.isCover?' is-cover':'')+'" '+
+          'data-wizard-action="preview-mobile-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-photo-id="'+esc(photo.id)+'" '+
+          'aria-label="Abrir '+esc(photo.fileName||"fotografía")+'">'+
+          '<img src="'+esc(url)+'" alt="">'+
+          '<span class="wizard-mobile-photo-source">Móvil</span>'+
+          (photo.isCover?'<span class="wizard-mobile-photo-cover">Portada</span>':"")+
+          '</button>';
+      }).join("")+
+      '</div>';
+  }
+
+  function photoPreviewOverlay(){
+    const preview=photoPreview;
+    const photo=preview?.photo;
+    if(!preview||!photo)return "";
+    const viewUrl=safePhotoUrl(photo.viewUrl);
+    const downloadUrl=safePhotoUrl(photo.downloadUrl);
+    if(!viewUrl)return "";
+    return '<div class="wizard-photo-preview-backdrop" data-photo-preview-backdrop>'+
+      '<section class="wizard-photo-preview" role="dialog" aria-modal="true" aria-label="Vista previa de fotografía" data-photo-preview-panel>'+
+      '<header><div><span>FOTOGRAFÍA · '+esc(preview.workName||"Trabajo")+'</span>'+
+      '<strong>'+esc(photo.fileName||"Fotografía")+'</strong></div>'+
+      '<button type="button" class="wizard-photo-preview-close" data-wizard-action="close-photo-preview" aria-label="Cerrar">×</button></header>'+
+      '<div class="wizard-photo-preview-image"><img src="'+esc(viewUrl)+'" alt="'+esc(photo.fileName||"Fotografía")+'"></div>'+
+      '<div class="wizard-photo-preview-meta"><span>Móvil</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
+      (photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+'</div>'+
+      '<footer>'+
+      (downloadUrl?'<a class="wizard-photo-preview-action" href="'+esc(downloadUrl)+'">Descargar</a>':"")+
+      (!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
+      '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="delete-mobile-photo">Eliminar fotografía</button>'+
+      '<button type="button" class="wizard-photo-preview-action primary" data-wizard-action="close-photo-preview">Cerrar</button>'+
+      '</footer></section></div>';
+  }
+
   function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
     const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
@@ -376,6 +425,7 @@ export function createOrderWizard({
         (mobileCount?'<span>'+mobileCount+' desde móvil</span>':"")+
         '</div>':"")+
       (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
+      mobilePhotoGallery(work,itemIndex,workIndex)+
       mobileCapturePanel(work,itemIndex,workIndex)+
       '</div>'+
       '</div></section>';
@@ -410,7 +460,7 @@ export function createOrderWizard({
       '<p>Elige la prenda y registra cada trabajo con su precio, responsable y fotografías.</p></div>'+
       '<div class="wizard-garment-list">'+state.items.map(itemCard).join("")+'</div>'+
       '<button type="button" class="wizard-add-garment" data-wizard-action="add-item">+ Añadir otra prenda</button>'+
-      '</section>';
+      '</section>'+photoPreviewOverlay();
   }
 
   function deliveryRow(item,index){
@@ -542,12 +592,22 @@ export function createOrderWizard({
     const photos=Array.isArray(result.capture?.photos)
       ?result.capture.photos.filter(photo=>photo.status==="active"||photo.status==="claimed")
       :[];
-    const next=photos.length;
-    if(next===Number(work.mobilePhotoCount||0))return false;
-    work.mobilePhotoCount=next;
-    schedulePersist();
-    if(rerender&&active&&!created&&state.step===1)render();
-    return true;
+    const previous=JSON.stringify((work.mobilePhotos||[]).map(photo=>[
+      photo.id,photo.status,photo.isCover,photo.sizeBytes
+    ]));
+    work.mobilePhotos=photos;
+    work.mobilePhotoCount=photos.length;
+    if(photoPreview?.workKey===work.key){
+      const fresh=photos.find(photo=>photo.id===photoPreview.photo?.id);
+      photoPreview=fresh?{...photoPreview,photo:fresh}:null;
+    }
+    const next=JSON.stringify(photos.map(photo=>[
+      photo.id,photo.status,photo.isCover,photo.sizeBytes
+    ]));
+    const changed=previous!==next;
+    if(changed)schedulePersist();
+    if(changed&&rerender&&active&&!created&&state.step===1)render();
+    return changed;
   }
 
   async function pollMobileCaptures(){
@@ -604,12 +664,87 @@ export function createOrderWizard({
     render();
   }
 
+  function workAt(itemIndex,workIndex){
+    const item=state.items[Number(itemIndex)];
+    const work=item?.works?.[Number(workIndex)];
+    return {item,work};
+  }
+
+  async function openMobilePhotoPreview(itemIndex,workIndex,photoId){
+    const {work}=workAt(itemIndex,workIndex);
+    if(!work||!UUID.test(String(work.mobileCaptureId||"")))return;
+    await refreshMobileCapture(work,{rerender:false});
+    const photo=(work.mobilePhotos||[]).find(row=>row.id===photoId);
+    if(!photo)throw Error("La fotografía ya no está disponible.");
+    photoPreview={
+      itemIndex:Number(itemIndex),
+      workIndex:Number(workIndex),
+      workKey:work.key,
+      workName:work.work||"Trabajo",
+      captureId:work.mobileCaptureId,
+      photo
+    };
+    render();
+  }
+
+  async function setMobilePhotoCover(){
+    const preview=photoPreview;
+    if(!preview||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
+    const result=await api(
+      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+      "/photos/"+encodeURIComponent(preview.photo.id)+"/cover",
+      {method:"PATCH",body:JSON.stringify({})}
+    );
+    state.items.forEach(item=>(item.works||[]).forEach(work=>
+      (work.mobilePhotos||[]).forEach(photo=>{photo.isCover=false})
+    ));
+    const {work}=workAt(preview.itemIndex,preview.workIndex);
+    if(work){
+      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
+      work.mobilePhotos=photos;
+      work.mobilePhotoCount=photos.length;
+      const fresh=photos.find(photo=>photo.id===preview.photo.id);
+      photoPreview=fresh?{...preview,photo:fresh}:null;
+      schedulePersist();
+    }
+    render();
+  }
+
+  async function deleteMobilePhoto(){
+    const preview=photoPreview;
+    if(!preview||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
+    const approved=await confirmAction({
+      title:"Eliminar fotografía",
+      message:"¿Eliminar esta fotografía del borrador? Esta acción no se puede deshacer.",
+      cancelLabel:"Conservar",
+      confirmLabel:"Eliminar fotografía",
+      danger:true
+    });
+    if(!approved)return;
+    const result=await api(
+      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+      "/photos/"+encodeURIComponent(preview.photo.id),
+      {method:"DELETE"}
+    );
+    const {work}=workAt(preview.itemIndex,preview.workIndex);
+    if(work){
+      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
+      work.mobilePhotos=photos;
+      work.mobilePhotoCount=photos.length;
+      schedulePersist();
+    }
+    photoPreview=null;
+    render();
+  }
+
   async function discardMobileCapture(work){
     if(!UUID.test(String(work?.mobileCaptureId||"")))return;
     const id=work.mobileCaptureId;
     mobileCaptureSessions.delete(work.key);
     work.mobileCaptureId="";
     work.mobilePhotoCount=0;
+    work.mobilePhotos=[];
+    if(photoPreview?.workKey===work.key)photoPreview=null;
     try{
       await api("/draft-photo-captures/"+encodeURIComponent(id),{method:"DELETE"});
     }catch{}
@@ -1166,6 +1301,11 @@ export function createOrderWizard({
   });
   fields.addEventListener("click",event=>{
     if(!active)return;
+    if(photoPreview&&event.target.matches?.("[data-photo-preview-backdrop]")){
+      photoPreview=null;
+      render();
+      return;
+    }
     const stepButton=event.target.closest("[data-wizard-step]");
     if(stepButton&&!created){
       const next=Number(stepButton.dataset.wizardStep);
@@ -1195,6 +1335,26 @@ export function createOrderWizard({
         schedulePersist();
         render();
       }
+      return;
+    }
+    if(actionName==="preview-mobile-photo"){
+      const index=Number(button.dataset.index);
+      const workIndex=Number(button.dataset.workIndex);
+      const photoId=String(button.dataset.photoId||"");
+      void openMobilePhotoPreview(index,workIndex,photoId).catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="close-photo-preview"){
+      photoPreview=null;
+      render();
+      return;
+    }
+    if(actionName==="set-mobile-cover"){
+      void setMobilePhotoCover().catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="delete-mobile-photo"){
+      void deleteMobilePhoto().catch(e=>setError(humanError(e)));
       return;
     }
     if(actionName==="mobile-photo"){
@@ -1258,6 +1418,12 @@ export function createOrderWizard({
     void action(actionName);
   });
   fields.addEventListener("keydown",event=>{
+    if(photoPreview&&event.key==="Escape"){
+      event.preventDefault();
+      photoPreview=null;
+      render();
+      return;
+    }
     if(!active||created||event.target.id!=="ow-client-search")return;
     if(event.key==="Escape"){
       event.preventDefault();
@@ -1309,6 +1475,7 @@ export function createOrderWizard({
   async function open(preferredClientId=null){
     active=true;
     created=null;
+    photoPreview=null;
     photoFailures.clear();
     preparedPhotos.clear();
     uploadedPhotoIndexes.clear();
@@ -1410,6 +1577,7 @@ export function createOrderWizard({
     capturePollTimer=null;
     capturePollBusy=false;
     mobileCaptureSessions.clear();
+    photoPreview=null;
     clientSearchSeq++;
     clientMatches=[];
     clientActiveIndex=-1;
