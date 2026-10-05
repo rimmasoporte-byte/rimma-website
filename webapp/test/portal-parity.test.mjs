@@ -153,7 +153,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261005-v5/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v8/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -186,7 +186,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/const orderCreate=method==='POST' && route==='\/orders'/);
  assert.match(server,/items\\\/\[a-f0-9-\]\{36\}.*works/);
  assert.match(server,/order_item_work_lines/);
- assert.match(js,/portal-features\.mjs\?v=20261005-v5/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v8/);
  assert.match(js,/confirm-dialog\.mjs\?v=20261005-v1/);
  assert.match(server,/duplicate-check/);
  assert.match(js,/api\("\/clients\/duplicate-check\?"/);
@@ -300,6 +300,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/class="garment-work-lines"/);
  assert.match(feat,/class="order-info-work-lines"/);
  assert.match(feat,/async function openOrderInfo\(orderId\)/);
+ assert.match(wizard,/if\(name==="open-order"\)\{[\s\S]*?await onOpenOrder\?\.\(order\.id\)[\s\S]*?return;/);
+ assert.doesNotMatch(wizard,/if\(name==="open-order"\)\{[\s\S]{0,180}?modal\.close\(\)/);
+ assert.match(feat,/const orderNumber=String\(o\.orderNumber\|\|""\)\.padStart\(4,"0"\)/);
+ assert.match(css,/#feature-dialog\[data-mode="order-info"\] \.order-info-summary strong\{[\s\S]*?font:650 17px\/1\.25 var\(--font\)/);
+ assert.match(css,/\.order-info-hero h3\{[\s\S]*?font:650 20px\/1\.25 var\(--font\)/);
+
  assert.match(feat,/layout\("garment-edit"/);
  assert.match(feat,/layout\("order-info"/);
  assert.match(feat,/Ficha de la prenda/);
@@ -322,8 +328,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261005-v5/);
-  assert.match(html,/app\.css\?v=20261005-v7/);
+  assert.match(html,/site\.js\?v=20261005-v8/);
+  assert.match(html,/app\.css\?v=20261005-v8/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
@@ -337,7 +343,7 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
- assert.match(js,/portal-features\.mjs\?v=20261005-v5/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v8/);
  for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
   assert.ok(feat.includes('"'+territory+'"'),territory);
  assert.match(feat,/Territorio común · IVA \/ AEAT/);
