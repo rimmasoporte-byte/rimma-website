@@ -89,4 +89,4 @@ Key rotation is supported through the current session key plus explicitly config
 - Treat a successful build or deployment as necessary but not sufficient verification.
 - Reduce large modules incrementally; do not rewrite working production flows without tests and review.
 
-See `../CONTRIBUTING.md`, `../SECURITY.md`, and `../docs/ENGINEERING_STANDARDS.md`.
+See `../CONTRIBUTING.md`, `../SECURITY.md`, `../docs/ENGINEERING_STANDARDS.md`, `../docs/QUALITY_GATES.md`, and `../docs/OPERATIONS.md`.
