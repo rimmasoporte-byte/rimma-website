@@ -153,7 +153,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261005-v8/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v\d+/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -217,36 +217,38 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/Hacer foto con el móvil/);
  assert.match(wizard,/\/draft-photo-captures/);
  assert.match(wizard,/data-wizard-action="mobile-photo"/);
- assert.match(wizard,/data-mobile-qr-key/);
+ assert.match(wizard,/data-mobile-capture-qr/);
  assert.match(wizard,/claimAllMobilePhotos/);
- assert.match(wizard,/wizard-mobile-photo-gallery/);
+ assert.match(wizard,/wizard-photo-gallery/);
  assert.match(wizard,/data-wizard-action="preview-mobile-photo"/);
- assert.match(wizard,/data-wizard-action="set-mobile-cover"/);
- assert.match(wizard,/data-wizard-action="delete-mobile-photo"/);
+ assert.match(wizard,/data-photo-action="set-cover"/);
+ assert.match(wizard,/data-photo-action="delete"/);
+ assert.match(wizard,/data-photo-action="zoom-in"/);
  assert.match(wizard,/Descargar/);
  assert.match(wizard,/Eliminar fotografía/);
  assert.match(wizard,/Usar como portada/);
- assert.match(wizard,/downloadUrl/);
+ assert.match(wizard,/remoteDownload/);
+ assert.match(wizard,/replaceWorkPhotos/);
+ assert.match(wizard,/file\.size>150\*1024/);
+ assert.match(wizard,/localCoverFile/);
 
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
- assert.match(css,/\.wizard-mobile-capture-qr\{/);
+ assert.match(css,/#order-mobile-capture-dialog\{/);
+ assert.match(css,/\.mobile-capture-dialog-qr\{/);
  assert.match(css,/Canonical order photo controls/);
  assert.match(css,/\.wizard-photo-control\{[\s\S]*?box-sizing:border-box[\s\S]*?width:100%[\s\S]*?max-width:100%[\s\S]*?overflow-x:clip/);
  assert.match(css,/\.wizard-photo-control \*\{box-sizing:border-box\}/);
- assert.match(css,/\.wizard-mobile-capture\{[\s\S]*?grid-template-columns:minmax\(0,1fr\) minmax\(140px,166px\)[\s\S]*?width:auto[\s\S]*?max-width:100%[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-mobile-capture-qr\{[\s\S]*?width:min\(166px,100%\)[\s\S]*?max-width:100%[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-mobile-capture-qr img,[\s\S]*?\.wizard-mobile-capture-qr canvas\{[\s\S]*?width:100%!important[\s\S]*?max-width:150px!important[\s\S]*?height:auto!important/);
+ assert.match(css,/\.mobile-capture-dialog-qr\{[\s\S]*?width:258px[\s\S]*?height:258px[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.mobile-capture-dialog-qr img,[\s\S]*?\.mobile-capture-dialog-qr canvas\{[\s\S]*?width:240px!important[\s\S]*?height:240px!important/);
 
- assert.match(css,/\.wizard-mobile-photo-gallery\{/);
- assert.match(css,/\.wizard-photo-preview-backdrop\{/);
- assert.match(css,/\.wizard-photo-preview\{[\s\S]*?height:min\(90vh,720px\)[\s\S]*?grid-template-rows:auto minmax\(0,1fr\) auto auto[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-photo-preview-image\{[\s\S]*?min-height:0[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-photo-preview-image img\{[\s\S]*?max-width:100%[\s\S]*?max-height:100%/);
-
- assert.match(css,/\.wizard-photo-preview-action\.danger/);
+ assert.match(css,/\.wizard-photo-gallery\{/);
+ assert.match(css,/#order-photo-viewer\{[\s\S]*?width:100vw[\s\S]*?height:100dvh[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-photo-viewport\{[\s\S]*?min-height:0[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-photo-stage img\{[\s\S]*?max-width:calc\(100% - 36px\)[\s\S]*?max-height:calc\(100% - 36px\)[\s\S]*?object-fit:contain/);
+ assert.match(css,/\.wizard-photo-viewer-action\.danger/);
  assert.ok(server.includes("draft-photo-captures\\/[a-f0-9-]{36}\\/photos"));
- assert.match(server,/img-src 'self' data: https:/);
+ assert.match(server,/img-src 'self' data: blob: https:/);
 
 
  assert.match(css,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
@@ -256,7 +258,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="payment"/);
  assert.match(wizard,/data-wizard-action="whatsapp"/);
  assert.match(wizard,/data-wizard-action="label"/);
- assert.match(wizard,/function syncFooter\(\)\{[\s\S]*?submit\.disabled=busy;[\s\S]*?cancel\.disabled=busy;[\s\S]*?back\.disabled=busy/);
+ assert.match(wizard,/function syncFooter\(\)\{[\s\S]*?cancel\.disabled=busy;[\s\S]*?const clientStepReady=[\s\S]*?submit\.disabled=busy\|\|\(state\.step===0&&!clientStepReady\);[\s\S]*?back\.disabled=busy/);
  assert.match(js,/function garmentCardOrderActions\(/);
  assert.match(js,/class="garment-quick-actions"/);
  assert.match(js,/>Abrir prenda<\/button>/);
