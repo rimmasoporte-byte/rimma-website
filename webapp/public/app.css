@@ -4535,7 +4535,7 @@ button:disabled,.feature-button[disabled]{
 .work-photo-card>header>b{color:var(--parity-forest);font:700 13px/1.3 var(--font-ui);white-space:nowrap}
 .work-photo-list{display:grid;gap:7px}
 .work-photo-row{
-  display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:7px;align-items:center;
+  display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:7px;align-items:center;
   padding:9px 10px;border:1px solid #eee5d8;border-radius:8px;background:#fff
 }
 .work-photo-row.is-cover{border-color:#c8ad7b;background:#fffaf0}
