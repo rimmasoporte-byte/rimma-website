@@ -63,3 +63,16 @@ test('order wizard exposes the current step to CSS and removes it when the wizar
   assert.match(wizard,/modal\.dataset\.wizardStep=String\(state\.step\)/);
   assert.match(wizard,/delete modal\.dataset\.wizardStep/);
 });
+
+
+test('new client action switches directly to the client form without relying on dialog close timing',()=>{
+  const start=wizard.indexOf('if(name==="new-client")');
+  const end=wizard.indexOf('if(name==="toggle-item-date")',start);
+  assert.ok(start>=0&&end>start,'new-client action exists');
+  const block=wizard.slice(start,end);
+  assert.match(block,/persist\(\)/);
+  assert.match(block,/closed\(\)/);
+  assert.match(block,/onOpenClient\(\)/);
+  assert.doesNotMatch(block,/modal\.addEventListener\("close"/);
+  assert.doesNotMatch(block,/modal\.close\(\)/);
+});
