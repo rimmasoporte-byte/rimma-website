@@ -159,7 +159,7 @@ let orderWizardLoad=null;
 function getOrderWizard(){
  if(orderWizardInstance)return Promise.resolve(orderWizardInstance);
  if(orderWizardLoad)return orderWizardLoad;
- orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v21")
+ orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v22")
   .then(module=>{
    orderWizardInstance=module.createOrderWizard({
     api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
@@ -1123,6 +1123,11 @@ document.addEventListener("click",event=>{
  if(b.dataset.view){go(b.dataset.view);return;}
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
+  case "new-client-from-order":
+   void getOrderWizard()
+    .then(wizard=>wizard.openClient())
+    .catch(e=>modalError(e.message||"No se pudo abrir el formulario de cliente."));
+   break;
   case "new-order":void openNewOrder();break;
   case "new-appointment":openModal("appointment");break;
     case "refresh-notifications":void loadAtelierAccountSettings();break;
