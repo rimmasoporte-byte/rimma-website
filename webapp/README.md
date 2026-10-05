@@ -61,7 +61,7 @@ npm run quality
 
 The engineering audit enforces architectural growth budgets, checks governance files, rejects dangerous production patterns, scans for common committed-secret signatures, and verifies that browser source does not reference backend token material.
 
-GitHub CI repeats the same checks with a disposable PostgreSQL service. CodeQL, dependency review, and Dependabot provide additional repository-level controls.
+GitHub CI repeats the same checks with a disposable PostgreSQL service. CodeQL, locked-dependency vulnerability audits, and Dependabot provide additional repository-level controls.
 
 ## Local UI verification
 
