@@ -202,16 +202,19 @@ export function createOrderWizard({
   }
   function syncFooter(){
     if(!active)return;
-    submit.disabled=busy;
+    modal.dataset.wizardStep=String(state.step);
     cancel.disabled=busy;
     if(back)back.disabled=busy;
     if(created){
+      submit.disabled=busy;
       if(back)back.hidden=true;
       cancel.hidden=true;
       submit.hidden=false;
       submit.textContent="Volver a pedidos";
       return;
     }
+    const clientStepReady=UUID.test(String(state.clientId||""))&&UUID.test(String(state.branchId||""));
+    submit.disabled=busy||(state.step===0&&!clientStepReady);
     cancel.hidden=false;
     submit.hidden=false;
     if(back){
@@ -303,6 +306,7 @@ export function createOrderWizard({
     clientActiveIndex=-1;
     if(!keepQuery)clientMatches=[];
     schedulePersist();
+    syncFooter();
   }
   async function searchClients(query){
     const q=String(query||"").trim();
@@ -348,7 +352,7 @@ export function createOrderWizard({
       '<p>Empieza a escribir el nombre, teléfono o email. RIMMA mostrará solo coincidencias.</p></div>'+
       (restored?'<div class="wizard-draft-notice"><span>✓ Borrador recuperado</span>'+
         '<button type="button" data-wizard-action="discard-draft">Empezar de nuevo</button></div>':"")+
-      '<div class="wizard-control wizard-wide wizard-client-search"><label for="ow-client-search">Cliente *</label>'+
+      '<div class="wizard-control wizard-wide wizard-client-search"><label for="ow-client-search">Cliente <span class="wizard-required" aria-hidden="true">*</span></label>'+
       '<div class="wizard-client-searchbox"><div class="wizard-client-combobox">'+
       '<input id="ow-client-search" type="search" inputmode="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="ow-client-results" aria-expanded="false" data-wizard-field="clientId" value="'+esc(state.clientLabel)+'" placeholder="Escribe nombre, teléfono o email">'+
       (state.clientId?'<span class="wizard-client-confirmation" aria-hidden="true">✓</span>':"")+
@@ -358,7 +362,7 @@ export function createOrderWizard({
       (!state.clientId?'<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>':"")+
       '</div>'+
       '<div class="wizard-inline-actions"><button type="button" class="record-action" data-wizard-action="new-client">+ Nuevo cliente</button></div>'+
-      (singleBranch?'<div class="wizard-readonly"><small>Ubicación</small><strong>'+
+      (singleBranch?'<div class="wizard-readonly wizard-branch-readonly"><small>Ubicación del taller</small><strong>'+
         esc(branches[0]?.name||"Taller")+'</strong></div>':
         '<div class="wizard-control"><label for="ow-branch">Ubicación *</label>'+
         '<select id="ow-branch" data-wizard-field="branchId"><option value="">Selecciona una ubicación</option>'+
@@ -1655,6 +1659,7 @@ export function createOrderWizard({
     }else if(target.dataset.wizardField==="branchId"){
       state.branchId=target.value;
       schedulePersist();
+      syncFooter();
     }else if(target.dataset.wizardField==="dueDate"){
       state.dueDate=target.value;
       schedulePersist();
@@ -2024,6 +2029,7 @@ export function createOrderWizard({
     active=false;
     busy=false;
     created=null;
+    delete modal.dataset.wizardStep;
     modal.classList.remove("order-wizard-modal");
     if(back)back.hidden=true;
     cancel.hidden=false;
