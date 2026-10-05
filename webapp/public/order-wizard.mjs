@@ -369,7 +369,11 @@ export function createOrderWizard({
     const photo=preview?.photo;
     if(!preview||!photo)return "";
     const viewUrl=safePhotoUrl(photo.viewUrl);
-    const downloadUrl=safePhotoUrl(photo.downloadUrl);
+    const downloadPath=
+      UUID.test(String(preview.captureId||""))&&UUID.test(String(photo.id||""))
+        ?"/api/data/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
+          "/photos/"+encodeURIComponent(photo.id)+"/download"
+        :null;
     if(!viewUrl)return "";
     return '<div class="wizard-photo-preview-backdrop" data-photo-preview-backdrop>'+
       '<section class="wizard-photo-preview" role="dialog" aria-modal="true" aria-label="Vista previa de fotografía" data-photo-preview-panel>'+
@@ -380,7 +384,7 @@ export function createOrderWizard({
       '<div class="wizard-photo-preview-meta"><span>Móvil</span><span>'+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
       (photo.isCover?'<span class="is-cover">Portada del pedido</span>':"")+'</div>'+
       '<footer>'+
-      (downloadUrl?'<a class="wizard-photo-preview-action" href="'+esc(downloadUrl)+'">Descargar</a>':"")+
+      (downloadPath?'<a class="wizard-photo-preview-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
       (!photo.isCover?'<button type="button" class="wizard-photo-preview-action" data-wizard-action="set-mobile-cover">Usar como portada</button>':"")+
       '<button type="button" class="wizard-photo-preview-action danger" data-wizard-action="delete-mobile-photo">Eliminar fotografía</button>'+
       '<button type="button" class="wizard-photo-preview-action primary" data-wizard-action="close-photo-preview">Cerrar</button>'+
