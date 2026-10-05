@@ -1,0 +1,36 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main, feat/webapp-prod-prep-20260927]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [main, feat/webapp-prod-prep-20260927]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/codeql.yml'
+  schedule:
+    - cron: '17 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: JavaScript security analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
