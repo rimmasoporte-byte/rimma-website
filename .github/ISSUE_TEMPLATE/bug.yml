@@ -1,0 +1,77 @@
+name: Bug report
+description: Report a reproducible RIMMA defect
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What failed, in one clear statement?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web portal
+        - Orders
+        - Clients
+        - Payments
+        - Photos
+        - Documents
+        - Billing / subscription
+        - Authentication / account
+        - Team / permissions
+        - Public website
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser/device, deployed environment, and relevant version/commit if known.
+
+  - type: checkboxes
+    id: risk
+    attributes:
+      label: Risk flags
+      options:
+        - label: Authentication or permissions may be affected
+        - label: Customer data may be affected
+        - label: Billing/payment state may be affected
+        - label: A destructive action may be affected
+        - label: The issue is reproducible after a hard refresh
+
+  - type: markdown
+    attributes:
+      value: "Do not paste passwords, tokens, private keys, electronic certificates, customer exports, or private customer images into a public issue."
