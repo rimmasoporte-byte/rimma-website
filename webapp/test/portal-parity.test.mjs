@@ -293,8 +293,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.order-wizard-modal\{width:min\(96vw,820px\)/);
  assert.doesNotMatch(css,/\.extra-order-item/);
  assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
- assert.match(wizard,/if\(name==="new-client"\)\{[\s\S]*?persist\(\);[\s\S]*?closed\(\);[\s\S]*?onOpenClient\(\);[\s\S]*?return;/);
- assert.doesNotMatch(wizard,/modal\.addEventListener\("close",\(\)=>onOpenClient/);
+ assert.match(wizard,/data-action="new-client-from-order"/);
+ assert.match(wizard,/function openClientFromOrder\(\)\{[\s\S]*?persist\(\);[\s\S]*?active=false;[\s\S]*?onOpenClient\(\)/);
+ assert.match(js,/case "new-client-from-order":[\s\S]*?wizard=>wizard\.openClient\(\)/);
+ assert.doesNotMatch(wizard,/data-wizard-action="new-client"/);
  assert.match(feat,/RIMMA prepara el mensaje|data-feature="whatsapp-open"/);
  assert.match(feat,/async function openGarment\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentEdit\(orderId,itemId\)/);
