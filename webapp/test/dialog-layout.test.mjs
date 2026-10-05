@@ -22,3 +22,11 @@ test('desktop wizard shell cannot become a hidden programmatic scroll container'
   const desktop=css.slice(css.indexOf(marker),css.indexOf('@media(max-height:480px)'));
   assert.doesNotMatch(desktop,/#modal-form\{[^}]*overflow\s*:\s*(?:auto|hidden)/);
 });
+
+
+test('first order step hides its redundant scrollbar without disabling scroll',()=>{
+  assert.match(css,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields\{[^}]*scrollbar-width:none/);
+  assert.match(css,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields::\-webkit-scrollbar\{[^}]*display:none/);
+  const firstStep=css.slice(css.indexOf('.order-wizard-modal[data-wizard-step="0"] #modal-fields{'));
+  assert.doesNotMatch(firstStep.slice(0,900),/overflow-y\s*:\s*hidden/);
+});
