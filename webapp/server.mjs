@@ -31,13 +31,14 @@ const signupSendIpThrottle = createLoginThrottle(sessions,{namespace:'signup-sen
 const signupActionIpThrottle = createLoginThrottle(sessions,{namespace:'signup-action-ip',maxAttempts:40,windowMs:15*60_000});
 const signupRegisterIpThrottle = createLoginThrottle(sessions,{namespace:'signup-register-ip',maxAttempts:6,windowMs:24*60*60_000});
 const inviteIpThrottle = createLoginThrottle(sessions,{namespace:'team-invite-public-ip',maxAttempts:30,windowMs:15*60_000});
+const photoCaptureIpThrottle = createLoginThrottle(sessions,{namespace:'photo-capture-public-ip',maxAttempts:60,windowMs:15*60_000});
 const sessionMaxMs = 7 * 24 * 3600 * 1000;
 const maxBody = 32 * 1024;
 const maxPhotoBody = 240 * 1024; // mirrors railway_photo_body; only authenticated photo POST
 const responseLimit = 2 * 1024 * 1024;
 const available = Object.freeze({
   GET: [/^\/me$/, /^\/business-profile$/, /^\/fiscal\/(?:readiness|settings)$/, /^\/billing$/, /^\/dashboard\/(?:today|week|needs-reply)$/, /^\/workspace\/members$/, /^\/team$/, /^\/branches(?:\/[a-f0-9-]{36}\/summary)?$/, /^\/appointments$/, /^\/notification-settings$/, /^\/clients(?:\/[a-f0-9-]{36}|\/duplicate-check)?$/, /^\/clients\/[a-f0-9-]{36}\/(?:measurements|fiscal-profile)$/, /^\/orders(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/documents(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/invoices(?:\/[a-f0-9-]{36})?$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/(?:photos|passport|label)$/, /^\/categories$/, /^\/price-list$/, /^\/reports\/summary$/, /^\/account\/deletion-info$/, /^\/account\/export\/manifest$/, /^\/account\/export\/(?:categories|clients|client_measurement_sets|orders|order_items|order_item_work_lines|order_item_photos|order_item_events|order_documents|workspace_business_profiles|client_fiscal_profiles|fiscal_invoices|price_services|payments|payment_allocations|payment_events)$/],
-  POST: [/^\/team\/invitations$/, /^\/appointments$/, /^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/(?:documents|invoice-preview|invoices)$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share\/email$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
+  POST: [/^\/team\/invitations$/, /^\/appointments$/, /^\/clients$/, /^\/clients\/[a-f0-9-]{36}\/measurements$/, /^\/orders$/, /^\/orders\/[a-f0-9-]{36}\/(?:documents|invoice-preview|invoices)$/, /^\/orders\/[a-f0-9-]{36}\/payments$/, /^\/orders\/[a-f0-9-]{36}\/whatsapp\/log$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/works\/[a-f0-9-]{36}\/photo-capture$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share\/email$/, /^\/categories$/, /^\/price-list\/services$/, /^\/account\/password$/],
   PATCH: [/^\/business-profile$/, /^\/branches\/[a-f0-9-]{36}$/, /^\/team\/members\/[a-f0-9-]{36}$/, /^\/appointments\/[a-f0-9-]{36}$/, /^\/notification-settings$/, /^\/workspace\/members\/[a-f0-9-]{36}\/atelier-settings$/, /^\/fiscal\/settings$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}\/fiscal-profile$/, /^\/clients\/[a-f0-9-]{36}\/measurements\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/payments\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}(?:\/works)?$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
   DELETE: [/^\/team\/invitations\/[a-f0-9-]{36}$/, /^\/clients\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}$/, /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/passport\/share$/, /^\/categories\/[a-f0-9-]{36}$/, /^\/price-list\/services\/[a-f0-9-]{36}$/],
 });
@@ -210,6 +211,11 @@ export const server=http.createServer(async(req,res)=>{
       return staticFile(res,'register.html','text/html; charset=utf-8');
     }
     if(method==='GET'&&pathname==='/app/invite.html')return staticFile(res,'invite.html','text/html; charset=utf-8');
+    if(method==='GET'&&/^\/capture\/[A-Za-z0-9_-]{20,1400}\.[A-Za-z0-9_-]{20,160}$/.test(pathname)){
+      return staticFile(res,'photo-capture.html','text/html; charset=utf-8');
+    }
+    if(method==='GET'&&pathname==='/app/photo-capture.js')return staticFile(res,'photo-capture.js','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/photo-capture.css')return staticFile(res,'photo-capture.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/vendor/qrcode.min.js')return staticFile(res,'vendor/qrcode.min.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/vendor/qrcode.LICENSE.txt')return staticFile(res,'vendor/qrcode.LICENSE.txt','text/plain; charset=utf-8');
     if(method==='GET'&&pathname==='/app/locale.js')return staticFile(res,'locale.js','text/javascript; charset=utf-8');
@@ -223,13 +229,9 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/bot-protection.mjs')return staticFile(res,'bot-protection.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/app.css')return staticFile(res,'app.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.css')return staticFile(res,'site.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/premium.css')return staticFile(res,'premium.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/maison-luxe.css')return staticFile(res,'maison-luxe.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/maison-reference.css')return staticFile(res,'maison-reference.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/atelier-polish.css')return staticFile(res,'atelier-polish.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/sidebar-finish.css')return staticFile(res,'sidebar-finish.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/sidebar-photo.css')return staticFile(res,'sidebar-photo.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/rimma-luxury-full.webp')return staticFile(res,'rimma-luxury-full.webp','image/webp');
     if(method==='GET'&&pathname==='/app/rimma-logo.webp')return staticFile(res,'rimma-logo.webp','image/webp');
     if(method==='GET'&&pathname==='/app/atelier-mannequin.webp')return staticFile(res,'atelier-mannequin.webp','image/webp');
@@ -238,15 +240,31 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/portal-parity.css')return staticFile(res,'portal-parity.css','text/css; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/onboarding.css')return staticFile(res,'onboarding.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/onboarding.mjs')return staticFile(res,'onboarding.mjs','text/javascript; charset=utf-8');
-    if(method==='GET'&&pathname==='/app/luxury-buttons.css')return staticFile(res,'luxury-buttons.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/site.js')return staticFile(res,'site.js','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/billing-view.mjs')return staticFile(res,'billing-view.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/favicon.svg')return staticFile(res,'favicon.svg','image/svg+xml');
     if(method==='GET'&&pathname==='/favicon.ico')return staticFile(res,'favicon.svg','image/svg+xml');
     if(!pathname.startsWith('/api/'))return send(res,404,{error:'Ruta no encontrada.'});
+
+    const captureMatch=pathname.match(/^\/api\/photo-capture\/([A-Za-z0-9_-]{20,1400}\.[A-Za-z0-9_-]{20,160})(\/upload)?$/);
+    if(captureMatch){
+      if(!await photoCaptureIpThrottle.reserve(clientAddress(req))){
+        return send(res,429,{error:'Demasiados intentos. Espera un momento y vuelve a intentarlo.'});
+      }
+      const token=captureMatch[1];
+      if(method==='GET'&&!captureMatch[2]){
+        const result=await fromBackend('GET','/public/photo-capture/'+encodeURIComponent(token));
+        return send(res,result.status,result.data);
+      }
+      if(method==='POST'&&captureMatch[2]==='/upload'){
+        if(!mutationAllowed(req))return send(res,403,{error:'Origen no autorizado.'});
+        const input=await body(req,maxPhotoBody);
+        const result=await fromBackend('POST','/public/photo-capture/'+encodeURIComponent(token)+'/upload',input);
+        return send(res,result.status,result.data);
+      }
+      return send(res,405,{error:'Método no permitido.'});
+    }
 
     if(method==='GET'&&pathname==='/api/auth/bot-config'){
       return send(res,200,{turnstile:turnstileEnabled,siteKey:turnstileEnabled?turnstileSiteKey:null});

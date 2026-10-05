@@ -11,15 +11,12 @@ test('approved luxurious mannequin is a valid small first-party WebP',async()=>{
   assert.equal(binary.subarray(8,12).toString('ascii'),'WEBP');
   assert.equal(binary.readUInt32LE(4)+8,binary.length,'valid WebP RIFF length');
 });
-test('the new finishing stylesheet is loaded last and shows full framed figure',async()=>{
+test('canonical application stylesheet preserves the approved framed sidebar figure',async()=>{
   const [html,css,server]=await Promise.all([
-    src('public/index.html'),src('public/sidebar-finish.css'),src('server.mjs')
+    src('public/index.html'),src('public/app.css'),src('server.mjs')
   ]);
-  const styles=['site.css','premium.css','luxury-buttons.css','maison-luxe.css',
-    'maison-reference.css','atelier-polish.css','sidebar-finish.css'];
-  const positions=styles.map(n=>html.indexOf('/app/'+n));
-  assert.ok(positions.every(x=>x>0));
-  assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
+  assert.match(html,/\/app\/app\.css\?v=20261005-v1/);
+  assert.doesNotMatch(html,/sidebar-finish\.css|maison-reference\.css|atelier-polish\.css/);
   assert.match(css,/background-size:100% 100%,100% 100%,auto 100%/);
   assert.match(css,/url\("\/app\/atelier-mannequin\.webp"\)/);
   assert.match(css,/\.sidebar-bottom\{[\s\S]*?flex:0 0 auto/);
@@ -27,7 +24,8 @@ test('the new finishing stylesheet is loaded last and shows full framed figure',
   assert.match(css,/@media\(max-width:930px\)/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(css,/url\(\s*['"]?http:\/\//i);
-  assert.match(server,/pathname==='\/app\/sidebar-finish\.css'/);
+  assert.match(server,/pathname==='\/app\/app\.css'/);
+  assert.doesNotMatch(server,/pathname==='\/app\/sidebar-finish\.css'/);
   assert.match(server,/pathname==='\/app\/atelier-mannequin\.webp'/);
   assert.match(server,/staticFile\(res,'atelier-mannequin\.webp','image\/webp'\)/);
 });

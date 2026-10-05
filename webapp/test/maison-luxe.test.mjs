@@ -4,11 +4,11 @@ import fs from 'node:fs/promises';
 
 const read=name=>fs.readFile(new URL('../public/'+name,import.meta.url),'utf8');
 
-test('Maison luxe visual sheet loads after existing styles without any extra script origins',async()=>{
+test('canonical RIMMA visual sheet replaces the historical cascade without extra script origins',async()=>{
  const html=await read('index.html');
- const order=['/app/site.css','/app/premium.css','/app/luxury-buttons.css','/app/maison-luxe.css'];
- let last=-1;
- for(const css of order){const next=html.indexOf(css);assert.ok(next>last,css+' must load in cascade order');last=next;}
+ assert.match(html,/\/app\/app\.css\?v=20261005-v1/);
+ for(const legacy of ['site.css','premium.css','luxury-buttons.css','maison-luxe.css'])
+  assert.doesNotMatch(html,new RegExp('/app/'+legacy.replace('.','\\.')));
  assert.match(html,/family=Cormorant\+Garamond/);
  assert.match(html,/family=DM\+Sans/);
  assert.match(html,/id="today-cards"/);
@@ -20,10 +20,10 @@ test('Maison luxe visual sheet loads after existing styles without any extra scr
  assert.match(html,/id="week-count"/);
 });
 test('luxury skin includes responsive layout, contrast and offline visual assets',async()=>{
- const css=await read('maison-luxe.css');
+ const css=await read('app.css');
  assert.ok(css.includes('data:image/webp;base64,'));
- assert.equal((css.match(/data:image\/webp;base64,/g)||[]).length,2);
- assert.match(css,/--font:"DM Sans"/);
+ assert.ok((css.match(/data:image\/webp;base64,/g)||[]).length>=2);
+ assert.match(css,/--font-ui:"DM Sans"/);
  assert.match(css,/\.customer-avatar/);
  assert.match(css,/\.record-action:disabled/);
  assert.match(css,/@media\(max-width:630px\)/);
@@ -43,9 +43,10 @@ test('table retains customer identity and accessible edit/delete actions',async(
  assert.match(js,/o\.status!=="issued"/);
 });
 
-test('whitelisted luxury CSS is served with a safe CSS media type',async()=>{
+test('canonical application CSS is served with a safe CSS media type',async()=>{
  const server=await fs.readFile(new URL('../server.mjs',import.meta.url),'utf8');
- assert.match(server,/pathname==='\/app\/maison-luxe\.css'/);
- assert.match(server,/staticFile\(res,'maison-luxe\.css','text\/css; charset=utf-8'\)/);
+ assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/staticFile\(res,'app\.css','text\/css; charset=utf-8'\)/);
+ assert.doesNotMatch(server,/pathname==='\/app\/maison-luxe\.css'/);
  assert.match(server,/img-src 'self' data:/);
 });

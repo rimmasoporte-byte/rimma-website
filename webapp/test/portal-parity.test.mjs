@@ -46,21 +46,28 @@ test("mobile API parity features render real catalog/measurements/payments/photo
    id:ITEM,garmentType:"pants",garmentLabel:"Pantalón",
    unit:"cm",measurements:[{label:"Cintura",value:80}],status:"active",version:1
   }]};
-  if(path.endsWith("/payments"))return {payments:[{
-   id:ITEM,amountMinor:500,currencyCode:"EUR",method:"cash",status:"pending",version:1
-  }],summary:{currencyCode:"EUR",totalMinor:3000,confirmedPaidMinor:0,
-   remainingMinor:3000,items:[{orderItemId:ITEM,name:"Pantalón",remainingMinor:3000}]}};
-  if(path.endsWith("/photos"))return {photos:[{
-   id:ITEM,fileName:"recepcion.webp",photoType:"intake",caption:"Ajuste",
-   viewUrl:"https://object.example/signed?token=example",status:"active",version:1
-  },{id:UUID,fileName:"bad.jpg",photoType:"other",viewUrl:"javascript:alert(1)",
-   status:"active",version:1}]};
-  if(path.endsWith("/whatsapp"))return {whatsapp:{actions:[
-   {key:"order_received",label:"Pedido recibido",enabled:true,
-    url:"https://wa.me/34612345678?text=Hola",text:"Hola Manuel\nTu pedido ha llegado."},
-   {key:"malicious",label:"Notificación sospechosa",enabled:true,
-    url:"https://malicious.example/phish",text:"NO"}
-  ]}};
+  if(/^\/orders\/[a-f0-9-]{36}$/.test(path))return {order:{id:UUID,orderNumber:12,client:{name:"Manuel"},items:[]}};
+    if(path.endsWith("/payments"))return {payments:[{
+   id:ITEM,amountMinor:500,currencyCode:"EUR",method:"cash",status:"pending",version:1,
+   createdAt:"2026-10-04T12:00:00Z"
+  }],summary:{currencyCode:"EUR",totalMinor:3000,confirmedPaidMinor:0,pendingMinor:500,
+   remainingMinor:3000,fullyPaid:false,items:[{orderItemId:ITEM,name:"Pantalón",remainingMinor:3000,pendingMinor:500}]}};
+  if(path.endsWith("/passport"))return {passport:{
+   id:ITEM,orderNumber:12,currencyCode:"EUR",garmentType:"Pantalón",
+   works:[{id:UUID,name:"Dobladillo",priceMinor:3000,assignedWorker:{id:ITEM,name:"Ana"},photoCount:2}],
+   photos:[{
+    id:ITEM,workLineId:UUID,fileName:"recepcion.webp",photoType:"intake",caption:"Ajuste",
+    source:"desktop_upload",isCover:true,viewUrl:"https://object.example/signed?token=example",status:"active",version:1
+   },{id:UUID,workLineId:UUID,fileName:"bad.jpg",photoType:"other",source:"desktop_upload",
+    isCover:false,viewUrl:"javascript:alert(1)",status:"active",version:1}]
+  }};
+  if(path.endsWith("/whatsapp"))return {whatsapp:{
+   client:{whatsappPhone:"34612345678"},
+   actions:[
+    {key:"order_received",label:"Pedido recibido",enabled:true,text:"Hola Manuel\nTu pedido ha llegado."},
+    {key:"disabled",label:"No disponible",enabled:false,text:"NO"}
+   ]
+  }};
   throw Error("Unexpected request "+path);
  };
  try{
@@ -79,14 +86,17 @@ test("mobile API parity features render real catalog/measurements/payments/photo
   assert.match(h.elements("#feature-body").innerHTML,/Confirmar/);
   await ui.openPhotos(UUID,ITEM);
   const photos=h.elements("#feature-body").innerHTML;
-  assert.match(photos,/Ver foto/);
+  assert.match(photos,/Ver ↗/);
   assert.match(photos,/https:\/\/object\.example\/signed/);
+  assert.match(photos,/Fotografiar con móvil/);
+  assert.match(photos,/Portada/);
   assert.doesNotMatch(photos,/href="javascript:/);
   await ui.openWhatsApp(UUID);
   const wa=h.elements("#feature-body").innerHTML;
-  assert.match(wa,/manualmente/);
-  assert.match(wa,/href="https:\/\/wa\.me\//);
-  assert.doesNotMatch(wa,/href="https:\/\/malicious\.example/);
+  assert.match(wa,/Tú decides cuándo enviarlo/);
+  assert.match(wa,/data-feature="whatsapp-open"/);
+  assert.match(wa,/data-phone="34612345678"/);
+  assert.doesNotMatch(wa,/No disponible|malicious\.example/);
   assert.ok(h.calls.every(c=>c.method==="GET"),"rendering must never send or mutate");
  }finally{globalThis.document=oldDoc;}
 });
@@ -120,7 +130,7 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
  const [server,html,js,css,feat,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/portal-parity.css"),
+  source("public/site.js"),source("public/app.css"),
   source("public/portal-features.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -132,7 +142,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/requireCsrf\(req,res,s\)/);
  assert.match(server,/pathname==='\/app\/portal-features\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
- assert.match(server,/pathname==='\/app\/portal-parity\.css'/);
+ assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
  assert.match(html,/data-feature="service-new"/);
@@ -141,7 +151,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261004-v69/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v1/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -164,7 +174,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
  assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.wizard-client-results\{position:static/);
  assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
- assert.match(wizard,/const DRAFT_KEY="rimma\.order\.draft\.v62"/);
+ assert.match(wizard,/const DRAFT_KEY="rimma\.order\.draft\.v63"/);
  assert.match(wizard,/const names=\["Cliente","Prendas","Entrega","Confirmación"\]/);
  assert.match(wizard,/data-wizard-action="add-item"/);
  assert.match(wizard,/data-wizard-action="add-work"/);
@@ -174,8 +184,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/const orderCreate=method==='POST' && route==='\/orders'/);
  assert.match(server,/items\\\/\[a-f0-9-\]\{36\}.*works/);
  assert.match(server,/order_item_work_lines/);
- assert.match(js,/portal-features\.mjs\?v=20261004-v63/);
- assert.match(js,/confirm-dialog\.mjs\?v=20261004-v69/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
+ assert.match(js,/confirm-dialog\.mjs\?v=20261005-v1/);
  assert.match(server,/duplicate-check/);
  assert.match(js,/api\("\/clients\/duplicate-check\?"/);
  assert.match(js,/Posible cliente duplicado/);
@@ -191,7 +201,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/const newClientPhonePrefix=\(\)=>currentCountry\(\)==="ES"\?"\+34 ":""/);
  assert.match(js,/normalizedNewClientPhone/);
  assert.match(js,/placeholder="\+34 600 000 000"/);
- assert.match(wizard,/alternativeLabel:"Cerrar sin guardar"/);
+ assert.match(wizard,/alternativeLabel:"Descartar y salir"/);
  assert.match(wizard,/alternativeValue:"discard"/);
  assert.match(wizard,/decision==="discard"/);
  assert.match(wizard,/assignedUserId/);
@@ -236,7 +246,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.doesNotMatch(css,/\.extra-order-item/);
  assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
  assert.match(wizard,/modal\.addEventListener\("close",\(\)=>onOpenClient\?\.\(\),\{once:true\}\)/);
- assert.match(feat,/deliveryMode|manualmente/);
+ assert.match(feat,/RIMMA prepara el mensaje|data-feature="whatsapp-open"/);
  assert.match(feat,/async function openGarment\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentEdit\(orderId,itemId\)/);
  assert.match(feat,/async function openGarmentWorksEdit\(orderId,itemId\)/);
@@ -269,9 +279,9 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261004-v72/);
-  assert.match(html,/site\.css\?v=20261004-v64/);
-  assert.match(html,/portal-parity\.css\?v=20261004-v71/);
+  assert.match(html,/site\.js\?v=20261005-v1/);
+  assert.match(html,/app\.css\?v=20261005-v1/);
+  assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
   assert.doesNotMatch(js+feat,/\b(?:window\.)?confirm\s*\(/,"no native business confirmation remains");
@@ -281,10 +291,10 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const html=await source("public/index.html");
  const js=await source("public/site.js");
  const feat=await source("public/portal-features.mjs");
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
- assert.match(js,/portal-features\.mjs\?v=20261004-v63/);
+ assert.match(js,/portal-features\.mjs\?v=20261005-v1/);
  for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
   assert.ok(feat.includes('"'+territory+'"'),territory);
  assert.match(feat,/Territorio común · IVA \/ AEAT/);
@@ -313,14 +323,14 @@ test("V61 business profile separates identity documents and fiscal configuration
 });
 
 test("V60 keeps one consolidated dashboard system with four core KPIs",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  for(const legacy of ["V47 —","V48 —","V49 —","V50 —","V51 —","V52 —","V53 —","V54 —","V55 —","V56 —","V57 —","V58 —"])
   assert.doesNotMatch(css,new RegExp(legacy.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
  assert.match(css,/V60 — four core KPIs/);
 });
 
 test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped actions",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  const html=await source("public/index.html");
  assert.match(css,/#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  const kpiBlock=html.match(/<div class="atelier-today-grid" id="today-cards">([\s\S]*?)<\/div>/)?.[1]||"";
@@ -341,7 +351,7 @@ test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped acti
 });
 
 test("mobile KPI layout never breaks normal words and keeps two-column cards usable",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[\s\S]*?gap:10px/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:164px[\s\S]*?padding:13px 14px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:normal[\s\S]*?word-break:normal[\s\S]*?hyphens:none/);
@@ -351,7 +361,7 @@ test("mobile KPI layout never breaks normal words and keeps two-column cards usa
 });
 
 test("large dashboard panels use compact headings, readable empty states, and stacked actions",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(css,/#view-inicio \.atelier-ops-panel\{[\s\S]*?min-height:205px[\s\S]*?padding:20px 20px 18px/);
  assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head h2,[\s\S]*?#view-inicio \.dashboard-orders-panel \.section-head h2\{[\s\S]*?font:600 24px\/1\.15/);
  assert.match(css,/#view-inicio #today-attention>\.empty,[\s\S]*?font:500 14px\/1\.45/);
@@ -360,7 +370,7 @@ test("large dashboard panels use compact headings, readable empty states, and st
 
 test("worker load stacks identity above meter and handles long names",async()=>{
  const js=await source("public/site.js");
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(js,/class="worker-copy"/);
  assert.match(js,/class="worker-load-meterline"/);
  assert.match(js,/lt\("prendas activas"\)/);
@@ -370,7 +380,7 @@ test("worker load stacks identity above meter and handles long names",async()=>{
 });
 
 test("dashboard widths and compact hero remain coherent across desktop and mobile",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(css,/#view-inicio #today-cards\.atelier-today-grid,[\s\S]*?#view-inicio \.atelier-ops-layout\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
  assert.match(css,/#view-inicio>\.page-intro\{[\s\S]*?min-height:148px[\s\S]*?height:148px/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio>\.page-intro\{[\s\S]*?height:auto[\s\S]*?flex-direction:column/);
@@ -378,7 +388,7 @@ test("dashboard widths and compact hero remain coherent across desktop and mobil
 });
 
 test("mobile topbar language control uses one compact consolidated implementation",async()=>{
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(css,/Global language control — single implementation/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?\.topbar-private\{display:none\}[\s\S]*?\.topbar-locale\{[\s\S]*?width:66px/);
  assert.match(css,/@media\(max-width:390px\)\{[\s\S]*?\.topbar-locale,[\s\S]*?width:62px/);
@@ -391,7 +401,6 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
   {action:"category-delete",prepare:"loadServices",path:"/categories/"+UUID,method:"DELETE",version:1,id:UUID},
   {action:"measurement-archive",prepare:"openMeasurements",path:"/clients/"+UUID+"/measurements/"+ITEM,method:"PATCH",version:3,status:"deleted"},
   {action:"payment-confirm",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"confirmed"},
-  {action:"payment-cancel",prepare:"openPayments",path:"/orders/"+UUID+"/payments/"+ITEM,method:"PATCH",version:3,status:"cancelled"},
   {action:"photo-archive",prepare:"openPhotos",path:"/orders/"+UUID+"/items/"+ITEM+"/photos/"+ITEM,method:"PATCH",version:3,status:"deleted"}
  ];
  const settle=()=>new Promise(resolve=>setImmediate(resolve));
@@ -410,8 +419,9 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
      }
      if(path==="/price-list")return {priceList:{categories:[{id:UUID,name:"Categoría",status:"active",version:1,
       services:[{id:ITEM,categoryId:UUID,name:"Servicio",pricingMode:"quote",status:"active",version:2}]}]}};
-     if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3}],summary:{currencyCode:"EUR",remainingMinor:1000}};
-     if(path.endsWith("/photos"))return {photos:[{id:ITEM,fileName:"Prueba",status:"active",version:3}]};
+     if(/^\/orders\/[a-f0-9-]{36}$/.test(path))return {order:{id:UUID,orderNumber:7,client:{name:"Cliente"},items:[]}};
+     if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3,amountMinor:1000,method:"cash",currencyCode:"EUR"}],summary:{currencyCode:"EUR",totalMinor:1000,confirmedPaidMinor:0,pendingMinor:1000,remainingMinor:1000}};
+     if(path.endsWith("/passport"))return {passport:{id:ITEM,orderNumber:7,currencyCode:"EUR",garmentType:"Pantalón",works:[{id:UUID,name:"Dobladillo",priceMinor:1000,assignedWorker:null,photoCount:1}],photos:[{id:ITEM,workLineId:UUID,fileName:"Prueba",photoType:"intake",source:"desktop_upload",status:"active",version:3,isCover:true}]}};
      if(path.includes("/measurements"))return {measurements:[{id:ITEM,status:"active",version:3}]};
      throw Error("Unexpected GET "+path);
     };
@@ -448,9 +458,29 @@ test("every catalog/archive/payment action waits for consent, preserves scope, a
 });
 
 
+test("payment cancellation opens a reason form before any mutation",async()=>{
+ const h=harness(),oldDoc=globalThis.document,writes=[];
+ globalThis.document=h.doc;
+ const api=async(path,opts={})=>{
+  if(opts.method){writes.push({path,method:opts.method,body:JSON.parse(opts.body)});return {success:true};}
+  if(/^\/orders\/[a-f0-9-]{36}$/.test(path))return {order:{id:UUID,orderNumber:7,client:{name:"Cliente"},items:[]}};
+  if(path.endsWith("/payments"))return {payments:[{id:ITEM,status:"pending",version:3,amountMinor:1000,method:"cash",currencyCode:"EUR"}],summary:{currencyCode:"EUR",totalMinor:1000,confirmedPaidMinor:0,pendingMinor:1000,remainingMinor:1000}};
+  throw Error("Unexpected GET "+path);
+ };
+ try{
+  const ui=createFeatureUI({api,success:()=>{},globalError:()=>{},confirmAction:async()=>true,refreshOrders:async()=>{},logoutAfterPassword:async()=>{}});
+  await ui.openPayments(UUID);
+  const button={dataset:{feature:"payment-cancel",id:ITEM,version:"3",amount:"1000",method:"cash"}};
+  h.listeners.get("click")({target:{closest:()=>button}});
+  assert.equal(writes.length,0,"opening cancellation form must not mutate");
+  assert.match(h.elements("#feature-body").innerHTML,/Motivo de la anulación/);
+  assert.match(h.elements("#feature-body").innerHTML,/name="cancellationReason"/);
+ }finally{globalThis.document=oldDoc;}
+});
+
 test("V64 focus rings stay inside controls and cannot be cropped by dialogs or native selects",async()=>{
  const base=await source("public/site.css");
- const css=await source("public/portal-parity.css");
+ const css=await source("public/app.css");
  assert.match(base,/\*:focus-visible\{outline:2px solid #B2955F!important;outline-offset:-3px!important\}/);
  assert.match(css,/input:focus:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),[\s\S]*?outline-offset:-3px!important;[\s\S]*?box-shadow:inset 0 0 0 1px/);
  assert.match(css,/select:focus:not\(\[multiple\]\)/);

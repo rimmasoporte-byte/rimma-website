@@ -28,6 +28,18 @@ export const moneyMinor=value=>{
  return cents;
 };
 const money=(v,c=L.currency||"EUR")=>{try{return new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency:c}).format(Number(v||0)/100)}catch{return esc(v)+" "+esc(c)}};
+const localDate=value=>{
+ if(!value)return "—";
+ const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+ if(match)return match[3]+"/"+match[2]+"/"+match[1];
+ const parsed=new Date(value);
+ return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleDateString(L.locale||"es-ES");
+};
+const localDateTime=value=>{
+ if(!value)return "—";
+ const parsed=new Date(value);
+ return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"short",timeStyle:"short"});
+};
 const choice=(v,opts)=>opts.map(([id,label])=>'<option value="'+esc(id)+'"'+(id===v?' selected':'')+'>'+esc(label)+'</option>').join("");
 const garment=[["body",tr("Cuerpo","Corpo")],["pants",tr("Pantalones","Calças")],["dress","Vestido"],["shirt","Camisa"],["jacket",tr("Chaqueta","Jaqueta")],["skirt",tr("Falda","Saia")],["blouse","Blusa"],["other",tr("Otro","Outro")]];
 const methods=[["cash",tr("Efectivo","Dinheiro")],["card",tr("Tarjeta (pago externo)","Cartão (pagamento externo)")],["bank_transfer",tr("Transferencia","Transferência")],["spei","SPEI"],["other",tr("Otro","Outro")]];
@@ -49,19 +61,29 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const form=()=>dlg.querySelector("#feature-form");
  const submit=()=>dlg.querySelector("#feature-submit");
  const errorEl=()=>dlg.querySelector("#feature-error");
- let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false;
+ let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false,returnFocus=null,parentModal=false;
  function alertError(message){errorEl().hidden=false;errorEl().textContent=message;}
  function layout(next,title,markup,buttonText="Guardar"){
   mode=next;if(dlg.dataset)dlg.dataset.mode=next;errorEl().hidden=true;errorEl().textContent="";
   dlg.querySelector("#feature-title").textContent=title;
-  body().innerHTML=markup;submit().hidden=!buttonText;submit().disabled=false;
+  body().innerHTML=markup;
+  const submitButton=submit();
+  submitButton.hidden=!buttonText;
+  submitButton.disabled=false;
+  submitButton.classList?.remove?.("danger");
+  parentModal=Boolean(document.querySelector("#modal")?.open);
+  returnFocus=parentModal?document.activeElement:null;
   const closeText=dlg.querySelector('.feature-actions [data-feature="close"]');
-  if(closeText)closeText.textContent=next==="business-profile"?"Cancelar":"Cerrar";
+  if(closeText)closeText.textContent=next==="business-profile"?"Cancelar":(parentModal?"Volver":"Cerrar");
   if(buttonText)submit().textContent=buttonText;
-  if(document.querySelector("#modal")?.open)document.querySelector("#modal").close();
   if(!dlg.open)dlg.showModal();
  }
- function close(){if(dlg.open)dlg.close();mode="";if(dlg.dataset)delete dlg.dataset.mode;selected=null;}
+ function close(){
+  if(dlg.open)dlg.close();
+  mode="";if(dlg.dataset)delete dlg.dataset.mode;selected=null;
+  const target=returnFocus;returnFocus=null;parentModal=false;
+  if(target?.isConnected)setTimeout(()=>target.focus({preventScroll:true}),0);
+ }
  async function safe(action){
   if(busy)return;busy=true;errorEl().hidden=true;
   submit().disabled=true;
@@ -208,71 +230,202 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    b("×","measure-remove",'aria-label="Quitar medida"')+'</div>';
  async function openPayments(orderId){
   if(!uuid(orderId)){globalError("Selecciona un pedido válido.");return;}
-  const data=await api("/orders/"+encodeURIComponent(orderId)+"/payments");
-  const payments=data.payments||[],s=data.summary||{};
-  selected={orderId,summary:s};
+  const [paymentData,orderData]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
+   api("/orders/"+encodeURIComponent(orderId))
+  ]);
+  const payments=paymentData.payments||[],summary=paymentData.summary||{},order=orderData.order||{};
+  selected={orderId,summary,order};
+  const statusLabel={pending:"Pendiente",confirmed:"Confirmado",cancelled:"Anulado",failed:"Fallido",refunded:"Devuelto"};
+  const history=payments.length?payments.map(p=>
+   '<article class="payment-history-row"><div><strong>'+esc(money(p.amountMinor,p.currencyCode))+
+   ' · '+esc((methods.find(m=>m[0]===p.method)||["",p.method])[1])+'</strong>'+
+   '<small>'+esc(statusLabel[p.status]||p.status)+' · '+esc(localDateTime(p.confirmedAt||p.cancelledAt||p.createdAt))+'</small>'+
+   (p.cancellationReason?'<small>Motivo: '+esc(p.cancellationReason)+'</small>':"")+'</div>'+
+   '<div class="feature-inline">'+
+   (p.status==="pending"?b("Confirmar cobro","payment-confirm",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"')+
+    b("Anular","payment-cancel",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"'):"")+
+   '</div></article>'
+  ).join(""):'<p class="feature-muted">Todavía no hay cobros registrados.</p>';
+
   layout("payments-list","Cobros del pedido",
-   '<div class="feature-summary"><div><small>Total del pedido</small><strong>'+esc(money(s.totalMinor,s.currencyCode))+'</strong></div>'+
-   '<div><small>Confirmado</small><strong>'+esc(money(s.confirmedPaidMinor,s.currencyCode))+'</strong></div>'+
-   '<div><small>Pendiente de cobrar</small><strong>'+esc(money(s.remainingMinor,s.currencyCode))+'</strong></div></div>'+
-   '<p class="feature-muted">Registrar un cobro manual no procesa un pago online. Los cobros nuevos quedan pendientes hasta que los confirmes.</p>'+
-   (payments.length?payments.map(p=>'<div class="feature-ledger"><strong>'+esc(money(p.amountMinor,p.currencyCode))+
-    ' · '+esc((methods.find(m=>m[0]===p.method)||["",p.method])[1])+'</strong><small>Estado: '+
-    esc(({pending:"Pendiente",confirmed:"Confirmado",cancelled:"Cancelado",failed:"Fallido",refunded:"Devuelto"})[p.status]||p.status)+'</small>'+
-    (p.status==="pending"?b("Confirmar","payment-confirm",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"')+
-      b("Cancelar","payment-cancel",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"'):"")+'</div>').join(""):'<p>Todavía no hay cobros.</p>')+
-   (Number(s.remainingMinor)>0?'<div class="feature-bottom">'+b("+ Registrar cobro manual","payment-new")+'</div>':""),null);
+   '<div class="feature-summary"><div><small>Total del pedido</small><strong>'+esc(money(summary.totalMinor,summary.currencyCode))+'</strong></div>'+
+   '<div><small>Cobrado</small><strong>'+esc(money(summary.confirmedPaidMinor,summary.currencyCode))+'</strong></div>'+
+   '<div><small>Saldo pendiente</small><strong>'+esc(money(summary.remainingMinor,summary.currencyCode))+'</strong></div></div>'+
+   (summary.fullyPaid?'<div class="feature-success-note">✓ Pedido totalmente pagado</div>':"")+
+   (Number(summary.pendingMinor)>0?'<p class="feature-muted">Hay '+esc(money(summary.pendingMinor,summary.currencyCode))+' registrado como cobro pendiente de confirmación.</p>':"")+
+   '<section class="feature-section"><h3>Historial de cobros</h3>'+history+'</section>'+
+   (Number(summary.remainingMinor)>0?'<div class="feature-bottom payment-actions">'+
+     b("+ Registrar cobro recibido","payment-new",'data-status="confirmed"')+
+     b("Registrar cobro pendiente","payment-new",'data-status="pending"')+
+    '</div>':""),
+   null);
  }
- async function newPayment(){
+
+ async function newPayment(status="confirmed"){
   if(!uuid(selected?.orderId))return;
   const orderId=selected.orderId;
-  const paymentData=await api("/orders/"+encodeURIComponent(orderId)+"/payments");
-  const s=paymentData.summary||{};
-  const items=(s.items||[]).filter(x=>Number(x.remainingMinor)>0);
-  if(!items.length){globalError("No queda saldo pendiente para registrar.");return;}
-  layout("payment-new","Registrar cobro manual",
-   '<p class="feature-muted">El registro se guardará como pendiente. Confírmalo después de recibir efectivamente el dinero.</p>'+
-   '<div class="feature-fields">'+select("orderItemId","Prenda *",choice(items[0].orderItemId,items.map(i=>[i.orderItemId,i.name+" · "+money(i.remainingMinor,s.currencyCode)])))+
-   field("amount","Importe *","number",'min="0.01" step="0.01" required value="'+(items[0].remainingMinor/100).toFixed(2)+'"')+
-   select("method","Método de cobro",choice("cash",methods))+
-   textarea("notes","Notas",5000)+'</div>');
-  selected={orderId,summary:s,items};
+  const [paymentData,orderData]=await Promise.all([
+   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
+   api("/orders/"+encodeURIComponent(orderId))
+  ]);
+  const summary=paymentData.summary||{},order=orderData.order||{};
+  const available=Math.max(0,Number(summary.remainingMinor||0)-Number(summary.pendingMinor||0));
+  if(available<=0){globalError("No queda saldo disponible para registrar.");return;}
+  const clientName=order.client?.name||"Cliente";
+  const orderNumber=String(order.orderNumber||"").padStart(4,"0");
+  const pending=status==="pending";
+  selected={orderId,summary,order,paymentStatus:pending?"pending":"confirmed"};
+  layout("payment-new",pending?"Registrar cobro pendiente":"Registrar cobro recibido",
+   '<div class="feature-context"><strong>Pedido #'+esc(orderNumber)+' · '+esc(clientName)+'</strong>'+
+   '<span>Saldo disponible: '+esc(money(available,summary.currencyCode))+'</span></div>'+
+   '<p class="feature-muted">'+(pending
+    ?"Úsalo solo cuando el dinero todavía no haya llegado. El saldo no se considerará cobrado hasta confirmarlo."
+    :"Registra únicamente dinero que ya hayas recibido. RIMMA actualizará el saldo al confirmar.")+'</p>'+
+   '<div class="feature-fields">'+
+   field("amount","Importe *","number",'min="0.01" max="'+(available/100).toFixed(2)+'" step="0.01" required value="'+(available/100).toFixed(2)+'"')+
+   select("method","Método de cobro *",choice(pending?"bank_transfer":"cash",methods))+
+   '<div class="feature-readonly"><small>Fecha y hora</small><strong>'+esc(localDateTime(new Date().toISOString()))+'</strong></div>'+
+   textarea("notes","Notas (opcional)",5000)+'</div>',
+   pending?"Guardar como pendiente":"Continuar");
  }
+
+ function cancelPaymentForm(payment){
+  if(!uuid(selected?.orderId)||!payment?.id)return;
+  selected={...selected,cancelPayment:payment};
+  layout("payment-cancel","Anular cobro pendiente",
+   '<div class="feature-context"><strong>'+esc(money(payment.amountMinor,selected.summary?.currencyCode||L.currency))+
+   ' · '+esc((methods.find(m=>m[0]===payment.method)||["",payment.method])[1])+'</strong>'+
+   '<span>Este registro pendiente se conservará en el historial como anulado.</span></div>'+
+   '<div class="feature-fields">'+textarea("cancellationReason","Motivo de la anulación *",500)+'</div>',
+   "Anular cobro");
+  submit().classList?.add?.("danger");
+ }
+
  async function openWhatsApp(orderId){
   if(!uuid(orderId)){globalError("Pedido inválido.");return;}
   const data=(await api("/orders/"+encodeURIComponent(orderId)+"/whatsapp")).whatsapp||{};
-  selected={orderId};
-  const actions=Array.isArray(data.actions)?data.actions:[];
+  const actions=(Array.isArray(data.actions)?data.actions:[]).filter(action=>action.enabled===true);
+  const phone=String(data.client?.whatsappPhone||"").replace(/\D/g,"");
+  selected={orderId,whatsapp:data};
+
+  if(!phone){
+   layout("whatsapp-list","Mensajes de WhatsApp",
+    '<div class="feature-unavailable"><strong>WhatsApp no disponible</strong>'+
+    '<p>El cliente no tiene un número de teléfono válido.</p></div>',null);
+   return;
+  }
+
+  const markup=actions.length
+   ? actions.map(action=>
+      '<article class="whatsapp-card">'+
+       '<div class="whatsapp-card-head"><strong>'+esc(action.label||"Mensaje")+'</strong>'+
+       '<small>Vista previa editable</small></div>'+
+       '<textarea class="whatsapp-message-editor" data-wa-message="'+esc(action.key||"message")+'" maxlength="4000">'+esc(action.text||"")+'</textarea>'+
+       '<button type="button" class="feature-button" data-feature="whatsapp-open" data-template="'+esc(action.key||"message")+'" data-phone="'+esc(phone)+'">Abrir en WhatsApp ↗</button>'+
+      '</article>'
+     ).join("")
+   : '<p class="feature-muted">No hay mensajes útiles para el estado actual de este pedido.</p>';
+
   layout("whatsapp-list","Mensajes de WhatsApp",
-   '<p class="feature-muted">Selecciona un mensaje para abrir WhatsApp y enviarlo manualmente. RIMMA no envía nada automáticamente.</p>'+
-   (actions.length?actions.map(a=>{
-    let href=null;
-    try{const url=new URL(String(a.url||""));if(url.protocol==="https:"&&url.hostname==="wa.me")href=url.href;}catch{}
-    const allowed=a.enabled===true&&href!==null;
-    return '<div class="feature-ledger"><strong>'+esc(a.label)+'</strong>'+
-     '<p class="feature-message">'+esc(a.text||"")+'</p>'+
-     (allowed?'<a class="feature-button feature-action-link" rel="noopener noreferrer" target="_blank" href="'+esc(href)+'">Preparar en WhatsApp ↗</a>':
-      '<small>'+esc(a.disabledReason||"No disponible para el estado actual del pedido")+'</small>')+'</div>';
-   }).join(""):'<p>No hay mensajes disponibles para este pedido.</p>'),null);
+   '<p class="feature-muted">RIMMA prepara el mensaje. Tú decides cuándo enviarlo.</p>'+markup,null);
  }
+
  const safePhotoUrl=value=>{
   try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null;}catch{return null;}
  };
  async function openPhotos(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
-  const photos=(await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos")).photos||[];
-  selected={orderId,itemId};
+  const result=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
+  const passport=result.passport||{};
+  const works=Array.isArray(passport.works)?passport.works:[];
+  const photos=Array.isArray(passport.photos)?passport.photos.filter(photo=>photo.status!=="deleted"):[];
+  selected={orderId,itemId,passport,works,photos};
+
+  const sourceLabel=source=>({
+   desktop_upload:"Ordenador",
+   mobile_camera:"Móvil",
+   legacy_import:"Foto anterior"
+  })[source]||"RIMMA";
+
+  const photoRow=photo=>{
+   const url=safePhotoUrl(photo.viewUrl);
+   return '<div class="work-photo-row'+(photo.isCover?' is-cover':'')+'">'+
+    '<div class="work-photo-main"><strong>'+esc(photo.fileName||"Fotografía")+'</strong>'+
+    '<small>'+esc((photoTypes.find(x=>x[0]===photo.photoType)||["",photo.photoType])[1]||"Foto")+
+    ' · '+esc(sourceLabel(photo.source))+
+    (photo.caption?' · '+esc(photo.caption):"")+'</small></div>'+
+    (photo.isCover?'<span class="photo-cover-badge">Portada</span>':b("Usar como portada","photo-cover",'data-id="'+esc(photo.id)+'" data-version="'+esc(photo.version)+'"'))+
+    (url?'<a class="feature-button feature-action-link" href="'+esc(url)+'" rel="noopener noreferrer" target="_blank">Ver ↗</a>':
+      '<span class="feature-muted">Enlace no disponible</span>')+
+    b("Archivar","photo-archive",'data-id="'+esc(photo.id)+'" data-version="'+esc(photo.version)+'"')+
+   '</div>';
+  };
+
+  const workCards=works.length?works.map((work,index)=>{
+   const own=photos.filter(photo=>photo.workLineId===work.id);
+   return '<section class="work-photo-card">'+
+    '<header><div><span>TRABAJO '+(index+1)+'</span><strong>'+esc(work.name||"Trabajo")+'</strong>'+
+    '<small>'+esc(work.assignedWorker?.name||"Sin asignar")+' · '+String(own.length)+' foto'+(own.length===1?"":"s")+'</small></div>'+
+    '<b>'+esc(money(work.priceMinor,passport.currencyCode))+'</b></header>'+
+    (own.length?'<div class="work-photo-list">'+own.map(photoRow).join("")+'</div>':
+      '<p class="feature-muted">Este trabajo todavía no tiene fotografías.</p>')+
+    '<div class="work-photo-actions">'+
+      b("+ Subir desde ordenador","photo-new",'data-work="'+esc(work.id)+'"')+
+      b("Fotografiar con móvil","photo-mobile",'data-work="'+esc(work.id)+'"')+
+    '</div></section>';
+  }).join(""):'<p class="feature-muted">Esta prenda no tiene trabajos separados.</p>';
+
+  const unlinked=photos.filter(photo=>!photo.workLineId||!works.some(work=>work.id===photo.workLineId));
+  const legacy=unlinked.length
+   ? '<details class="legacy-photo-section"><summary>Fotografías anteriores sin trabajo asignado ('+unlinked.length+')</summary>'+
+     '<div class="work-photo-list">'+unlinked.map(photoRow).join("")+'</div></details>'
+   : "";
+
   layout("photos-list","Fotografías de la prenda",
-   '<p class="feature-muted">Abre las fotografías protegidas mediante enlaces temporales del servidor. No se compartirán automáticamente.</p>'+
-   (photos.length?photos.filter(p=>p.status!=="deleted").map(p=>{
-      const url=safePhotoUrl(p.viewUrl);
-      return '<div class="feature-ledger"><strong>'+esc(p.fileName)+'</strong><small>'+esc(p.caption||"")+" · "+
-      esc((photoTypes.find(x=>x[0]===p.photoType)||["",p.photoType])[1])+'</small>'+
-      (url?'<a class="feature-button feature-action-link" href="'+esc(url)+'" rel="noopener noreferrer" target="_blank">Ver foto ↗</a>':
-       '<small>Enlace temporal no disponible; actualiza las fotografías.</small>')+
-      b("Archivar","photo-archive",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'"')+'</div>';
-    }).join(""):'<p>Esta prenda todavía no tiene fotografías.</p>')+
-   '<div class="feature-bottom">'+b("+ Subir fotografía","photo-new")+'</div>',null);
+   '<p class="feature-muted">Cada foto nueva se guarda dentro de un trabajo concreto. La portada es única para todo el pedido.</p>'+
+   '<div class="work-photo-cards">'+workCards+'</div>'+legacy,null);
+ }
+
+ function newPhoto(workLineId){
+  const {orderId,itemId,works}=selected||{};
+  if(!uuid(orderId)||!uuid(itemId)||!uuid(workLineId))return;
+  const work=(works||[]).find(row=>row.id===workLineId);
+  if(!work)return;
+  selected={...selected,workLineId};
+  layout("photo-new","Subir fotografía",
+   '<div class="feature-context"><strong>'+esc(work.name||"Trabajo")+'</strong><span>'+esc(work.assignedWorker?.name||"Sin asignar")+'</span></div>'+
+   '<p class="feature-muted">JPEG, PNG o WebP. RIMMA reduce la fotografía automáticamente a un máximo de 150 KB.</p>'+
+   '<div class="feature-fields">'+field("file","Fotografía *","file",'required accept="image/jpeg,image/png,image/webp"')+
+   select("photoType","Tipo",choice("intake",photoTypes))+textarea("caption","Comentario",500)+'</div>');
+ }
+
+ async function openMobilePhotoCapture(workLineId){
+  const {orderId,itemId,works}=selected||{};
+  if(!uuid(orderId)||!uuid(itemId)||!uuid(workLineId))throw Error("Trabajo no válido.");
+  const work=(works||[]).find(row=>row.id===workLineId);
+  if(!work)throw Error("Trabajo no encontrado.");
+
+  const result=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/works/"+encodeURIComponent(workLineId)+"/photo-capture",{
+   method:"POST",body:JSON.stringify({})
+  });
+  const token=String(result.session?.token||"");
+  if(!token)throw Error("No se pudo crear el enlace seguro para el móvil.");
+  const captureUrl=location.origin+"/capture/"+encodeURIComponent(token);
+  selected={...selected,workLineId,captureUrl};
+
+  layout("photo-mobile","Fotografiar con móvil",
+   '<div class="mobile-photo-capture"><div><span class="passport-kicker">TRABAJO</span><h3>'+esc(work.name||"Trabajo")+'</h3>'+
+   '<p>Escanea el QR con el móvil. No necesitas iniciar sesión en el teléfono. El enlace caduca automáticamente.</p></div>'+
+   '<div id="mobile-photo-qr" class="mobile-photo-qr" aria-label="Código QR para fotografiar con el móvil"></div>'+
+   '<a class="feature-button feature-action-link mobile-photo-link" href="'+esc(captureUrl)+'" target="_blank" rel="noopener noreferrer">Abrir enlace en este dispositivo ↗</a>'+
+   '<small>Caduca: '+esc(localDateTime(result.session?.expiresAt))+'</small>'+
+   '<button type="button" class="primary" data-feature="photo-mobile-done">Ya he terminado · actualizar fotos</button></div>',
+   "");
+
+  const holder=dlg.querySelector("#mobile-photo-qr");
+  if(!holder||!window.QRCode)throw Error("No se pudo preparar el código QR.");
+  new QRCode(holder,{text:captureUrl,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
  }
 
  const passportStatusLabel=value=>({
@@ -314,8 +467,11 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const measurement=p.measurementSheet;
   const works=Array.isArray(p.works)?p.works:[];
   const clientName=p.client?.name||tr("Cliente sin nombre","Cliente sem nome");
-  const due=String(p.dueDate||"").slice(0,10)||"—";
-  const worker=p.assignedWorker?.name||tr("Sin asignar","Sem atribuição");
+  const due=localDate(p.dueDate);
+  const responsibleNames=[...new Set(works.map(work=>work.assignedWorker?.name).filter(Boolean))];
+  const responsibilitySummary=responsibleNames.length
+   ?responsibleNames.join(" · ")
+   :tr("Sin responsables asignados","Sem responsáveis atribuídos");
   const location=p.storageLocation||tr("Sin ubicación","Sem localização");
   const measurementLabel=measurement
    ? (measurement.garmentLabel||measurement.garmentType||tr("Ficha vinculada","Ficha vinculada"))
@@ -329,7 +485,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     '<div><small>'+tr("Pendiente","Pendente")+'</small><strong>'+esc(money(p.remainingMinor,p.currencyCode))+'</strong></div></div>'+
    '<div class="garment-work-grid">'+
     '<section class="garment-work-card"><small>'+tr("Cliente","Cliente")+'</small><strong>'+esc(clientName)+'</strong><span>'+esc(p.client?.phone||p.client?.email||"—")+'</span></section>'+
-    '<section class="garment-work-card"><small>'+tr("Responsable","Responsável")+'</small><strong>'+esc(worker)+'</strong><span>'+tr("Trabajo asignado a esta prenda","Trabalho atribuído a esta peça")+'</span></section>'+
+    '<section class="garment-work-card"><small>'+tr("Responsables de trabajos","Responsáveis dos trabalhos")+'</small><strong>'+esc(responsibilitySummary)+'</strong><span>'+esc(String(works.length))+' '+tr("trabajo(s) registrado(s)","trabalho(s) registrado(s)")+'</span></section>'+
     '<section class="garment-work-card"><small>'+tr("Ubicación","Localização")+'</small><strong>'+esc(location)+'</strong><span>'+tr("Dónde está guardada la prenda","Onde a peça está guardada")+'</span></section>'+
     '<section class="garment-work-card"><small>'+tr("Medidas","Medidas")+'</small><strong>'+esc(measurementLabel)+'</strong><span>'+(measurement?esc((measurement.measurements||[]).slice(0,4).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")).join(" · ")||tr("Ficha guardada","Ficha guardada")):tr("Puedes vincular una ficha del cliente","Você pode vincular uma ficha do cliente"))+'</span></section>'+
    '</div>'+
@@ -341,7 +497,10 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      '<span><small>'+tr("Talla","Tamanho")+'</small><strong>'+esc(p.sizeLabel||"—")+'</strong></span>'+
     '</div>'+
     (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
-      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><div><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><small>'+
+      esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+      (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+
+      '</small></div><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
     ).join("")+'</div>':
     '<p class="feature-muted">'+tr("El trabajo está guardado en el resumen de la prenda.","O trabalho está salvo no resumo da peça.")+'</p>')+
     '</div>'+
@@ -373,40 +532,48 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     }))
   );
  }
- function workEditRow(work,index,services){
-  const options='<option value="">'+tr("Trabajo manual","Trabalho manual")+'</option>'+
+ function workEditRow(work,index,services,members){
+  const serviceOptions='<option value="">'+tr("Trabajo manual","Trabalho manual")+'</option>'+
    services.map(service=>'<option value="'+esc(service.id)+'"'+(service.id===work.serviceId?' selected':'')+'>'+esc(service.label)+'</option>').join("");
-  return '<div class="garment-work-edit-row" data-work-edit-row>'+
+  const assignedId=work.assignedWorker?.id||work.assignedUserId||"";
+  const memberOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
+   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===assignedId?' selected':'')+'>'+
+    esc(member.name||member.email||tr("Miembro","Membro"))+'</option>').join("");
+  return '<div class="garment-work-edit-row" data-work-edit-row data-work-id="'+esc(work.id||"")+'" data-category-id="'+esc(work.categoryId||"")+'">'+
    '<div class="garment-work-edit-head"><span>'+tr("Trabajo","Trabalho")+' '+(index+1)+'</span>'+
    '<button type="button" class="record-action danger" data-feature="work-remove">'+tr("Quitar","Remover")+'</button></div>'+
    '<div class="garment-work-edit-grid">'+
-   '<label>'+tr("Servicio","Serviço")+'<select name="workService">'+options+'</select></label>'+
+   '<label>'+tr("Servicio","Serviço")+'<select name="workService">'+serviceOptions+'</select></label>'+
    '<label>'+tr("Trabajo *","Trabalho *")+'<input name="workName" maxlength="160" required value="'+esc(work.name||"")+'"></label>'+
    '<label>'+tr("Precio *","Preço *")+'<input name="workPrice" type="number" inputmode="decimal" min="0" step="0.01" required value="'+esc((Number(work.priceMinor||0)/100).toFixed(2))+'"></label>'+
+   '<label>'+tr("Responsable","Responsável")+'<select name="workAssignedUserId">'+memberOptions+'</select></label>'+
    '</div></div>';
  }
  async function openGarmentWorksEdit(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId))throw Error(tr("Prenda inválida.","Peça inválida."));
-  const [passportResult]=await Promise.all([
+  const [passportResult,,membersResult]=await Promise.all([
    api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   ensureCatalog()
+   ensureCatalog(),
+   api("/workspace/members")
   ]);
   const p=passportResult.passport||{};
   if(!uuid(p.id)||!Number.isSafeInteger(Number(p.version)))throw Error(tr("Actualiza la prenda antes de editar sus trabajos.","Atualize a peça antes de editar seus trabalhos."));
   const services=editableWorkServices();
+  const members=Array.isArray(membersResult.members)?membersResult.members:[];
   const works=Array.isArray(p.works)&&p.works.length
    ?p.works
-   :[{id:null,categoryId:p.categoryId||null,serviceId:null,name:p.name||"",priceMinor:Number(p.totalMinor||0),sortOrder:0}];
-  selected={orderId,itemId,passport:p,workServices:services};
+   :[{id:null,categoryId:p.categoryId||null,serviceId:null,name:p.name||"",priceMinor:Number(p.totalMinor||0),sortOrder:0,assignedWorker:null}];
+  selected={orderId,itemId,passport:p,workServices:services,workMembers:members};
   layout("garment-works-edit",tr("Editar trabajos","Editar trabalhos"),
    '<div class="garment-edit-head"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.garmentType||p.name||tr("Prenda","Peça"))+'</h3></div>'+
    '<strong class="garment-work-edit-total" id="work-edit-total">'+esc(money(works.reduce((sum,work)=>sum+Number(work.priceMinor||0),0),p.currencyCode))+'</strong></div>'+
-   '<p class="feature-muted">'+tr("Cada trabajo mantiene su propio precio. Si ya existe un movimiento de cobro para esta prenda, RIMMA bloqueará cambios de precio para proteger la contabilidad.","Cada trabalho mantém seu próprio preço. Se já houver um movimento de pagamento para esta peça, a RIMMA bloqueará alterações de preço para proteger a contabilidade.")+'</p>'+
-   '<div id="garment-work-edit-list" class="garment-work-edit-list">'+works.map((work,index)=>workEditRow(work,index,services)).join("")+'</div>'+
+   '<p class="feature-muted">'+tr("Cada trabajo mantiene precio y responsable propios. RIMMA conserva el historial y no reemplaza líneas existentes innecesariamente.","Cada trabalho mantém preço e responsável próprios. A RIMMA preserva o histórico e não substitui linhas existentes sem necessidade.")+'</p>'+
+   '<div id="garment-work-edit-list" class="garment-work-edit-list">'+works.map((work,index)=>workEditRow(work,index,services,members)).join("")+'</div>'+
    '<button type="button" class="feature-button garment-work-add" data-feature="work-add">+ '+tr("Añadir trabajo","Adicionar trabalho")+'</button>',
    tr("Guardar trabajos","Salvar trabalhos"));
   syncWorkEditTotal();
  }
+
  function syncWorkEditTotal(){
   if(mode!=="garment-works-edit")return;
   const total=[...dlg.querySelectorAll('[data-work-edit-row] [name="workPrice"]')]
@@ -426,13 +593,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
 
  async function openGarmentEdit(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
-  const [passportResult,membersResult]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   api("/workspace/members")
-  ]);
+  const passportResult=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
   const p=passportResult.passport||{};
   if(!uuid(p.id))throw Error(tr("No se pudo cargar la prenda.","Não foi possível carregar a peça."));
-  const members=Array.isArray(membersResult.members)?membersResult.members:[];
   let measurements=[];
   if(uuid(p.client?.id)){
    try{
@@ -440,24 +603,20 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
    }catch{measurements=[];}
   }
-  selected={orderId,itemId,passport:p,members,measurements};
-  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
-   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
-    esc(member.name||member.email||tr("Miembro","Membro"))+'</option>').join("");
+  selected={orderId,itemId,passport:p,measurements};
   const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
-    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+localDate(m.measuredAt))+'</option>').join("");
   layout("garment-edit",tr("Editar prenda","Editar peça"),
    '<div class="garment-edit-head"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.name||tr("Prenda","Peça"))+'</h3></div>'+
     '<span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
-   '<p class="feature-muted">'+tr("Edita únicamente los datos propios de esta prenda. Los pagos y documentos pertenecen al pedido.","Edite apenas os dados desta peça. Pagamentos e documentos pertencem ao pedido.")+'</p>'+
+   '<p class="feature-muted">'+tr("Edita los datos físicos de la prenda. El responsable se asigna dentro de cada trabajo.","Edite os dados físicos da peça. O responsável é definido em cada trabalho.")+'</p>'+
    '<div class="feature-fields">'+
     field("garmentType",tr("Tipo de prenda","Tipo de peça"),"text",'maxlength="80" placeholder="'+tr("Pantalón, vestido, chaqueta…","Calça, vestido, jaqueta…")+'" value="'+esc(p.garmentType||"")+'"')+
     field("brand",tr("Marca","Marca"),"text",'maxlength="120" value="'+esc(p.brand||"")+'"')+
     field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
     field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
     field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
     '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select>'+
    '</div>',tr("Guardar cambios","Salvar alterações"));
  }
@@ -471,7 +630,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const items=Array.isArray(o.items)?o.items:[];
   const customer=o.client?.name||tr("Cliente sin nombre","Cliente sem nome");
   const branch=o.branch?.name||tr("Sin sucursal","Sem filial");
-  const due=String(o.dueDate||"").slice(0,10)||"—";
+  const due=localDate(o.dueDate);
   layout("order-info",tr("Información del pedido","Informações do pedido")+" #"+esc(o.orderNumber||""),
    '<div class="order-info-hero"><div><span class="passport-kicker">'+tr("PEDIDO","PEDIDO")+' #'+esc(o.orderNumber||"")+'</span><h3>'+esc(customer)+'</h3>'+
     '<span class="status '+esc(o.status||"accepted")+'">'+esc(passportStatusLabel(o.status))+'</span></div>'+
@@ -483,8 +642,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    '<div class="passport-section"><h4>'+tr("Prendas del pedido","Peças do pedido")+'</h4>'+
     (items.length?'<div class="order-info-items">'+items.map((item,index)=>{
       const works=Array.isArray(item.works)?item.works:[];
-      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(String(item.dueDate).slice(0,10)):'')+'</small>'+
-       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><b>'+esc(work.name)+'</b><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
+      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||tr("Prenda","Peça")+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(localDate(item.dueDate)):'')+'</small>'+
+       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><span><b>'+esc(work.name)+'</b><small>'+esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+       (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+'</small></span><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
        '</div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>';
      }).join("")+'</div>':
      '<p class="feature-muted">'+tr("No hay prendas en este pedido.","Não há peças neste pedido.")+'</p>')+
@@ -512,13 +672,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
 
  async function openPassport(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError(tr("Prenda inválida.","Peça inválida."));return;}
-  const [passportResult,membersResult]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   api("/workspace/members")
-  ]);
+  const passportResult=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
   const p=passportResult.passport||{};
   if(!uuid(p.id))throw Error(tr("No se pudo cargar el pasaporte de la prenda.","Não foi possível carregar o passaporte da peça."));
-  const members=Array.isArray(membersResult.members)?membersResult.members:[];
   let measurements=[];
   if(uuid(p.client?.id)){
     try{
@@ -526,13 +682,10 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
       measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
     }catch{measurements=[];}
   }
-  selected={orderId,itemId,passport:p,members,measurements};
-  const workerOptions='<option value="">'+tr("Sin asignar","Sem atribuição")+'</option>'+
-   members.map(member=>'<option value="'+esc(member.id)+'"'+(member.id===p.assignedWorker?.id?' selected':'')+'>'+
-    esc(member.name||member.email||tr("Miembro","Membro"))+' · '+esc(member.role||"")+'</option>').join("");
+  selected={orderId,itemId,passport:p,measurements};
   const measurementOptions='<option value="">'+tr("Sin ficha vinculada","Sem ficha vinculada")+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
-    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+String(m.measuredAt||"").slice(0,10))+'</option>').join("");
+    esc((m.garmentLabel||m.garmentType||tr("Ficha de medidas","Ficha de medidas"))+" · "+localDate(m.measuredAt))+'</option>').join("");
   const history=Array.isArray(p.history)?p.history:[];
   const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
   const works=Array.isArray(p.works)?p.works:[];
@@ -549,17 +702,19 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     field("color",tr("Color","Cor"),"text",'maxlength="80" value="'+esc(p.color||"")+'"')+
     field("sizeLabel",tr("Talla","Tamanho"),"text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
     field("storageLocation",tr("Lugar de almacenamiento","Local de armazenamento"),"text",'maxlength="120" placeholder="'+tr("Ej. Estante B-12","Ex. Prateleira B-12")+'" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-assignedUserId">'+tr("Maestro / responsable","Profissional / responsável")+'</label><select id="fx-assignedUserId" name="assignedUserId">'+workerOptions+'</select>'+
     '<label for="fx-measurementSetId">'+tr("Ficha de medidas","Ficha de medidas")+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select></div>'+
     (p.measurementSheet?'<div class="measurement-linked"><strong>'+tr("Medidas vinculadas","Medidas vinculadas")+'</strong><span>'+esc((p.measurementSheet.measurements||[]).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")+" "+String(p.measurementSheet.unit||"")).join(" · ")||tr("Ficha guardada","Ficha guardada"))+'</span></div>':'')+'</div>'+
    '<div class="passport-section"><h4>'+tr("Trabajos de esta prenda","Trabalhos desta peça")+'</h4>'+
     (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
-      '<div class="garment-work-line"><span>'+(index+1)+'</span><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
+      '<div class="garment-work-line"><span>'+(index+1)+'</span><div><strong>'+esc(work.name||tr("Trabajo","Trabalho"))+'</strong><small>'+
+      esc(work.assignedWorker?.name||tr("Sin asignar","Sem atribuição"))+
+      (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+tr("foto(s)","foto(s)"):"")+
+      '</small></div><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
     ).join("")+'</div>':
     '<p class="feature-muted">'+tr("Este pedido antiguo no tiene trabajos separados.","Este pedido antigo não tem trabalhos separados.")+'</p>')+
    '</div>'+
-   '<div class="passport-section passport-photo-section"><h4>'+tr("Fotos de la prenda","Fotos da peça")+'</h4>'+
-    '<p class="passport-section-help">'+tr("Guarda fotos de recepción, detalles y resultado final.","Guarde fotos do recebimento, detalhes e resultado final.")+'</p>'+
+   '<div class="passport-section passport-photo-section"><h4>'+tr("Fotografías por trabajo","Fotografias por trabalho")+'</h4>'+
+    '<p class="passport-section-help">'+tr("Cada fotografía queda vinculada al trabajo correspondiente para mantener el historial ordenado.","Cada fotografia fica vinculada ao trabalho correspondente para manter o histórico organizado.")+'</p>'+
     '<div class="passport-single-action">'+b(tr("Ver / añadir fotografías","Ver / adicionar fotografias"),"item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+'</div></div>'+
    '<div class="passport-section passport-share-section"><h4>'+tr("Compartir con el cliente","Compartilhar com o cliente")+'</h4>'+
     '<p class="passport-section-help">'+tr("RIMMA crea una página privada del pedido. Elige cómo quieres enviarla.","A RIMMA cria uma página privada do pedido. Escolha como deseja enviá-la.")+'</p>'+
@@ -747,15 +902,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     if(objectUrl)URL.revokeObjectURL(objectUrl);
   }
 }
-function newPhoto(){
-  const {orderId,itemId}=selected||{};
-  if(!uuid(orderId)||!uuid(itemId))return;
-  layout("photo-new","Subir fotografía",
-   '<p class="feature-muted">JPEG, PNG o WebP. Las fotografías grandes se reducirán automáticamente antes de subirlas. Se enviarán exclusivamente a tu espacio de trabajo.</p>'+
-   '<div class="feature-fields">'+field("file","Fotografía *","file",'required accept="image/jpeg,image/png,image/webp"')+
-   select("photoType","Tipo",choice("intake",photoTypes))+textarea("caption","Comentario",500)+'</div>');
-  selected={orderId,itemId};
- }
+
  const docTypeLabel=type=>({
   estimate:"Presupuesto",
   deposit_receipt:"Resguardo de depósito",
@@ -895,14 +1042,14 @@ function newPhoto(){
 
   const payOptions=confirmedPayments.map(payment=>[
    payment.id,
-   money(payment.amountMinor,payment.currencyCode)+" · "+String(payment.method||"")+" · "+String(payment.confirmedAt||payment.createdAt||"").slice(0,10)
+   money(payment.amountMinor,payment.currencyCode)+" · "+String(payment.method||"")+" · "+localDate(payment.confirmedAt||payment.createdAt)
   ]);
   const paymentSelect=payOptions.length
    ? '<div class="atelier-doc-payment"><label for="fx-documentPaymentId">Pago para el recibo</label><select id="fx-documentPaymentId" name="documentPaymentId">'+choice(payOptions[0][0],payOptions)+'</select></div>'
    : '<p class="feature-muted">No hay pagos confirmados para emitir un recibo.</p>';
   const language=profile.documentLanguage||"es";
   const history=docs.length
-   ? '<div class="atelier-doc-history">'+docs.map(doc=>'<div class="atelier-doc-row"><div><strong>'+esc(docTypeLabel(doc.documentType))+'</strong><small>'+esc(doc.documentNumber)+' · '+esc(String(doc.createdAt||"").slice(0,16).replace("T"," "))+'</small></div><button type="button" class="feature-button" data-feature="document-open" data-id="'+esc(doc.id)+'">Ver / imprimir</button></div>').join("")+'</div>'
+   ? '<div class="atelier-doc-history">'+docs.map(doc=>'<div class="atelier-doc-row"><div><strong>'+esc(docTypeLabel(doc.documentType))+'</strong><small>'+esc(doc.documentNumber)+' · '+esc(localDateTime(doc.createdAt))+'</small></div><button type="button" class="feature-button" data-feature="document-open" data-id="'+esc(doc.id)+'">Ver / imprimir</button></div>').join("")+'</div>'
    : '<p class="feature-muted">Todavía no hay documentos guardados para este pedido.</p>';
 
   layout("order-documents","Documentos del pedido #"+String(order.orderNumber||""),
@@ -1221,33 +1368,71 @@ function newPhoto(){
      unit:get("unit"),notes:get("notes").trim()||null,measurements})});
    close();await openMeasurements(clientId);success("Nueva ficha de medidas guardada.");
   }else if(mode==="payment-new"){
-   const orderId=selected.orderId,itemId=get("orderItemId"),amountMinor=moneyMinor(get("amount"));
-   const item=selected.items.find(i=>i.orderItemId===itemId);
-   if(!item||amountMinor>item.remainingMinor)throw Error("El importe excede el saldo de la prenda.");
-   const paymentBody=JSON.stringify({amountMinor,currencyCode:selected.summary.currencyCode,
-    method:get("method"),notes:get("notes").trim()||null,
-    allocations:[{orderItemId:itemId,amountMinor}]});
+   const orderId=selected.orderId,amountMinor=moneyMinor(get("amount"));
+   const available=Math.max(0,Number(selected.summary.remainingMinor||0)-Number(selected.summary.pendingMinor||0));
+   if(amountMinor>available)throw Error("El importe excede el saldo disponible del pedido.");
+   const method=get("method"),status=selected.paymentStatus==="pending"?"pending":"confirmed";
+   if(status==="confirmed"){
+    const approved=await confirmAction({
+     title:"Confirmar cobro",
+     message:"Has recibido "+money(amountMinor,selected.summary.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+". Esta operación actualizará el saldo del pedido.",
+     cancelLabel:"Volver",
+     confirmLabel:"Confirmar cobro",
+     danger:false
+    });
+    if(!approved)return;
+   }
+   const paymentBody=JSON.stringify({
+    amountMinor,
+    currencyCode:selected.summary.currencyCode,
+    method,
+    status,
+    notes:get("notes").trim()||null
+   });
    const retry=paymentRetry(orderId,paymentBody);
-   await api("/orders/"+encodeURIComponent(orderId)+"/payments",{method:"POST",
-    headers:{"Idempotency-Key":retry.key},body:paymentBody});
+   await api("/orders/"+encodeURIComponent(orderId)+"/payments",{
+    method:"POST",headers:{"Idempotency-Key":retry.key},body:paymentBody
+   });
    clearPaymentRetry(retry);
-   close();await openPayments(orderId);success("Cobro registrado como pendiente. Confírmalo solo tras recibir el dinero.");
+   await openPayments(orderId);
+   await refreshOrders();
+   success(status==="confirmed"?"Cobro confirmado.":"Cobro registrado como pendiente.");
+  }else if(mode==="payment-cancel"){
+   const payment=selected.cancelPayment;
+   const reason=get("cancellationReason").trim();
+   if(!payment||!uuid(payment.id))throw Error("Actualiza los cobros e inténtalo de nuevo.");
+   if(!reason)throw Error("Indica el motivo de la anulación.");
+   const orderId=selected.orderId;
+   await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(payment.id),{
+    method:"PATCH",
+    body:JSON.stringify({expectedVersion:Number(payment.version),status:"cancelled",cancellationReason:reason})
+   });
+   await openPayments(orderId);
+   await refreshOrders();
+   success("Cobro pendiente anulado.");
   }else if(mode==="garment-works-edit"){
    if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
    const rows=[...dlg.querySelectorAll("[data-work-edit-row]")];
    if(!rows.length)throw Error(tr("Añade al menos un trabajo.","Adicione pelo menos um trabalho."));
    const services=Array.isArray(selected.workServices)?selected.workServices:[];
    const works=rows.map((row,index)=>{
+    const workId=row.dataset.workId||null;
     const serviceId=row.querySelector('[name="workService"]')?.value||"";
     const service=serviceId?services.find(item=>item.id===serviceId):null;
     const name=row.querySelector('[name="workName"]')?.value.trim()||"";
     const price=Number(row.querySelector('[name="workPrice"]')?.value);
     const priceMinor=Math.round(price*100);
+    const assignedUserId=row.querySelector('[name="workAssignedUserId"]')?.value||null;
+    const categoryId=service?.categoryId||row.dataset.categoryId||selected?.passport?.categoryId||null;
+    if(workId&&!uuid(workId))throw Error(tr("Actualiza la prenda antes de guardar.","Atualize a peça antes de salvar."));
+    if(assignedUserId&&!uuid(assignedUserId))throw Error(tr("Selecciona un responsable válido.","Selecione um responsável válido."));
     if(!name)throw Error(tr("Indica el trabajo en cada línea.","Indique o trabalho em cada linha."));
     if(!Number.isFinite(price)||price<0||!Number.isSafeInteger(priceMinor))throw Error(tr("Revisa los precios de los trabajos.","Revise os preços dos trabalhos."));
     return {
-     categoryId:service?.categoryId||null,
+     ...(workId?{id:workId}:{}),
+     categoryId,
      serviceId:service?.id||null,
+     assignedUserId,
      name,
      priceMinor,
      sortOrder:index
@@ -1270,7 +1455,6 @@ function newPhoto(){
     color:get("color").trim()||null,
     sizeLabel:get("sizeLabel").trim()||null,
     storageLocation:get("storageLocation").trim()||null,
-    assignedUserId:get("assignedUserId")||null,
     measurementSetId:get("measurementSetId")||null
    };
    const nextMode=mode;
@@ -1287,11 +1471,17 @@ function newPhoto(){
     const reader=new FileReader();reader.onerror=()=>reject(Error("No se pudo leer la fotografía."));
     reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.readAsDataURL(prepared.blob);
    });
-   const {orderId,itemId}=selected;
+   const {orderId,itemId,workLineId}=selected;
+   if(!uuid(workLineId))throw Error("Selecciona el trabajo de la fotografía.");
    await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos/upload",{
-    method:"POST",body:JSON.stringify({base64,sizeBytes:prepared.blob.size,fileName:prepared.name,
-     contentType:prepared.contentType,photoType:get("photoType"),caption:get("caption").trim()||null})});
-   close();await openPhotos(orderId,itemId);success("Fotografía subida correctamente.");
+    method:"POST",body:JSON.stringify({
+     base64,sizeBytes:prepared.blob.size,fileName:prepared.name,
+     contentType:prepared.contentType,photoType:get("photoType"),
+     caption:get("caption").trim()||null,
+     workLineId,
+     source:"desktop_upload"
+    })});
+   await openPhotos(orderId,itemId);success("Fotografía guardada en el trabajo.");
   }
  }
  dlg.addEventListener("submit",e=>{e.preventDefault();void safe(save)});
@@ -1301,10 +1491,6 @@ function newPhoto(){
  dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
   if(mode==="business-profile"&&(e.target.id==="fx-taxTerritory"||e.target.id==="fx-jurisdiction"))syncBusinessProfileForm(e.target.name);
   if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
-  if(e.target.id==="fx-orderItemId"&&mode==="payment-new"){
-   const i=selected.items.find(x=>x.orderItemId===e.target.value);
-   if(i)dlg.querySelector("#fx-amount").value=(i.remainingMinor/100).toFixed(2);
-  }
   if(mode==="garment-works-edit"&&e.target.matches('[name="workService"]')){
    const row=e.target.closest("[data-work-edit-row]");
    const service=(selected?.workServices||[]).find(item=>item.id===e.target.value);
@@ -1355,16 +1541,55 @@ function newPhoto(){
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
   if(action==="order-payments")return void safe(async()=>openPayments(id));
   if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
-  if(action==="payment-new")return void safe(newPayment);
-  if(action==="payment-confirm"||action==="payment-cancel"){
-   const next=action==="payment-confirm"?"confirmed":"cancelled",orderId=selected.orderId;
+  if(action==="whatsapp-open"){
+   const orderId=selected?.orderId;
+   const phone=String(el.dataset.phone||"").replace(/\D/g,"");
+   const templateKey=String(el.dataset.template||"message");
+   const editor=dlg.querySelector('[data-wa-message="'+CSS.escape(templateKey)+'"]');
+   const message=String(editor?.value||"").trim();
+   if(!uuid(orderId)||phone.length<8||phone.length>15||!message){
+    alertError("Revisa el número y el mensaje antes de abrir WhatsApp.");
+    return;
+   }
+   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
+   const opened=window.open(url,"_blank","noopener,noreferrer");
+   if(!opened){
+    alertError("El navegador ha bloqueado WhatsApp. Permite ventanas emergentes para RIMMA.");
+    return;
+   }
+   void api("/orders/"+encodeURIComponent(orderId)+"/whatsapp/log",{
+    method:"POST",
+    body:JSON.stringify({action:"opened",templateKey,messageLength:message.length})
+   }).catch(()=>{});
+   success("WhatsApp abierto. RIMMA no marca el mensaje como enviado.");
+   return;
+  }
+  if(action==="payment-new")return void safe(()=>newPayment(el.dataset.status||"confirmed"));
+  if(action==="payment-cancel"){
+   return cancelPaymentForm({
+    id,version,
+    amountMinor:Number(el.dataset.amount||0),
+    method:el.dataset.method||"other"
+   });
+  }
+  if(action==="payment-confirm"){
+   const orderId=selected.orderId;
    return void safe(async()=>{
-    if(!await confirmAction({title:next==="confirmed"?"Confirmar cobro":"Cancelar cobro pendiente",
-     message:next==="confirmed"?"¿Has recibido realmente este cobro? La confirmación modificará el saldo del pedido.":"¿Cancelar este registro de cobro pendiente?",
-     confirmLabel:next==="confirmed"?"Confirmar cobro":"Cancelar cobro",danger:next!=="confirmed"}))return;
+    const amount=Number(el.dataset.amount||0);
+    const method=el.dataset.method||"other";
+    const approved=await confirmAction({
+     title:"Confirmar cobro",
+     message:"¿Has recibido realmente "+money(amount,selected.summary?.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+"? La confirmación modificará el saldo del pedido.",
+     cancelLabel:"Volver",
+     confirmLabel:"Confirmar cobro",
+     danger:false
+    });
+    if(!approved)return;
     await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(id),{
-     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:next})});
-    close();await openPayments(orderId);await refreshOrders();success(next==="confirmed"?"Cobro confirmado.":"Cobro pendiente cancelado.");
+     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"confirmed"})});
+    await openPayments(orderId);
+    await refreshOrders();
+    success("Cobro confirmado.");
    });
   }
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
@@ -1374,7 +1599,14 @@ function newPhoto(){
    if(mode!=="garment-works-edit")return;
    const holder=dlg.querySelector("#garment-work-edit-list");
    if(!holder||holder.children.length>=50)return;
-   holder.insertAdjacentHTML("beforeend",workEditRow({name:"",priceMinor:0,serviceId:null},holder.children.length,selected?.workServices||[]));
+   holder.insertAdjacentHTML("beforeend",workEditRow({
+     id:null,
+     categoryId:selected?.passport?.categoryId||null,
+     name:"",
+     priceMinor:0,
+     serviceId:null,
+     assignedWorker:null
+    },holder.children.length,selected?.workServices||[],selected?.workMembers||[]));
    renumberWorkEditRows();syncWorkEditTotal();return;
   }
   if(action==="work-remove"){
@@ -1392,7 +1624,19 @@ function newPhoto(){
   if(action==="passport-email")return void safe(()=>sendPassportEmail(el));
   if(action==="passport-revoke")return void safe(revokePassportShare);
   if(action==="item-photos")return void safe(async()=>openPhotos(el.dataset.order,id));
-  if(action==="photo-new")return newPhoto();
+  if(action==="photo-new")return newPhoto(el.dataset.work);
+  if(action==="photo-mobile")return void safe(()=>openMobilePhotoCapture(el.dataset.work));
+  if(action==="photo-mobile-done")return void safe(()=>openPhotos(selected.orderId,selected.itemId));
+  if(action==="photo-cover"){
+   const {orderId,itemId}=selected;
+   return void safe(async()=>{
+    await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/photos/"+encodeURIComponent(id),{
+     method:"PATCH",body:JSON.stringify({expectedVersion:version,isCover:true})
+    });
+    await openPhotos(orderId,itemId);
+    success("Portada del pedido actualizada.");
+   });
+  }
   if(action==="photo-archive"){
    const {orderId,itemId}=selected;
    return void safe(async()=>{

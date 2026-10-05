@@ -145,16 +145,16 @@ let returnToOrderAfterClient=false,pendingOrderClientId="";
 let clientDuplicateClock=null,clientDuplicateSeq=0,clientDuplicateMatches=[];
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
-const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261004-v69").then(module=>module.confirmAction(options));
+const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261005-v1").then(module=>module.confirmAction(options));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
-const featureUI=import("/app/portal-features.mjs?v=20261004-v63").then(module=>module.createFeatureUI({
+const featureUI=import("/app/portal-features.mjs?v=20261005-v1").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
  logoutAfterPassword:async()=>{await logout();}
 }));
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261004-v69").then(module=>module.createOrderWizard({
+const orderWizard=import("/app/order-wizard.mjs?v=20261005-v1").then(module=>module.createOrderWizard({
  api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
  onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
  onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
@@ -580,7 +580,11 @@ async function printGarmentLabel(orderId,itemId){
   const canvas=qrHolder.querySelector("canvas"),img=qrHolder.querySelector("img");
   const qrData=canvas?.toDataURL("image/png")||img?.src||"";
   qrHolder.remove();
-  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font-weight:800;letter-spacing:.16em;font-size:10px}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(l.orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div><div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsable:</b> '+esc(l.assignedWorker?.name||"Sin asignar")+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
+  const responsibleNames=Array.isArray(l.responsibleNames)?l.responsibleNames.filter(Boolean):[];
+  const responsibilities=responsibleNames.length?responsibleNames.join(" · "):"Sin asignar";
+  const workNames=Array.isArray(l.works)?l.works.map(work=>work?.name).filter(Boolean):[];
+  const orderNumber=String(l.orderNumber||"").padStart(4,"0");
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}:root{--font-ui:"DM Sans","Segoe UI",Arial,sans-serif;--font-display:"Cormorant Garamond",Georgia,serif}*{box-sizing:border-box}body{font-family:var(--font-ui);margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font:600 13px/1 var(--font-display);letter-spacing:.16em}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.works{font-size:9px;line-height:1.4;margin:4px 0;color:#444}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div>'+(workNames.length?'<div class="works">'+esc(workNames.join(" · "))+'</div>':"")+'<div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsables:</b> '+esc(responsibilities)+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
   if(!popup)throw Error("Permite ventanas emergentes para imprimir la etiqueta.");
   popup.document.open();popup.document.write(html);popup.document.close();
   setTimeout(()=>{try{popup.focus();popup.print();}catch{}},350);

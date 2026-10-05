@@ -35,8 +35,8 @@ test('portal language picker lives in the top bar, not the sidebar footer',()=>{
   assert.ok(topbar.indexOf('topbar-locale') < topbar.indexOf('profile-chip'));
   const sidebarBottom=html.match(/<div class="sidebar-bottom">([\s\S]*?)<\/div>/)?.[1]||'';
   assert.doesNotMatch(sidebarBottom,/app-locale-select/);
-  const css=read('public/portal-parity.css');
-  assert.match(css,/\.topbar-locale/);
+  const css=read('public/app.css');
+  assert.match(css,/\.topbar-locale/,'canonical app stylesheet must style the topbar locale picker');
 });
 
 test('regional locale layer covers the main atelier workflow',()=>{
