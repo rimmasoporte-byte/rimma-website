@@ -231,9 +231,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
  assert.match(css,/\.wizard-mobile-capture-qr\{/);
- assert.match(css,/\.wizard-mobile-capture\{[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-mobile-capture-qr\{[\s\S]*?box-sizing:border-box[\s\S]*?max-width:166px[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-mobile-capture-qr img,\.wizard-mobile-capture-qr canvas\{[\s\S]*?width:100%!important[\s\S]*?height:auto!important/);
+ assert.match(css,/Canonical order photo controls/);
+ assert.match(css,/\.wizard-photo-control\{[\s\S]*?box-sizing:border-box[\s\S]*?width:100%[\s\S]*?max-width:100%[\s\S]*?overflow-x:clip/);
+ assert.match(css,/\.wizard-photo-control \*\{box-sizing:border-box\}/);
+ assert.match(css,/\.wizard-mobile-capture\{[\s\S]*?grid-template-columns:minmax\(0,1fr\) minmax\(140px,166px\)[\s\S]*?width:auto[\s\S]*?max-width:100%[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr\{[\s\S]*?width:min\(166px,100%\)[\s\S]*?max-width:100%[\s\S]*?overflow:hidden/);
+ assert.match(css,/\.wizard-mobile-capture-qr img,[\s\S]*?\.wizard-mobile-capture-qr canvas\{[\s\S]*?width:100%!important[\s\S]*?max-width:150px!important[\s\S]*?height:auto!important/);
 
  assert.match(css,/\.wizard-mobile-photo-gallery\{/);
  assert.match(css,/\.wizard-photo-preview-backdrop\{/);
@@ -329,7 +332,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v8/);
-  assert.match(html,/app\.css\?v=20261005-v8/);
+  assert.match(html,/app\.css\?v=20261005-v9/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);

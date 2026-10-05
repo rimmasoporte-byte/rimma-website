@@ -6,7 +6,7 @@ const read=name=>fs.readFile(new URL('../public/'+name,import.meta.url),'utf8');
 
 test('canonical RIMMA visual sheet replaces the historical cascade without extra script origins',async()=>{
  const html=await read('index.html');
- assert.match(html,/\/app\/app\.css\?v=20261005-v8/);
+ assert.match(html,/\/app\/app\.css\?v=20261005-v9/);
  for(const legacy of ['site.css','premium.css','luxury-buttons.css','maison-luxe.css'])
   assert.doesNotMatch(html,new RegExp('/app/'+legacy.replace('.','\\.')));
  assert.match(html,/family=Cormorant\+Garamond/);
