@@ -57,6 +57,8 @@ test('delete and download security paths remain intact',()=>{
 });
 
 test('photo viewer source has no duplicated function declarations',()=>{
-  assert.doesNotMatch(wizard,/function\s+\w+\s+function\s+\w+/);
-  assert.doesNotMatch(wizard,/async function\s+\w+\s+async function\s+\w+/);
+  assert.doesNotMatch(wizard,/function\s+([A-Za-z_$][\w$]*)[^{}]*\{\s*function\s+\1\b/);
+  assert.doesNotMatch(wizard,/async function\s+([A-Za-z_$][\w$]*)[^{}]*\{\s*async function\s+\1\b/);
+  assert.doesNotMatch(wizard,/function\s+([A-Za-z_$][\w$]*)\s+function\s+\1\b/);
+  assert.doesNotMatch(wizard,/async function\s+([A-Za-z_$][\w$]*)\s+async function\s+\1\b/);
 });
