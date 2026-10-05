@@ -319,7 +319,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v5/);
-  assert.match(html,/app\.css\?v=20261005-v6/);
+  assert.match(html,/app\.css\?v=20261005-v7/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);
