@@ -1565,9 +1565,16 @@ export function createOrderWizard({
       return;
     }
     if(name==="new-client"){
+      if(typeof onOpenClient!=="function"){
+        setError("No se pudo abrir el formulario de cliente.");
+        return;
+      }
       persist();
-      modal.addEventListener("close",()=>onOpenClient?.(),{once:true});
-      modal.close();
+      // Switch views inside the already-open native dialog. Waiting for a
+      // dialog "close" event here is race-prone in Chromium and can leave
+      // the button looking clickable while no client form is opened.
+      closed();
+      onOpenClient();
       return;
     }
     if(name==="toggle-item-date"){
