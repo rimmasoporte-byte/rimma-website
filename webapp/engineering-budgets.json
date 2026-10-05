@@ -6,5 +6,11 @@
     "public/order-wizard.mjs": 2150,
     "public/portal-features.mjs": 1750,
     "public/app.css": 4900
+  },
+  "intentionalExceptions": {
+    "documentWrite": {
+      "public/site.js": "Isolated blank print popup for garment labels; dynamic values are escaped before rendering.",
+      "public/portal-features.mjs": "Isolated blank print popup using the dedicated atelier document renderer."
+    }
   }
 }
