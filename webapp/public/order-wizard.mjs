@@ -487,7 +487,6 @@ export function createOrderWizard({
     const phone=String(client.phone||"").trim();
     return '<section class="order-wizard-success">'+
       '<div class="wizard-success-mark">✓</div>'+
-      '<h3>Pedido #'+String(order.orderNumber||"").padStart(4,"0")+' creado</h3>'+
       '<p>Guardado correctamente en RIMMA.</p>'+
       '<div class="wizard-created-summary">'+
       '<span><small>Cliente</small><strong>'+esc(client.name||state.clientLabel||"—")+'</strong></span>'+
@@ -627,11 +626,13 @@ export function createOrderWizard({
     if(!active)return;
     setError("");
     eyebrow.textContent="TUS ENCARGOS";
-    title.textContent=created?"Pedido creado":"Nuevo pedido";
+    const createdOrderNumber=String(created?.order?.orderNumber||"").padStart(4,"0");
+    title.textContent=created?("Pedido #"+createdOrderNumber+" creado"):"Nuevo pedido";
     modal.classList.add("order-wizard-modal");
     fields.innerHTML=created
       ?renderCreated()
       :stepper()+(state.step===0?renderClient():state.step===1?renderGarments():state.step===2?renderDelivery():renderReview());
+    if(created)fields.scrollTop=0;
     syncFooter();
     if(!created&&state.step===1)setTimeout(renderMobileCaptureQrs,0);
     syncCapturePolling();

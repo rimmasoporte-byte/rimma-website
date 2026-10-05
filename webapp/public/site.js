@@ -568,27 +568,68 @@ async function loadOrders(){
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
 }
 async function printGarmentLabel(orderId,itemId){
- if(!/^[a-f0-9-]{36}$/i.test(orderId||"")||!/^[a-f0-9-]{36}$/i.test(itemId||"")){globalError("Prenda no válida.");return;}
- const popup=window.open("about:blank","_blank","noopener,noreferrer");
+ if(!/^[a-f0-9-]{36}$/i.test(orderId||"")||!/^[a-f0-9-]{36}$/i.test(itemId||"")){
+  globalError("Prenda no válida.");
+  return;
+ }
+ const popup=window.open("","_blank","popup,width=520,height=760");
+ if(!popup){
+  globalError("Permite ventanas emergentes para imprimir la etiqueta.");
+  return;
+ }
  try{
+  // Keep a usable WindowProxy for rendering, then detach the child from the
+  // opener relationship before any user-visible content is written.
+  try{popup.opener=null}catch{}
+  popup.document.open();
+  popup.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Preparando etiqueta · RIMMA</title><style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#f6f1e8;color:#294032;font-family:"Segoe UI",Arial,sans-serif}.loading{display:grid;gap:8px;text-align:center}.loading strong{font-size:18px}.loading span{font-size:12px;color:#756b5d}</style></head><body><div class="loading"><strong>Preparando etiqueta…</strong><span>RIMMA está generando el documento.</span></div></body></html>');
+  popup.document.close();
+
   const data=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/label");
   const l=data.label||{};
-  const qrHolder=document.createElement("div");qrHolder.style.position="fixed";qrHolder.style.left="-10000px";document.body.appendChild(qrHolder);
+  const qrHolder=document.createElement("div");
+  qrHolder.style.position="fixed";
+  qrHolder.style.left="-10000px";
+  document.body.appendChild(qrHolder);
+
   if(!window.QRCode)throw Error("No se pudo preparar el QR.");
-  new QRCode(qrHolder,{text:String(l.qrPayload||""),width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+  new QRCode(qrHolder,{
+   text:String(l.qrPayload||""),
+   width:170,
+   height:170,
+   correctLevel:QRCode.CorrectLevel.M
+  });
   await new Promise(resolve=>setTimeout(resolve,120));
+
   const canvas=qrHolder.querySelector("canvas"),img=qrHolder.querySelector("img");
   const qrData=canvas?.toDataURL("image/png")||img?.src||"";
   qrHolder.remove();
+
   const responsibleNames=Array.isArray(l.responsibleNames)?l.responsibleNames.filter(Boolean):[];
   const responsibilities=responsibleNames.length?responsibleNames.join(" · "):"Sin asignar";
   const workNames=Array.isArray(l.works)?l.works.map(work=>work?.name).filter(Boolean):[];
   const orderNumber=String(l.orderNumber||"").padStart(4,"0");
-  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA</title><style>@page{size:62mm 90mm;margin:4mm}:root{--font-ui:"DM Sans","Segoe UI",Arial,sans-serif;--font-display:"Cormorant Garamond",Georgia,serif}*{box-sizing:border-box}body{font-family:var(--font-ui);margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font:600 13px/1 var(--font-display);letter-spacing:.16em}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.works{font-size:9px;line-height:1.4;margin:4px 0;color:#444}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div>'+(workNames.length?'<div class="works">'+esc(workNames.join(" · "))+'</div>':"")+'<div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsables:</b> '+esc(responsibilities)+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
-  if(!popup)throw Error("Permite ventanas emergentes para imprimir la etiqueta.");
-  popup.document.open();popup.document.write(html);popup.document.close();
-  setTimeout(()=>{try{popup.focus();popup.print();}catch{}},350);
- }catch(e){try{popup?.close()}catch{}globalError(e.message||"No se pudo imprimir la etiqueta.");}
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta RIMMA · Pedido #'+esc(orderNumber)+'</title><style>@page{size:62mm 90mm;margin:4mm}:root{--font-ui:"DM Sans","Segoe UI",Arial,sans-serif;--font-display:"Cormorant Garamond",Georgia,serif}*{box-sizing:border-box}body{font-family:var(--font-ui);margin:0;color:#151515}.tag{border:1px solid #222;padding:4mm;width:54mm;min-height:80mm}.brand{font:600 13px/1 var(--font-display);letter-spacing:.16em}.order{font-size:22px;font-weight:800;margin:4px 0}.client{font-size:13px;font-weight:700}.garment{font-size:15px;margin:6px 0}.works{font-size:9px;line-height:1.4;margin:4px 0;color:#444}.meta{font-size:10px;line-height:1.55;border-top:1px solid #bbb;padding-top:5px}.qr{text-align:center;margin-top:5px}.qr img{width:32mm;height:32mm}.hint{font-size:8px;text-align:center;margin-top:2px}</style></head><body><div class="tag"><div class="brand">RIMMA</div><div class="order">#'+esc(orderNumber)+'</div><div class="client">'+esc(l.clientName||"Cliente")+'</div><div class="garment">'+esc(l.garmentName||"Prenda")+'</div>'+(workNames.length?'<div class="works">'+esc(workNames.join(" · "))+'</div>':"")+'<div class="meta"><b>Entrega:</b> '+esc(date(l.dueDate))+'<br><b>Responsables:</b> '+esc(responsibilities)+'<br><b>Ubicación:</b> '+esc(l.storageLocation||"Sin ubicación")+'<br><b>Estado:</b> '+esc(status[l.status]||l.status||"—")+'</div><div class="qr">'+(qrData?'<img src="'+qrData+'" alt="QR">':"")+'</div><div class="hint">QR interno · requiere acceso RIMMA</div></div></body></html>';
+
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
+
+  const closeAfterPrint=()=>{try{popup.close()}catch{}};
+  popup.addEventListener?.("afterprint",closeAfterPrint,{once:true});
+  setTimeout(()=>{
+   try{
+    popup.focus();
+    popup.print();
+   }catch{
+    closeAfterPrint();
+    globalError("No se pudo abrir el diálogo de impresión.");
+   }
+  },250);
+ }catch(e){
+  try{popup.close()}catch{}
+  globalError(e.message||"No se pudo imprimir la etiqueta.");
+ }
 }
 function appointmentCard(a){
  const start=new Date(a.startsAt),end=new Date(a.endsAt);
