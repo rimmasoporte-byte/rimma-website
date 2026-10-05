@@ -4,9 +4,10 @@ import fs from 'node:fs/promises';
 
 const js=await fs.readFile(new URL('../public/site.js',import.meta.url),'utf8');
 
-test('new order buttons have one direct click owner and no delegated duplicate path',()=>{
-  assert.match(js,/\$\$\('\[data-action="new-order"\]'\)\.forEach\(button=>\{/);
-  assert.doesNotMatch(js,/case "new-order":/);
+test('new order uses one delegated click owner and no startup per-button patch',()=>{
+  assert.match(js,/case "new-order":void openNewOrder\(\);break;/);
+  assert.doesNotMatch(js,/\$\('\[data-action="new-order"\]'\)\.forEach/);
+  assert.doesNotMatch(js,/\$\$\('\[data-action="new-order"\]'\)\.forEach/);
 });
 
 test('new order dialog opens synchronously before wizard import or API work',()=>{
@@ -31,6 +32,7 @@ test('order wizard loader is retryable after transient import failure',()=>{
   assert.match(block,/throw error;/);
 });
 
-test('order wizard is prewarmed without blocking application startup',()=>{
-  assert.match(js,/void getOrderWizard\(\)\.catch\(\(\)=>\{\}\);\s*void session\(\);/);
+test('application startup authenticates without prewarming the order wizard',()=>{
+  assert.doesNotMatch(js,/void getOrderWizard\(\)\.catch\(\(\)=>\{\}\);/);
+  assert.match(js,/void session\(\);\s*\}\)\(\);/);
 });
