@@ -350,6 +350,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
 
   const photoRow=photo=>{
    const url=safePhotoUrl(photo.viewUrl);
+   const download=safePhotoUrl(photo.downloadUrl);
    return '<div class="work-photo-row'+(photo.isCover?' is-cover':'')+'">'+
     '<div class="work-photo-main"><strong>'+esc(photo.fileName||"Fotografía")+'</strong>'+
     '<small>'+esc((photoTypes.find(x=>x[0]===photo.photoType)||["",photo.photoType])[1]||"Foto")+
@@ -358,6 +359,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     (photo.isCover?'<span class="photo-cover-badge">Portada</span>':b("Usar como portada","photo-cover",'data-id="'+esc(photo.id)+'" data-version="'+esc(photo.version)+'"'))+
     (url?'<a class="feature-button feature-action-link" href="'+esc(url)+'" rel="noopener noreferrer" target="_blank">Ver ↗</a>':
       '<span class="feature-muted">Enlace no disponible</span>')+
+    (download?'<a class="feature-button feature-action-link" href="'+esc(download)+'">Descargar</a>':"")+
     b("Archivar","photo-archive",'data-id="'+esc(photo.id)+'" data-version="'+esc(photo.version)+'"')+
    '</div>';
   };
