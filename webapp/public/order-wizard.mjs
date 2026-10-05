@@ -593,7 +593,7 @@ export function createOrderWizard({
       ?result.capture.photos.filter(photo=>photo.status==="active"||photo.status==="claimed")
       :[];
     const previous=JSON.stringify((work.mobilePhotos||[]).map(photo=>[
-      photo.id,photo.status,photo.isCover,photo.viewUrl,photo.downloadUrl
+      photo.id,photo.status,photo.isCover,photo.sizeBytes
     ]));
     work.mobilePhotos=photos;
     work.mobilePhotoCount=photos.length;
@@ -602,7 +602,7 @@ export function createOrderWizard({
       photoPreview=fresh?{...photoPreview,photo:fresh}:null;
     }
     const next=JSON.stringify(photos.map(photo=>[
-      photo.id,photo.status,photo.isCover,photo.viewUrl,photo.downloadUrl
+      photo.id,photo.status,photo.isCover,photo.sizeBytes
     ]));
     const changed=previous!==next;
     if(changed)schedulePersist();
