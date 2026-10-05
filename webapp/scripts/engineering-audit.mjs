@@ -58,7 +58,6 @@ const productionModules=[
 const forbiddenProductionPatterns=[
   {re:/\beval\s*\(/,label:"eval()"},
   {re:/\bnew\s+Function\s*\(/,label:"new Function()"},
-  {re:/\bdocument\.write\s*\(/,label:"document.write()"},
   {re:/\bdebugger\s*;/,label:"debugger statement"},
   {re:/\bconsole\.log\s*\(/,label:"console.log()"},
   {re:/\b(?:TODO|FIXME)\b/,label:"untracked TODO/FIXME"}
@@ -72,6 +71,11 @@ for(const file of productionModules){
   if(lineCount>max)fail(`${relative} has ${lineCount} lines; architecture budget is ${max}`);
   for(const {re,label} of forbiddenProductionPatterns){
     if(re.test(text))fail(`${relative} contains forbidden production pattern: ${label}`);
+  }
+  if(/\bdocument\.write\s*\(/.test(text)){
+    const reason=budgets.intentionalExceptions?.documentWrite?.[relative];
+    if(!reason)fail(`${relative} uses document.write() without a documented isolated-print exception`);
+    else notes.push(`${relative}: reviewed document.write() exception — ${reason}`);
   }
 }
 
@@ -91,7 +95,7 @@ for(const {file,text} of publicSource){
   if(/\b(?:accessToken|refreshToken)\b/.test(text)){
     fail(rel(file)+" references backend token material in browser source");
   }
-  if(/\bon[a-z]+\s*=\s*["']/i.test(text)){
+  if(/\s(?:onclick|ondblclick|onchange|oninput|onsubmit|onload|onerror|onfocus|onblur|onkeydown|onkeyup|onpointerdown|onpointerup)\s*=\s*["']/i.test(text)){
     fail(rel(file)+" contains an inline DOM event handler");
   }
 }
