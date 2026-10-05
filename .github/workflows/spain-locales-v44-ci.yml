@@ -17,11 +17,21 @@ on:
       - 'webapp/test/*localization.test.mjs'
       - 'webapp/test/signup.test.mjs'
       - '.github/workflows/spain-locales-v44-ci.yml'
+permissions:
+  contents: read
+
+concurrency:
+  group: spain-locales-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   locale-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
