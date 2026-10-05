@@ -61,6 +61,8 @@ jobs:
       TEST_WEB_SESSION_DATABASE_URL: postgres://rimma_ci:rimma_local_ci_only@localhost:5432/rimma_web_ci
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
