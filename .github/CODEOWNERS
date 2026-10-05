@@ -1,0 +1,9 @@
+# RIMMA code ownership.
+# Keep this intentionally simple while the repository has a single maintainer.
+# Replace or extend with team aliases when engineering staff are added.
+* @rimmasoporte-byte
+
+# Security-sensitive web application and CI configuration.
+webapp/ @rimmasoporte-byte
+.github/workflows/ @rimmasoporte-byte
+SECURITY.md @rimmasoporte-byte
