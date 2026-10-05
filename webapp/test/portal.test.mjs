@@ -151,9 +151,9 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   const csp=r.headers.get('content-security-policy')||'';
   assert.ok(csp.includes('fonts.googleapis.com'));
   assert.ok(!csp.includes('unsafe-inline'));
-  assert.match(csp,/img-src[^;]*\\bblob:/,'local photo previews are allowed only as image resources');
-  assert.doesNotMatch(csp,/script-src[^;]*\\bblob:/,'blob URLs must never become executable script sources');
-  assert.doesNotMatch(csp,/connect-src[^;]*\\bblob:/,'blob URLs are not network destinations');
+  assert.match(csp,/img-src[^;]*\bblob:/,'local photo previews are allowed only as image resources');
+  assert.doesNotMatch(csp,/script-src[^;]*\bblob:/,'blob URLs must never become executable script sources');
+  assert.doesNotMatch(csp,/connect-src[^;]*\bblob:/,'blob URLs are not network destinations');
   assert.match(await r.text(),/Gestión|Mi taller|Tu taller/i);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers},body:'{}'});assert.equal(r.status,403);
   r=await fetch(base+'/api/billing/sync',{method:'POST',headers:{...head,...headers,origin:'https://attacker.test','x-rimma-csrf':login.csrf},body:'{}'});assert.equal(r.status,403);
