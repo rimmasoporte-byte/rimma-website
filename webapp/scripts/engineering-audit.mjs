@@ -110,6 +110,19 @@ for(const line of envExample.split(/\r?\n/)){
   const match=line.match(/^([A-Z0-9_]*(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|SESSION_KEY)[A-Z0-9_]*)=(.+)$/);
   if(match&&match[2].trim())fail(".env.example contains a non-empty secret-like value for "+match[1]);
 }
+const documentedEnv=new Set(
+  envExample.split(/\r?\n/)
+    .map(line=>line.match(/^([A-Z][A-Z0-9_]*)=/)?.[1])
+    .filter(Boolean)
+);
+const runtimeEnv=new Set();
+for(const file of [path.join(webappRoot,"server.mjs"),path.join(webappRoot,"session-store.mjs")]){
+  const text=await fs.readFile(file,"utf8");
+  for(const match of text.matchAll(/process\.env\.([A-Z0-9_]+)/g))runtimeEnv.add(match[1]);
+}
+const missingEnv=[...runtimeEnv].filter(name=>!documentedEnv.has(name)).sort();
+if(missingEnv.length)fail(".env.example is missing runtime variables: "+missingEnv.join(", "));
+else notes.push("Runtime environment contract documented: "+runtimeEnv.size+" variables");
 
 const repoTextFiles=(await walk(repoRoot)).filter(file=>
   !file.includes(path.sep+"node_modules"+path.sep) &&
