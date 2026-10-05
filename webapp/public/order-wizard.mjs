@@ -334,7 +334,12 @@ export function createOrderWizard({
       '<div class="wizard-control"><label>Responsable</label>'+
       '<select data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="assignedUserId">'+memberOptions(work)+'</select></div>'+
       '<div class="wizard-control wizard-wide wizard-photo-control"><label>Fotografías de este trabajo</label>'+
-      '<input data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">'+
+      '<div class="wizard-file-picker">'+
+      '<input id="ow-photo-'+itemIndex+'-'+workIndex+'" class="wizard-native-file" data-wizard-item="'+itemIndex+'" data-work-index="'+workIndex+'" data-work-field="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">'+
+      '<label class="wizard-file-button" for="ow-photo-'+itemIndex+'-'+workIndex+'">Subir fotografías</label>'+
+      '<span class="wizard-file-status" aria-live="polite">'+
+      (photoNames.length?(photoNames.length===1?'1 archivo seleccionado':photoNames.length+' archivos seleccionados'):'Ningún archivo seleccionado')+
+      '</span></div>'+
       '<small>JPEG, PNG o WebP. RIMMA reduce cada foto automáticamente a un máximo de 150 KB.</small>'+
       (photoNames.length?'<div class="wizard-photo-names">'+photoNames.map(name=>'<span>'+esc(name)+'</span>').join("")+'</div>':"")+
       '</div>'+
