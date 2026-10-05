@@ -40,7 +40,12 @@ const requiredRepoFiles=[
   ".github/workflows/dependency-review.yml",
   "docs/ARCHITECTURE.md",
   "docs/ENGINEERING_STANDARDS.md",
-  "docs/ADR/0001-application-module-boundaries.md"
+  "docs/QUALITY_GATES.md",
+  "docs/OPERATIONS.md",
+  "docs/ADR/0001-application-module-boundaries.md",
+  "docs/ADR/0002-server-side-web-sessions.md",
+  ".github/ISSUE_TEMPLATE/bug.yml",
+  ".github/ISSUE_TEMPLATE/config.yml"
 ];
 for(const item of requiredRepoFiles){
   if(!await exists(path.join(repoRoot,item)))fail("Missing engineering governance file: "+item);
