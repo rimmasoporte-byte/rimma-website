@@ -2,10 +2,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 
-const html=await fs.readFile(new URL("../public/index.html",import.meta.url),"utf8");
-const site=await fs.readFile(new URL("../public/site.js",import.meta.url),"utf8");
-const wizard=await fs.readFile(new URL("../public/order-wizard.mjs",import.meta.url),"utf8");
-const features=await fs.readFile(new URL("../public/portal-features.mjs",import.meta.url),"utf8");
+const publicDir=new URL("../public/",import.meta.url);
+const entries=await fs.readdir(publicDir,{withFileTypes:true});
+const sourceNames=entries
+  .filter(entry=>entry.isFile()&&/\.(?:html|js|mjs)$/.test(entry.name))
+  .map(entry=>entry.name);
+const sources=Object.fromEntries(await Promise.all(sourceNames.map(async name=>[
+  name,
+  await fs.readFile(new URL(name,publicDir),"utf8")
+])));
+
+const html=sources["index.html"];
+const site=sources["site.js"];
+const wizard=sources["order-wizard.mjs"];
+const features=sources["portal-features.mjs"];
+const billing=sources["billing-view.mjs"];
+const team=sources["team-view.mjs"];
 const css=await fs.readFile(new URL("../public/app.css",import.meta.url),"utf8");
 
 const values=(source,attribute)=>{
@@ -15,7 +27,9 @@ const values=(source,attribute)=>{
 const buttonStarts=source=>[...source.matchAll(/<button\b[^>]*>/g)].map(match=>match[0]);
 
 test("all portal buttons declare an explicit type and never use inline click handlers",()=>{
-  for(const [name,source] of Object.entries({html,site,wizard,features})){
+  const buttonFiles=Object.entries(sources).filter(([,source])=>source.includes("<button"));
+  assert.ok(buttonFiles.length>=8,"expected all button-bearing public modules to be audited");
+  for(const [name,source] of buttonFiles){
     const buttons=buttonStarts(source);
     assert.ok(buttons.length>0,name+" should contain buttons");
     for(const tag of buttons){
@@ -27,7 +41,7 @@ test("all portal buttons declare an explicit type and never use inline click han
 
 test("a button belongs to only one action namespace",()=>{
   const namespaces=["data-action","data-wizard-action","data-feature","data-photo-action","data-mobile-capture-action"];
-  for(const [name,source] of Object.entries({html,site,wizard,features})){
+  for(const [name,source] of Object.entries(sources)){
     for(const tag of buttonStarts(source)){
       const owners=namespaces.filter(attribute=>tag.includes(attribute+"="));
       assert.ok(owners.length<=1,name+": conflicting button action owners "+owners.join(", ")+" in "+tag);
@@ -36,13 +50,29 @@ test("a button belongs to only one action namespace",()=>{
 });
 
 test("every application-level data-action emitted by the UI has a site dispatcher case",()=>{
-  const emitted=[...new Set([
-    ...values(html,"data-action"),
-    ...values(site,"data-action"),
-    ...values(wizard,"data-action")
-  ])].sort();
+  const emitted=[...new Set(
+    Object.values(sources).flatMap(source=>values(source,"data-action"))
+  )].sort();
   const handled=[...new Set([...site.matchAll(/case "([a-z0-9-]+)":/g)].map(match=>match[1]))];
   assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
+});
+
+test("every navigation button points to a registered portal view",()=>{
+  const emitted=[...new Set(
+    Object.values(sources).flatMap(source=>values(source,"data-view"))
+  )].sort();
+  const block=site.match(/const views=\{([^}]+)\};/)?.[1]||"";
+  const registered=[...new Set([...block.matchAll(/([a-z]+):/g)].map(match=>match[1]))];
+  assert.deepEqual(emitted.filter(view=>!registered.includes(view)),[]);
+});
+
+test("team action buttons have one team-module handler each",()=>{
+  const emitted=values(team,"data-team-action");
+  const handled=[...new Set([...team.matchAll(/kind==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
+  assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
+  if(team.includes("data-team-close")){
+    assert.match(team,/querySelectorAll\("\[data-team-close\]"\)[\s\S]*?addEventListener\("click"/);
+  }
 });
 
 test("every order-wizard action emitted by the UI has an owner",()=>{
@@ -65,11 +95,9 @@ test("photo and mobile-capture controls have explicit local handlers",()=>{
 });
 
 test("every feature button emitted across portal tabs has a feature handler",()=>{
-  const emitted=[...new Set([
-    ...values(html,"data-feature"),
-    ...values(site,"data-feature"),
-    ...values(features,"data-feature")
-  ])].sort();
+  const emitted=[...new Set(
+    Object.values(sources).flatMap(source=>values(source,"data-feature"))
+  )].sort();
   const handled=[...new Set([...features.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
   assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
 });
@@ -96,6 +124,12 @@ test("the portal has one canonical ordinary-button system instead of stacked bas
     css.indexOf("/* ===== MAISON-LUXE ===== */")
   );
   assert.doesNotMatch(luxury,/\.primary|\.secondary|\.pagination button/);
+});
+
+test("lazy billing buttons are handled by the application dispatcher",()=>{
+  for(const action of values(billing,"data-action")){
+    assert.match(site,new RegExp('case "'+action+'":'));
+  }
 });
 
 test("pagination and cross-module client creation use shared application contracts",()=>{
