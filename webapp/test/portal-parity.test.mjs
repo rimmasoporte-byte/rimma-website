@@ -57,7 +57,7 @@ test("mobile API parity features render real catalog/measurements/payments/photo
    works:[{id:UUID,name:"Dobladillo",priceMinor:3000,assignedWorker:{id:ITEM,name:"Ana"},photoCount:2}],
    photos:[{
     id:ITEM,workLineId:UUID,fileName:"recepcion.webp",photoType:"intake",caption:"Ajuste",
-    source:"desktop_upload",isCover:true,viewUrl:"https://object.example/signed?token=example",status:"active",version:1
+    source:"desktop_upload",isCover:true,viewUrl:"https://object.example/signed?token=example",downloadUrl:"https://object.example/download?token=example",status:"active",version:1
    },{id:UUID,workLineId:UUID,fileName:"bad.jpg",photoType:"other",source:"desktop_upload",
     isCover:false,viewUrl:"javascript:alert(1)",status:"active",version:1}]
   }};
@@ -87,7 +87,9 @@ test("mobile API parity features render real catalog/measurements/payments/photo
   await ui.openPhotos(UUID,ITEM);
   const photos=h.elements("#feature-body").innerHTML;
   assert.match(photos,/Ver ↗/);
+  assert.match(photos,/Descargar/);
   assert.match(photos,/https:\/\/object\.example\/signed/);
+  assert.match(photos,/https:\/\/object\.example\/download/);
   assert.match(photos,/Fotografiar con móvil/);
   assert.match(photos,/Portada/);
   assert.doesNotMatch(photos,/href="javascript:/);
@@ -217,9 +219,24 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="mobile-photo"/);
  assert.match(wizard,/data-mobile-qr-key/);
  assert.match(wizard,/claimAllMobilePhotos/);
+ assert.match(wizard,/wizard-mobile-photo-gallery/);
+ assert.match(wizard,/data-wizard-action="preview-mobile-photo"/);
+ assert.match(wizard,/data-wizard-action="set-mobile-cover"/);
+ assert.match(wizard,/data-wizard-action="delete-mobile-photo"/);
+ assert.match(wizard,/Descargar/);
+ assert.match(wizard,/Eliminar fotografía/);
+ assert.match(wizard,/Usar como portada/);
+ assert.match(wizard,/downloadUrl/);
+
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
  assert.match(css,/\.wizard-mobile-capture-qr\{/);
+ assert.match(css,/\.wizard-mobile-photo-gallery\{/);
+ assert.match(css,/\.wizard-photo-preview-backdrop\{/);
+ assert.match(css,/\.wizard-photo-preview-action\.danger/);
+ assert.match(server,/draft-photo-captures\\\/[a-f0-9-]\{36\}\\\/photos/);
+ assert.match(server,/img-src 'self' data: https:/);
+
 
  assert.match(css,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
  assert.match(css,/\.wizard-file-button\{/);
