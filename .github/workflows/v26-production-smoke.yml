@@ -26,5 +26,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify live V26 portal and protected APIs
+      - name: Verify live portal and protected APIs
         run: node --test ops/v26-production-smoke.test.mjs
