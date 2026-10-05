@@ -1301,6 +1301,11 @@ export function createOrderWizard({
   });
   fields.addEventListener("click",event=>{
     if(!active)return;
+    if(photoPreview&&event.target.matches?.("[data-photo-preview-backdrop]")){
+      photoPreview=null;
+      render();
+      return;
+    }
     const stepButton=event.target.closest("[data-wizard-step]");
     if(stepButton&&!created){
       const next=Number(stepButton.dataset.wizardStep);
@@ -1330,6 +1335,26 @@ export function createOrderWizard({
         schedulePersist();
         render();
       }
+      return;
+    }
+    if(actionName==="preview-mobile-photo"){
+      const index=Number(button.dataset.index);
+      const workIndex=Number(button.dataset.workIndex);
+      const photoId=String(button.dataset.photoId||"");
+      void openMobilePhotoPreview(index,workIndex,photoId).catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="close-photo-preview"){
+      photoPreview=null;
+      render();
+      return;
+    }
+    if(actionName==="set-mobile-cover"){
+      void setMobilePhotoCover().catch(e=>setError(humanError(e)));
+      return;
+    }
+    if(actionName==="delete-mobile-photo"){
+      void deleteMobilePhoto().catch(e=>setError(humanError(e)));
       return;
     }
     if(actionName==="mobile-photo"){
@@ -1393,6 +1418,12 @@ export function createOrderWizard({
     void action(actionName);
   });
   fields.addEventListener("keydown",event=>{
+    if(photoPreview&&event.key==="Escape"){
+      event.preventDefault();
+      photoPreview=null;
+      render();
+      return;
+    }
     if(!active||created||event.target.id!=="ow-client-search")return;
     if(event.key==="Escape"){
       event.preventDefault();
@@ -1444,6 +1475,7 @@ export function createOrderWizard({
   async function open(preferredClientId=null){
     active=true;
     created=null;
+    photoPreview=null;
     photoFailures.clear();
     preparedPhotos.clear();
     uploadedPhotoIndexes.clear();
@@ -1545,6 +1577,7 @@ export function createOrderWizard({
     capturePollTimer=null;
     capturePollBusy=false;
     mobileCaptureSessions.clear();
+    photoPreview=null;
     clientSearchSeq++;
     clientMatches=[];
     clientActiveIndex=-1;
