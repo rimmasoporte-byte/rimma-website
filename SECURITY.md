@@ -37,4 +37,4 @@ Production code must:
 
 ## Dependency and code scanning
 
-Dependabot, dependency review, CodeQL, syntax checks, engineering guardrails, and automated tests are part of the repository quality gates. Security alerts must be triaged before production release when they affect reachable production code.
+Dependabot, locked-dependency vulnerability audits, CodeQL, syntax checks, engineering guardrails, and automated tests are part of the repository quality gates. Security alerts must be triaged before production release when they affect reachable production code.
