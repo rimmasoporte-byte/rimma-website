@@ -2104,7 +2104,8 @@ button:disabled,.feature-button[disabled]{
 .wizard-readonly small{color:#777168;font:600 11px var(--font)}
 .wizard-readonly strong{color:var(--parity-forest);font:650 13px var(--font)}
 .wizard-branch-readonly{cursor:default}
-.order-wizard-modal[data-wizard-step="0"] #modal-fields{scrollbar-gutter:auto;padding-right:1px}
+.order-wizard-modal[data-wizard-step="0"] #modal-fields{scrollbar-gutter:auto;scrollbar-width:none;padding-right:1px}
+.order-wizard-modal[data-wizard-step="0"] #modal-fields::-webkit-scrollbar{width:0;height:0;display:none}
 .order-wizard-modal[data-wizard-step="0"] .order-wizard-steps{margin-bottom:18px;padding-bottom:15px}
 .order-wizard-modal[data-wizard-step="0"] .order-wizard-step{gap:14px}
 .wizard-draft-notice,.wizard-upload-warning{
