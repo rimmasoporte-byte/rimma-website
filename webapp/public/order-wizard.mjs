@@ -467,7 +467,7 @@ export function createOrderWizard({
     requestAnimationFrame(()=>{fields.scrollTop=top});
   }
 
-  function workRow  function workRow(item,itemIndex,work,workIndex){
+  function workRow(item,itemIndex,work,workIndex){
     const removable=item.works.length>1;
     const photoNames=Array.isArray(work.photoNames)?work.photoNames:[];
     const mobileCount=Number(work.mobilePhotoCount||0);
