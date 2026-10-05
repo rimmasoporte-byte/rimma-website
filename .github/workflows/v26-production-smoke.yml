@@ -1,4 +1,4 @@
-name: RIMMA V26 production smoke
+name: RIMMA production smoke
 
 on:
   pull_request:
