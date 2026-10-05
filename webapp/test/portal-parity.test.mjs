@@ -234,7 +234,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.wizard-mobile-photo-gallery\{/);
  assert.match(css,/\.wizard-photo-preview-backdrop\{/);
  assert.match(css,/\.wizard-photo-preview-action\.danger/);
- assert.match(server,/draft-photo-captures\/\[a-f0-9-\]\{36\}\/photos/);
+ assert.ok(server.includes("draft-photo-captures\\/[a-f0-9-]{36}\\/photos"));
  assert.match(server,/img-src 'self' data: https:/);
 
 
