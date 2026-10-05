@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/app/app.css?v=20261005-v18">
+  <link rel="stylesheet" href="/app/app.css?v=20261005-v19">
   <script src="/app/locale.js?v=20261004-es44"></script>
 <script src="/app/locale-intl.js?v=20261004-fiscal61"></script>
 <script src="/app/locale-picker.js?v=20261004-mobile59"></script>
@@ -105,7 +105,7 @@
           <div class="list-head"><div><span class="eyebrow">SEGUIMIENTO DE ENCARGOS</span><h1 id="heading-pedidos">Pedidos</h1><p>Cada prenda, en su momento.</p></div><button type="button" class="primary" data-action="new-order">+ Nuevo pedido</button></div>
           <div class="filters"><label for="orders-search" class="sr-only">Buscar pedidos</label><input id="orders-search" type="search" placeholder="Buscar pedido, cliente o prenda"><select id="order-status" aria-label="Filtrar estado"><option value="">Todos los estados</option><option value="accepted">Recibidos</option><option value="in_progress">En proceso</option><option value="ready">Listos</option><option value="issued">Entregados</option></select><select id="order-branch" aria-label="Ubicación" hidden><option value="">Ubicación principal</option></select></div>
           <div class="paper-table" id="orders-list" aria-live="polite"></div>
-          <div class="pagination"><button type="button" id="orders-prev">← Anterior</button><span id="orders-page">Página 1</span><button type="button" id="orders-next">Siguiente →</button></div>
+          <div class="pagination"><button type="button" class="secondary pagination-button" id="orders-prev">← Anterior</button><span id="orders-page">Página 1</span><button type="button" class="secondary pagination-button" id="orders-next">Siguiente →</button></div>
         </section>
         <section class="view" id="view-citas" aria-labelledby="heading-citas">
           <div class="list-head"><div><span class="eyebrow">PRUEBAS Y RECOGIDAS</span><h1 id="heading-citas">Citas</h1><p>Organiza pruebas, consultas y recogidas sin perder el ritmo del taller.</p></div><button type="button" class="primary" id="new-appointment" data-action="new-appointment">+ Nueva cita</button></div>
@@ -116,7 +116,7 @@
           <div class="list-head"><div><span class="eyebrow">LAS PERSONAS DETRÁS DE CADA PRENDA</span><h1 id="heading-clientes">Clientes</h1><p>El detalle que hace volver.</p></div><button class="primary" type="button" data-action="new-client">+ Nuevo cliente</button></div>
           <div class="filters"><label for="clients-search" class="sr-only">Buscar clientes</label><input id="clients-search" type="search" placeholder="Buscar nombre, teléfono o correo"></div>
           <div class="paper-table" id="clients-list" aria-live="polite"></div>
-          <div class="pagination"><button type="button" id="clients-prev">← Anterior</button><span id="clients-page">Página 1</span><button type="button" id="clients-next">Siguiente →</button></div>
+          <div class="pagination"><button type="button" class="secondary pagination-button" id="clients-prev">← Anterior</button><span id="clients-page">Página 1</span><button type="button" class="secondary pagination-button" id="clients-next">Siguiente →</button></div>
         </section>
         <section class="view" id="view-servicios" aria-labelledby="heading-servicios"><div class="list-head"><div><span class="eyebrow">EL OFICIO, BIEN ORGANIZADO</span><h1 id="heading-servicios">Servicios</h1><p>Organiza categorías, precios y trabajos de tu taller.</p></div><div class="feature-head-actions"><button type="button" class="secondary" data-feature="category-new">+ Categoría</button><button type="button" class="primary" data-feature="service-new">+ Servicio</button></div></div><div id="services-list" class="service-grid" aria-live="polite"></div></section>
         <section class="view" id="view-informes" aria-labelledby="heading-informes"><div class="list-head"><div><span class="eyebrow">UNA VISIÓN MÁS CLARA</span><h1 id="heading-informes">Informes</h1><p>Una mirada a los resultados de tu taller.</p></div><select aria-label="Periodo del informe" id="report-period"><option value="month">Este mes</option><option value="week">Esta semana</option><option value="day">Hoy</option><option value="year">Este año</option></select></div><div class="report-grid" id="report-data"><div class="paper-panel"><p class="empty">Selecciona un periodo.</p></div></div></section>
