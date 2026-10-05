@@ -85,6 +85,18 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/orders/'+id+'/invalid',{method:'DELETE',headers:authorized,body:'{}'});
   assert.equal(r.status,405);
 
+  const capture='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const draftPhoto='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const bodylessDeleteHeaders={...head,origin:base,'x-rimma-csrf':login.csrf};
+  r=await fetch(base+'/api/data/draft-photo-captures/'+capture+'/photos/'+draftPhoto,{
+   method:'DELETE',headers:bodylessDeleteHeaders
+  });
+  assert.equal(r.status,200,'bodyless authenticated DELETE must not require application/json');
+  r=await fetch(base+'/api/data/draft-photo-captures/'+capture+'/photos/'+draftPhoto,{
+   method:'DELETE',headers:{...head,origin:base}
+  });
+  assert.equal(r.status,403,'bodyless DELETE still requires CSRF');
+
   const item='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
   // The new business features have explicit workspace-scoped routes.
   const reads=[

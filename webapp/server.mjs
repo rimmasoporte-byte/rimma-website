@@ -552,7 +552,11 @@ export const server=http.createServer(async(req,res)=>{
       if(query.length>400)return send(res,400,{error:'Consulta demasiado larga.'});
       if(method!=='GET'&&!requireCsrf(req,res,s))return;
       const photoUpload=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/items\/[a-f0-9-]{36}\/photos\/upload$/.test(route);
-      const payload=method==='GET'?undefined:await body(req,photoUpload?maxPhotoBody:maxBody);
+      const hasJsonBody=String(req.headers['content-type']||'').toLowerCase().startsWith('application/json');
+      const bodylessDelete=method==='DELETE'&&!hasJsonBody;
+      const payload=(method==='GET'||bodylessDelete)
+        ?undefined
+        :await body(req,photoUpload?maxPhotoBody:maxBody);
       const extraHeaders={};
       const paymentCreate=method==='POST' && /^\/orders\/[a-f0-9-]{36}\/payments$/.test(route);
       const orderCreate=method==='POST' && route==='/orders';
