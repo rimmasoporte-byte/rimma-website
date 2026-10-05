@@ -1225,5 +1225,7 @@ mainModal.addEventListener("close",()=>{
   }
  }
 });
+// Preload the order module in the background; opening the dialog never depends on it.
+void getOrderWizard().catch(()=>{});
 void session();
 })();
