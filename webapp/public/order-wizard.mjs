@@ -1739,6 +1739,15 @@ export function createOrderWizard({
     closeMobileCaptureDialog();
   });
 
+  // Pointer clicks in the photo toolbar must not leave a keyboard-style
+  // focus ring on arbitrary controls. Keyboard navigation still keeps
+  // :focus-visible because this only suppresses focus acquisition by mouse.
+  photoViewer.addEventListener("mousedown",event=>{
+    if(event.button!==0)return;
+    const control=event.target.closest?.("[data-photo-action]");
+    if(control)event.preventDefault();
+  });
+
   photoViewer.addEventListener("click",event=>{
     if(!photoPreview)return;
     const control=event.target.closest("[data-photo-action]");
