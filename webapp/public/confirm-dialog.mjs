@@ -29,12 +29,46 @@ export function createConfirmationDialog(doc = document) {
   let pending = null;
   let backdropStart = false;
   let alternativeResult = "alternative";
+  let returnState = null;
+
+  function captureReturnState() {
+    const modal = doc.querySelector?.("#modal") || null;
+    const form = modal?.querySelector?.("#modal-form") || doc.querySelector?.("#modal-form") || null;
+    const fields = modal?.querySelector?.("#modal-fields") || doc.querySelector?.("#modal-fields") || null;
+    return {
+      opener: doc.activeElement || null,
+      modal,
+      form,
+      fields,
+      fieldsScrollTop: Number(fields?.scrollTop || 0)
+    };
+  }
+
+  function restoreReturnState(state) {
+    if (!state) return;
+    queueMicrotask(() => {
+      if (state.modal?.open) {
+        // The form itself is never a scroll surface. Reset any focus-induced
+        // programmatic scroll and restore only the wizard's intentional scroller.
+        if (state.modal) state.modal.scrollTop = 0;
+        if (state.form) state.form.scrollTop = 0;
+        if (state.fields) state.fields.scrollTop = state.fieldsScrollTop;
+      }
+      if (state.opener?.isConnected !== false) {
+        state.opener?.focus?.({ preventScroll: true });
+      }
+    });
+  }
+
   function finish(result = false) {
     if (!pending) return;
     const resolve = pending;
+    const state = returnState;
     pending = null;
+    returnState = null;
     backdropStart = false;
     if (dialog.open) dialog.close();
+    restoreReturnState(state);
     resolve(result);
   }
   cancel.addEventListener("click", () => finish(false));
@@ -85,11 +119,13 @@ export function createConfirmationDialog(doc = document) {
     alternative.classList.toggle("danger", Boolean(alternativeDanger));
     return new Promise((resolve, reject) => {
       pending = resolve;
+      returnState = captureReturnState();
       try {
         dialog.showModal();
         cancel.focus({preventScroll: true});
       } catch (error) {
         pending = null;
+        returnState = null;
         reject(error);
       }
     });
