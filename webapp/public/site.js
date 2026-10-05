@@ -154,17 +154,33 @@ const featureUI=import("/app/portal-features.mjs?v=20261005-v8").then(module=>mo
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
 }));
-const orderWizard=import("/app/order-wizard.mjs?v=20261005-v10").then(module=>module.createOrderWizard({
- api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
- onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
- onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
- onOpenPayments:async id=>{await (await featureUI).openPayments(id);},
- onOpenWhatsApp:async id=>{await (await featureUI).openWhatsApp(id);},
- onOpenDocuments:async id=>{await (await featureUI).openOrderDocuments(id);},
- onOpenGarment:async(orderId,itemId)=>{await (await featureUI).openGarment(orderId,itemId);},
- onPrintLabel:printGarmentLabel,
- onRefresh:async()=>{await loadOrders();await loadToday();}
-}));
+let orderWizardInstance=null;
+let orderWizardLoad=null;
+function getOrderWizard(){
+ if(orderWizardInstance)return Promise.resolve(orderWizardInstance);
+ if(orderWizardLoad)return orderWizardLoad;
+ orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v11")
+  .then(module=>{
+   orderWizardInstance=module.createOrderWizard({
+    api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
+    onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
+    onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
+    onOpenPayments:async id=>{await (await featureUI).openPayments(id);},
+    onOpenWhatsApp:async id=>{await (await featureUI).openWhatsApp(id);},
+    onOpenDocuments:async id=>{await (await featureUI).openOrderDocuments(id);},
+    onOpenGarment:async(orderId,itemId)=>{await (await featureUI).openGarment(orderId,itemId);},
+    onPrintLabel:printGarmentLabel,
+    onRefresh:async()=>{await loadOrders();await loadToday();}
+   });
+   return orderWizardInstance;
+  })
+  .catch(error=>{
+   // A transient module/network failure must not poison every later attempt.
+   orderWizardLoad=null;
+   throw error;
+  });
+ return orderWizardLoad;
+}
 // The reports screen uses the shared document scroll; prevent a saved scroll
 // position from hiding its title behind the sticky header after navigation.
 if("scrollRestoration" in history)history.scrollRestoration="manual";
@@ -826,6 +842,39 @@ async function loadAccount(){
 function field(label,name,type="text",attributes=""){
  return '<div><label for="f-'+name+'">'+esc(label)+'</label><input id="f-'+name+'" name="'+name+'" type="'+type+'" '+attributes+'></div>';
 }
+let orderOpenSequence=0;
+async function openNewOrder(preferredClientId=null){
+ const modal=$("#modal");
+ if(activeModal==="order"&&modal.open)return;
+
+ const sequence=++orderOpenSequence;
+ activeModal="order";
+ activeRecord=null;
+ modalError("");
+ $("#modal-eyebrow").textContent="TUS ENCARGOS";
+ $("#modal-title").textContent="Nuevo pedido";
+ $("#modal-fields").innerHTML='<div class="wizard-loading"><span></span><strong>Preparando el pedido…</strong><p>Cargando servicios, ubicación y equipo.</p></div>';
+ $("#modal-submit").disabled=true;
+ $("#modal-submit").textContent="Cargando…";
+ $("#modal-cancel").hidden=false;
+ $("#modal-back").hidden=true;
+
+ // Opening the native dialog is synchronous and never waits for a dynamic import
+ // or API response. This makes the first click deterministic.
+ if(!modal.open)modal.showModal();
+
+ try{
+  const wizard=await getOrderWizard();
+  if(sequence!==orderOpenSequence||activeModal!=="order"||!modal.open)return;
+  await wizard.open(preferredClientId);
+ }catch(error){
+  if(sequence!==orderOpenSequence||activeModal!=="order"||!modal.open)return;
+  $("#modal-submit").disabled=false;
+  $("#modal-submit").textContent="Reintentar";
+  modalError(error.message||"No se pudo preparar el nuevo pedido. Inténtalo de nuevo.");
+ }
+}
+
 function openModal(type,record=null,options={}){
  if(type==="client"){
   returnToOrderAfterClient=options.returnToOrder===true;
@@ -846,12 +895,8 @@ function openModal(type,record=null,options={}){
   box.innerHTML='<div class="form-grid">'+field("Nombre y apellidos *","name","text",'required maxlength="160" autocomplete="name"')+field("Teléfono","phone","tel",'maxlength="40" autocomplete="tel" inputmode="tel" value="'+esc(newClientPhonePrefix())+'" placeholder="+34 600 000 000"')+field("Correo electrónico","email","email",'maxlength="254" autocomplete="email"')+'<div class="full client-duplicate-warning" id="client-duplicate-warning" hidden></div><div class="full"><label for="f-notes">Notas</label><textarea id="f-notes" name="notes" maxlength="5000"></textarea></div></div>';
  }
  if(type==="order"){
-  $("#modal-eyebrow").textContent="TUS ENCARGOS";
-  $("#modal-title").textContent="Nuevo pedido";
-  box.innerHTML='<p class="helper">Preparando el pedido…</p>';
-  void orderWizard.then(wizard=>wizard.open()).catch(error=>{
-   modalError(error.message||"No se pudo abrir el nuevo pedido.");
-  });
+  void openNewOrder();
+  return;
  }
  if(type==="appointment"){
   $("#modal-eyebrow").textContent="AGENDA DEL TALLER";$("#modal-title").textContent="Nueva cita";
@@ -928,7 +973,7 @@ async function saveModal(event){
  event.preventDefault();
  if(activeModal==="order"||$("#modal").classList.contains("order-wizard-modal")){
   modalError("");
-  try{await (await orderWizard).submit();}
+  try{await (await getOrderWizard()).submit();}
   catch(e){modalError(e.message||"No se pudo continuar con el pedido.");}
   return;
  }
@@ -1071,12 +1116,18 @@ $("#brand-art-close").addEventListener("click",()=>brandArtwork.close());
 brandArtwork.addEventListener("click",event=>{if(event.target===brandArtwork)brandArtwork.close();});
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
+$('[data-action="new-order"]').forEach(button=>{
+ button.addEventListener("click",event=>{
+  event.preventDefault();
+  void openNewOrder();
+ });
+});
+
 document.addEventListener("click",event=>{
  const b=event.target.closest("[data-view],[data-action]");if(!b)return;
  if(b.dataset.view){go(b.dataset.view);return;}
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
-  case "new-order":openModal("order");break;
   case "new-appointment":openModal("appointment");break;
     case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
@@ -1133,13 +1184,13 @@ $("#modal-fields").addEventListener("input",event=>{
 });
 $("#modal-form").addEventListener("submit",saveModal);
 async function requestModalClose(){
- if(activeModal==="order"){try{await (await orderWizard).requestClose();}catch(e){modalError(e.message||"No se pudo cerrar el pedido.");}return;}
+ if(activeModal==="order"){try{await (await getOrderWizard()).requestClose();}catch(e){modalError(e.message||"No se pudo cerrar el pedido.");}return;}
  $("#modal").close();
 }
 const mainModal=$("#modal");
 $("#modal-close").addEventListener("click",()=>void requestModalClose());
 $("#modal-cancel").addEventListener("click",()=>void requestModalClose());
-$("#modal-back").addEventListener("click",()=>void orderWizard.then(wizard=>wizard.back()));
+$("#modal-back").addEventListener("click",()=>void getOrderWizard().then(wizard=>wizard.back()).catch(e=>modalError(e.message||"No se pudo volver al paso anterior.")));
 mainModal.addEventListener("cancel",event=>{
  // <input type="file"> dispatches a bubbling "cancel" event when the native
  // file picker is dismissed. Only the dialog's own Escape/cancel event may
@@ -1154,7 +1205,10 @@ mainModal.addEventListener("close",()=>{
  const closingType=activeModal;
  const resumeOrder=closingType==="client"&&returnToOrderAfterClient===true;
  const preferredClientId=pendingOrderClientId;
- if(closingType==="order")void orderWizard.then(wizard=>wizard.closed());
+ if(closingType==="order"){
+  orderOpenSequence++;
+  if(orderWizardInstance)orderWizardInstance.closed();
+ }
  if(activeModal===closingType){activeModal=null;activeRecord=null;}
  if(closingType==="client"||closingType==="edit-client"){
   clearTimeout(clientDuplicateClock);
@@ -1167,7 +1221,7 @@ mainModal.addEventListener("close",()=>{
   if(resumeOrder){
    activeModal="order";
    activeRecord=null;
-   queueMicrotask(()=>void orderWizard.then(wizard=>wizard.open(preferredClientId)));
+   queueMicrotask(()=>void openNewOrder(preferredClientId));
   }
  }
 });
