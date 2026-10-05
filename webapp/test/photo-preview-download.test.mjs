@@ -8,17 +8,33 @@ const [wizard,css,server]=await Promise.all([
   fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
 ]);
 
-test('draft photo preview always contains the full image inside its frame',()=>{
-  assert.equal((css.match(/\/\* ===== ORDER PHOTO PREVIEW ===== \*\//g)||[]).length,1);
-  const rule=css.match(/\.wizard-photo-preview-image img\{([\s\S]*?)\}/)?.[1]||'';
-  assert.match(rule,/width:100%/);
-  assert.match(rule,/height:100%/);
-  assert.match(rule,/object-fit:contain/);
-  assert.match(rule,/object-position:center/);
-  assert.doesNotMatch(rule,/object-fit:cover/);
+test('order photos use one canonical gallery regardless of capture source',()=>{
+  assert.match(wizard,/function photoGallery\(work,itemIndex,workIndex\)/);
+  assert.doesNotMatch(wizard,/function mobilePhotoGallery|function localPhotoGallery/);
+  assert.match(wizard,/wizard-photo-status">Pendiente/);
+  assert.doesNotMatch(wizard,/class="wizard-photo-source"|class="wizard-photo-pending"/);
+  assert.match(wizard,/data-wizard-action="delete-photo"/);
+  assert.doesNotMatch(wizard,/data-wizard-action="delete-local-photo"|data-wizard-action="delete-mobile-photo"/);
+  assert.match(css,/\.wizard-photo-gallery\{/);
+  assert.match(css,/\.wizard-photo-thumb\{/);
+  assert.match(css,/\.wizard-photo-status/);
 });
 
-test('draft photo download is same-origin and never navigates to a signed storage URL',()=>{
+test('photo viewer uses one presentation and supports bounded zoom in both directions',()=>{
+  assert.match(wizard,/const PHOTO_ZOOMS=Object\.freeze\(\[50,75,100,125,150,200,300,400\]\)/);
+  assert.match(wizard,/data-wizard-action="photo-zoom-out"/);
+  assert.match(wizard,/data-wizard-action="photo-zoom-in"/);
+  assert.match(wizard,/data-wizard-action="photo-zoom-reset"/);
+  assert.match(wizard,/Fotografía del trabajo/);
+  assert.match(wizard,/Pendiente de guardar/);
+  assert.doesNotMatch(wizard,/>Este dispositivo<|>Móvil</);
+  assert.match(css,/\.wizard-photo-preview-toolbar\{/);
+  assert.match(css,/\.wizard-photo-preview-stage\.zoom-50 img/);
+  assert.match(css,/\.wizard-photo-preview-stage\.zoom-100 img/);
+  assert.match(css,/\.wizard-photo-preview-stage\.zoom-400/);
+});
+
+test('draft photo download is same-origin for mobile photos and local blobs stay local',()=>{
   const preview=wizard.slice(
     wizard.indexOf('function photoPreviewOverlay()'),
     wizard.indexOf('function workRow',wizard.indexOf('function photoPreviewOverlay()'))
@@ -26,32 +42,16 @@ test('draft photo download is same-origin and never navigates to a signed storag
   assert.match(preview,/\/api\/data\/draft-photo-captures\//);
   assert.match(preview,/\/photos\//);
   assert.match(preview,/\/download/);
+  assert.match(preview,/const downloadPath=local\?viewUrl:remoteDownload/);
   assert.match(preview,/ download="/);
-  assert.doesNotMatch(preview,/href="'\+esc\(downloadUrl\)/);
 });
 
-test('BFF owns authenticated photo downloads and emits attachment responses',()=>{
+test('BFF owns authenticated mobile-photo downloads and emits attachment responses',()=>{
   assert.match(server,/draft-photo-captures\\\/\(\[a-f0-9-\]\{36\}\)\\\/photos/);
   assert.match(server,/trustedSignedPhotoUrl/);
   assert.match(server,/content-disposition/);
   assert.match(server,/attachment; filename=/);
   assert.match(server,/maxPhotoDownload=200\*1024/);
-});
-
-test('desktop uploads use the same canonical photo gallery and preview surface',()=>{
-  const row=wizard.slice(
-    wizard.indexOf('function workRow'),
-    wizard.indexOf('function itemCard',wizard.indexOf('function workRow'))
-  );
-  assert.match(wizard,/function localPhotoGallery\(work,itemIndex,workIndex\)/);
-  assert.match(wizard,/data-wizard-action="preview-local-photo"/);
-  assert.match(wizard,/data-wizard-action="'\+\(local\?'delete-local-photo':'delete-mobile-photo'\)\+'"/);
-  assert.match(row,/localPhotoGallery\(work,itemIndex,workIndex\)/);
-  assert.doesNotMatch(row,/wizard-photo-names/);
-  assert.match(css,/\.wizard-photo-gallery\{/);
-  assert.match(css,/\.wizard-photo-thumb\{/);
-  assert.doesNotMatch(css,/\.wizard-mobile-photo-gallery\{/);
-  assert.doesNotMatch(css,/\.wizard-photo-names\{/);
 });
 
 test('desktop preview object URLs are released when files leave the wizard',()=>{

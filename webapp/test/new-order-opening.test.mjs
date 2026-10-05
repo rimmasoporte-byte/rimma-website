@@ -36,3 +36,16 @@ test('application startup authenticates without prewarming the order wizard',()=
   assert.doesNotMatch(js,/void getOrderWizard\(\)\.catch\(\(\)=>\{\}\);/);
   assert.match(js,/void session\(\);\s*\}\)\(\);/);
 });
+ 
+test('bodyless mutations carry the same CSRF protection as JSON mutations',()=>{
+  const start=js.indexOf('async function request(url,options={})');
+  const end=js.indexOf('const api=',start);
+  assert.ok(start>=0&&end>start);
+  const block=js.slice(start,end);
+  assert.match(block,/const method=String\(options\.method\|\|"GET"\)\.toUpperCase\(\)/);
+  assert.match(block,/\["POST","PUT","PATCH","DELETE"\]\.includes\(method\)/);
+  assert.match(block,/headers\["x-rimma-csrf"\]=csrf/);
+  const bodyGuard=block.indexOf('if(options.body!==undefined)');
+  const csrfGuard=block.indexOf('if(csrf&&["POST","PUT","PATCH","DELETE"].includes(method))');
+  assert.ok(bodyGuard>=0&&csrfGuard>bodyGuard,'CSRF is based on HTTP method, not body presence');
+});

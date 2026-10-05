@@ -159,7 +159,7 @@ let orderWizardLoad=null;
 function getOrderWizard(){
  if(orderWizardInstance)return Promise.resolve(orderWizardInstance);
  if(orderWizardLoad)return orderWizardLoad;
- orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v12")
+ orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v13")
   .then(module=>{
    orderWizardInstance=module.createOrderWizard({
     api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
@@ -207,7 +207,9 @@ function success(msg){
 function modalError(msg){const el=$("#modal-error");el.textContent=msg||"";el.hidden=!msg;}
 async function request(url,options={}){
  const headers={accept:"application/json",...options.headers};
- if(options.body!==undefined){headers["content-type"]="application/json";if(csrf)headers["x-rimma-csrf"]=csrf;}
+ const method=String(options.method||"GET").toUpperCase();
+ if(options.body!==undefined)headers["content-type"]="application/json";
+ if(csrf&&["POST","PUT","PATCH","DELETE"].includes(method))headers["x-rimma-csrf"]=csrf;
  const response=await fetch(url,{...options,headers,credentials:"same-origin"});
  let result={};try{result=await response.json();}catch{}
  if(!response.ok){
