@@ -6,7 +6,7 @@ const file=path=>fs.readFile(new URL('../public/'+path,import.meta.url),'utf8');
 
 test('dashboard reproduces reference structure with real interactive controls',async()=>{
  const html=await file('index.html');
- assert.match(html,/\/app\/app\.css\?v=20261005-v1/);
+ assert.match(html,/\/app\/app\.css\?v=20261005-v3/);
  assert.doesNotMatch(html,/\/app\/(?:site|premium|luxury-buttons|maison-luxe|maison-reference)\.css/);
  assert.match(html,/Tu taller,<br><em>al día\.<\/em>/);
  assert.match(html,/class="dashboard-orders-panel"/);
