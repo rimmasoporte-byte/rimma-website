@@ -151,7 +151,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-payments"/);
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
- assert.match(js,/order-wizard\.mjs\?v=20261005-v2/);
+ assert.match(js,/order-wizard\.mjs\?v=20261005-v3/);
  assert.match(wizard,/role="combobox"/);
  assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
  assert.match(wizard,/Escribe al menos 2 caracteres/);
@@ -212,6 +212,15 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/Subir fotografías/);
  assert.match(wizard,/Ningún archivo seleccionado/);
  assert.match(wizard,/archivos seleccionados/);
+ assert.match(wizard,/Hacer foto con el móvil/);
+ assert.match(wizard,/\/draft-photo-captures/);
+ assert.match(wizard,/data-wizard-action="mobile-photo"/);
+ assert.match(wizard,/data-mobile-qr-key/);
+ assert.match(wizard,/claimAllMobilePhotos/);
+ assert.match(server,/draft-photo-captures/);
+ assert.match(css,/\.wizard-mobile-photo-button\{/);
+ assert.match(css,/\.wizard-mobile-capture-qr\{/);
+
  assert.match(css,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
  assert.match(css,/\.wizard-file-button\{/);
  assert.doesNotMatch(wizard,/Выбрать файл|Выберите файл|Файл не выбран/);
@@ -288,7 +297,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
-  assert.match(html,/site\.js\?v=20261005-v2/);
+  assert.match(html,/site\.js\?v=20261005-v3/);
   assert.match(html,/app\.css\?v=20261005-v1/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
