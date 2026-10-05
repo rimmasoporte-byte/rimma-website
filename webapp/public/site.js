@@ -1116,18 +1116,12 @@ $("#brand-art-close").addEventListener("click",()=>brandArtwork.close());
 brandArtwork.addEventListener("click",event=>{if(event.target===brandArtwork)brandArtwork.close();});
 $("#menu-toggle").addEventListener("click",()=>{const active=$("#sidebar").classList.toggle("open");$("#drawer-cover").hidden=!active;$("#menu-toggle").setAttribute("aria-expanded",String(active));});
 $("#drawer-cover").addEventListener("click",closeDrawer);
-$('[data-action="new-order"]').forEach(button=>{
- button.addEventListener("click",event=>{
-  event.preventDefault();
-  void openNewOrder();
- });
-});
-
 document.addEventListener("click",event=>{
  const b=event.target.closest("[data-view],[data-action]");if(!b)return;
  if(b.dataset.view){go(b.dataset.view);return;}
  switch(b.dataset.action){
   case "new-client":openModal("client");break;
+  case "new-order":void openNewOrder();break;
   case "new-appointment":openModal("appointment");break;
     case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
@@ -1225,7 +1219,6 @@ mainModal.addEventListener("close",()=>{
   }
  }
 });
-// Preload the order module in the background; opening the dialog never depends on it.
-void getOrderWizard().catch(()=>{});
+// Authenticate first. Order-specific code stays lazy and loads only when the user opens a new order.
 void session();
 })();
