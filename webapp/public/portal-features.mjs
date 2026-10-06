@@ -4,6 +4,7 @@
  */
 import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
+import {createServiceCatalog} from "./portal-services.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
@@ -23,7 +24,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const form=()=>dlg.querySelector("#feature-form");
  const submit=()=>dlg.querySelector("#feature-submit");
  const errorEl=()=>dlg.querySelector("#feature-error");
- let catalog=[],defaultCurrency=L.currency||"EUR",mode="",selected=null,busy=false,returnFocus=null,parentModal=false;
+ let mode="",selected=null,busy=false,returnFocus=null,parentModal=false;
  function alertError(message){errorEl().hidden=false;errorEl().textContent=message;}
  function layout(next,title,markup,buttonText="Guardar"){
   mode=next;if(dlg.dataset)dlg.dataset.mode=next;errorEl().hidden=true;errorEl().textContent="";
@@ -52,107 +53,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   try{await action()}catch(e){const message=e.message||"La operación no se pudo completar.";if(dlg.open)alertError(message);else globalError(message);}
   finally{busy=false;submit().disabled=false;}
  }
- const findCat=id=>catalog.find(c=>c.id===id);
- const findService=id=>catalog.flatMap(c=>c.services||[]).find(x=>x.id===id);
- const STANDARD_CATALOG=[
-  {name:"Pantalones",services:["Dobladillo sencillo","Dobladillo original","Ajustar cintura","Ajustar cadera","Entallar pantalón","Acortar pantalón","Alargar pantalón","Cambiar cremallera"]},
-  {name:"Camisas",services:["Acortar mangas","Ajustar mangas","Ajustar cintura","Entallar camisa","Cambiar cuello","Cambiar puños","Cambiar botones"]},
-  {name:"Faldas",services:["Dobladillo sencillo","Ajustar cintura","Ajustar cadera","Entallar falda","Cambiar cremallera"]},
-  {name:"Vestidos",services:["Dobladillo sencillo","Ajustar cintura","Ajustar cadera","Entallar vestido","Acortar vestido"]},
-  {name:"Chaquetas y abrigos",services:["Acortar mangas","Ajustar mangas","Entallar chaqueta","Ajustar espalda","Cambiar cremallera"]},
-  {name:"Bolsos",services:["Cambiar cremallera","Reparar asa","Reparar forro"]},
-  {name:"Arreglos generales",services:["Cambiar botones","Reparar costura","Cambiar forro"]},
-  {name:"Otros",services:["Arreglo de prenda","Modificación de prenda","Presupuesto personalizado"]}
- ];
- async function addStandardCatalog(){
-  const activeCats=catalog.filter(c=>c.status==="active"),byName=new Map(activeCats.map(c=>[c.name.trim().toLowerCase(),c]));
-  let createdCategories=0,createdServices=0,skipped=0;
-  for(const group of STANDARD_CATALOG){
-   let category=byName.get(group.name.toLowerCase());
-   if(!category){
-    const res=await api("/categories",{method:"POST",body:JSON.stringify({name:group.name})});
-    category=res.category||res;if(!category?.id)throw Error("No se pudo crear la categoría "+group.name);
-    byName.set(group.name.toLowerCase(),category);createdCategories++;
-   }
-   const existing=new Set((category.services||[]).filter(s=>s.status!=="deleted").map(s=>s.name.trim().toLowerCase()));
-   for(const name of group.services){
-    if(existing.has(name.toLowerCase())){skipped++;continue;}
-    await api("/price-list/services",{method:"POST",body:JSON.stringify({categoryId:category.id,name,description:"",pricingMode:"quote",priceMinor:null,currencyCode:defaultCurrency})});
-    createdServices++;existing.add(name.toLowerCase());
-   }
-  }
-  await loadServices();
-  success(createdServices||createdCategories?("Catálogo inicial añadido: "+createdServices+" servicios, "+createdCategories+" categorías."):"El catálogo estándar ya estaba añadido.");
- }
- async function ensureCatalog(){
-  if(catalog.length)return catalog;
-  const data=(await api("/price-list")).priceList||{};
-  catalog=data.categories||[];
-  defaultCurrency=data.defaultCurrencyCode||L.currency||"EUR";
-  return catalog;
- }
- async function loadServices(){
-  const el=document.querySelector("#services-list");
-  el.innerHTML='<p class="empty">Cargando servicios…</p>';
-  try{
-   const data=(await api("/price-list")).priceList||{};
-   catalog=data.categories||[];defaultCurrency=data.defaultCurrencyCode||L.currency||"EUR";
-   el.innerHTML=catalog.filter(c=>c.status!=="deleted").map(c=>{
-    const active=(c.services||[]).filter(s=>s.status!=="deleted");
-    return '<article class="service-card"><div class="service-card-header"><h2>'+esc(c.name)+'</h2>'+
-      '<div class="feature-inline">'+b("Editar categoría","category-edit",'data-id="'+esc(c.id)+'"')+
-      b("Eliminar categoría","category-delete",'data-id="'+esc(c.id)+'"')+'</div></div>'+
-      (active.length?active.map(s=>'<div class="service-line feature-service-row"><div class="service-name"><strong>'+esc(s.name)+'</strong>'+
-      (s.description?'<small>'+esc(s.description)+'</small>':'')+
-      (s.status==="inactive"?'<small class="feature-muted">Inactivo</small>':'')+'</div>'+
-      '<span class="service-price">'+esc(s.pricingMode==="quote"?"A presupuestar":(s.pricingMode==="from"?"Desde ":"")+money(s.priceMinor,s.currencyCode))+'</span>'+
-      '<div class="feature-inline">'+b("Editar","service-edit",'data-id="'+esc(s.id)+'"')+
-      b("Eliminar","service-delete",'data-id="'+esc(s.id)+'"')+'</div></div>').join(""):'<p class="feature-muted">Sin servicios.</p>')+
-      '<div class="feature-bottom">'+b("+ Añadir servicio","service-new",'data-category="'+esc(c.id)+'"')+'</div></article>';
-   }).join("")||'<div class="paper-panel"><p>Sin categorías. Crea la primera para empezar.</p></div>';
-   const standardButton='<div class="feature-bottom standard-catalog-action">'+b("Añadir catálogo inicial","standard-catalog")+'</div>';
-   el.innerHTML=standardButton+el.innerHTML;
-  }catch(e){el.innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
- }
- function serviceForm(record=null,catId=""){
-  const cats=catalog.filter(c=>c.status==="active");
-  if(!cats.length){globalError("Crea primero una categoría activa.");return;}
-  selected=record?{...record}:null;
-  const category=record?.categoryId||catId||cats[0].id;
-  const priceMode=record?.pricingMode||"fixed";
-  const markup='<div class="feature-fields">'+select("categoryId","Categoría *",choice(category,cats.map(c=>[c.id,c.name])))+
-   field("name","Nombre del servicio *","text",'required maxlength="160" value="'+esc(record?.name||"")+'"')+
-   textarea("description","Descripción",5000)+
-   select("pricingMode","Tipo de precio",choice(priceMode,[["fixed","Precio fijo"],["from","Desde"],["quote","A presupuestar"]]))+
-   field("price","Precio","number",'min="0" max="90000000000" step="0.01" value="'+(record?.priceMinor!=null?record.priceMinor/100:0)+'"')+
-   field("currencyCode","Moneda (ISO) *","text",'required maxlength="3" pattern="[A-Za-z]{3}" value="'+esc(record?.currencyCode||defaultCurrency)+'"')+
-   (record?select("status","Estado",choice(record.status,[["active","Activo"],["inactive","Inactivo"]])):"")+'</div>';
-  layout(record?"service-edit":"service-new",record?"Editar servicio":"Nuevo servicio",markup);
-  dlg.querySelector("#fx-description").value=record?.description||"";
-  syncPrice();
- }
- function syncPrice(){
-  const price=dlg.querySelector("#fx-price"),mode=dlg.querySelector("#fx-pricingMode");
-  if(!price||!mode)return;price.disabled=mode.value==="quote";price.required=mode.value!=="quote";
- }
- function categoryForm(record=null){
-  selected=record?{...record}:null;
-  layout(record?"category-edit":"category-new",record?"Editar categoría":"Nueva categoría",
-   '<div class="feature-fields">'+field("name","Nombre de categoría *","text",'required maxlength="120" value="'+esc(record?.name||"")+'"')+'</div>');
- }
- function askDelete(kind,id){
-  const rec=kind==="service"?findService(id):findCat(id);
-  if(!rec){globalError("Actualiza el catálogo antes de repetir la operación.");return;}
-  const phrase=kind==="service"
-   ?"¿Eliminar este servicio del catálogo? No se borrarán los pedidos históricos."
-   :"¿Eliminar esta categoría? El servidor impedirá borrarla si conserva servicios.";
-  void safe(async()=>{
-   if(!await confirmAction({title:kind==="service"?"Eliminar servicio":"Eliminar categoría",message:phrase}))return;
-   await api(kind==="service"?"/price-list/services/"+encodeURIComponent(id):"/categories/"+encodeURIComponent(id),
-    {method:"DELETE",body:JSON.stringify({expectedVersion:rec.version})});
-   close();await loadServices();success(kind==="service"?"Servicio retirado del catálogo.":"Categoría retirada del catálogo.");
-  });
- }
+ const serviceCatalog=createServiceCatalog({api,success,globalError,confirmAction,layout,close,safe,dlg});
+ const loadServices=()=>serviceCatalog.loadServices();
  async function openMeasurements(clientId){
   if(!uuid(clientId)){globalError("Selecciona un cliente válido.");return;}
   const existing=(await api("/clients/"+encodeURIComponent(clientId)+"/measurements?limit=30&offset=0")).measurements||[];
@@ -473,20 +375,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
      '<p class="feature-muted">'+"Todavía no hay movimientos registrados."+'</p>')+'</div>',null);
  }
 
- function editableWorkServices(){
-  return catalog.flatMap(category=>
-   (category.status==="active"?category.services||[]:[])
-    .filter(service=>service.status!=="inactive"&&service.status!=="deleted")
-    .map(service=>({
-     id:service.id,
-     categoryId:category.id,
-     label:category.name+" · "+service.name,
-     name:service.name,
-     priceMinor:service.priceMinor,
-     pricingMode:service.pricingMode
-    }))
-  );
- }
  function workEditRow(work,index,services,members){
   const serviceOptions='<option value="">'+"Trabajo manual"+'</option>'+
    services.map(service=>'<option value="'+esc(service.id)+'"'+(service.id===work.serviceId?' selected':'')+'>'+esc(service.label)+'</option>').join("");
@@ -508,12 +396,12 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(!uuid(orderId)||!uuid(itemId))throw Error("Prenda inválida.");
   const [passportResult,,membersResult]=await Promise.all([
    api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport"),
-   ensureCatalog(),
+   serviceCatalog.ensureCatalog(),
    api("/workspace/members")
   ]);
   const p=passportResult.passport||{};
   if(!uuid(p.id)||!Number.isSafeInteger(Number(p.version)))throw Error("Actualiza la prenda antes de editar sus trabajos.");
-  const services=editableWorkServices();
+  const services=serviceCatalog.editableWorkServices();
   const members=Array.isArray(membersResult.members)?membersResult.members:[];
   const works=Array.isArray(p.works)&&p.works.length
    ?p.works
@@ -1279,31 +1167,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    form().reset();body().replaceChildren();close();
    await logoutAfterPassword();return;
   }
-  if(mode==="service-new"||mode==="service-edit"){
-   const pricingMode=get("pricingMode");
-   const payload={
-    categoryId:get("categoryId"),name:get("name").trim(),
-    description:get("description").trim()||null,pricingMode,
-    currencyCode:get("currencyCode").trim().toUpperCase(),
-    ...(pricingMode==="quote"?{priceMinor:null}:{priceMinor:Math.round(Number(get("price"))*100)})
-   };
-   if(pricingMode!=="quote"&&(!Number.isSafeInteger(payload.priceMinor)||payload.priceMinor<0))throw Error("Precio inválido.");
-   if(mode==="service-edit"){
-    if(!uuid(selected?.id)||!Number.isSafeInteger(Number(selected.version)))throw Error("Actualiza el catálogo.");
-    payload.expectedVersion=Number(selected.version);payload.status=get("status");
-    await api("/price-list/services/"+encodeURIComponent(selected.id),{method:"PATCH",body:JSON.stringify(payload)});
-   }else await api("/price-list/services",{method:"POST",body:JSON.stringify(payload)});
-   close();await loadServices();success("Catálogo actualizado.");
-  }else if(mode==="category-new"||mode==="category-edit"){
-   const name=get("name").trim();
-   if(!name)throw Error("Escribe el nombre de la categoría.");
-   if(mode==="category-edit"){
-    if(!uuid(selected?.id))throw Error("Actualiza el catálogo.");
-    await api("/categories/"+encodeURIComponent(selected.id),{
-      method:"PATCH",body:JSON.stringify({name,expectedVersion:selected.version})});
-   }else await api("/categories",{method:"POST",body:JSON.stringify({name})});
-   close();await loadServices();success("Categoría guardada.");
-  }else if(mode==="measurement-new"){
+  if(await serviceCatalog.save(mode,get))return;
+  if(mode==="measurement-new"){
    const lines=[...dlg.querySelectorAll(".measure-line")];
    if(!lines.length)throw Error("Añade al menos una medida.");
    const measurements=lines.map((line,i)=>({
@@ -1439,7 +1304,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  dlg.addEventListener("input",e=>{
   if(mode==="garment-works-edit"&&e.target.matches('[name="workPrice"]'))syncWorkEditTotal();
  });
- dlg.addEventListener("change",e=>{if(e.target.id==="fx-pricingMode")syncPrice();
+ dlg.addEventListener("change",e=>{serviceCatalog.handleChange(e.target);
   if(mode==="business-profile"&&(e.target.id==="fx-taxTerritory"||e.target.id==="fx-jurisdiction"))syncBusinessProfileForm(e.target.name);
   if(mode==="fiscal-invoice"&&(e.target.id==="fx-invoiceKind"||e.target.id==="fx-vatRateBps"))syncFiscalForm();
   if(mode==="garment-works-edit"&&e.target.matches('[name="workService"]')){
@@ -1463,12 +1328,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   const id=el.dataset.id||"",version=Number(el.dataset.version);
   if(action==="business-profile")return void safe(openBusinessProfile);
   if(action==="password-change")return passwordForm();
-  if(action==="category-new")return categoryForm();
-  if(action==="category-edit"){const c=findCat(id);if(c)categoryForm(c);return;}
-  if(action==="service-new")return serviceForm(null,el.dataset.category);
-  if(action==="standard-catalog")return void safe(()=>addStandardCatalog());
-  if(action==="service-edit"){const s=findService(id);if(s)serviceForm(s);return;}
-  if(action==="service-delete"||action==="category-delete")return askDelete(action.startsWith("service")?"service":"category",id);
+  if(serviceCatalog.handleAction(action,el))return;
   if(action==="client-measurements")return void safe(async()=>openMeasurements(id));
   if(action==="measurement-new")return newMeasurement();
   if(action==="measurement-add"){
