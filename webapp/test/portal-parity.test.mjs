@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -153,6 +153,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-photos\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-account-security\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-passport-sharing\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-business-profile\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -370,6 +371,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalPassportSharing,/portal-passport-share\.mjs/);
  assert.match(portalPassportSharing,/passport-revoke/);
  assert.match(portalPassportSharing,/passport-email/);
+ assert.match(feat,/createBusinessProfile/);
+ assert.match(portalBusinessProfile,/createBusinessProfile/);
+ assert.match(portalBusinessProfile,/\/business-profile/);
+ assert.match(portalBusinessProfile,/\/fiscal\/settings/);
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
  assert.match(server,/idempotency-key/);
@@ -396,35 +401,37 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const html=await source("public/index.html");
  const js=await source("public/site.js");
  const feat=await source("public/portal-features.mjs");
+ const profile=await source("public/portal-business-profile.mjs");
  const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
  assert.match(js,/portal-features\.mjs\?v=20261005-v8/);
  for(const territory of ["COMMON","CANARY","CEUTA","MELILLA","BASQUE_FORAL","NAVARRA_FORAL"])
-  assert.ok(feat.includes('"'+territory+'"'),territory);
- assert.match(feat,/Territorio común · IVA \/ AEAT/);
- assert.match(feat,/Canarias · IGIC/);
- assert.match(feat,/Ceuta · IPSI/);
- assert.match(feat,/País Vasco · normativa foral \/ TicketBAI/);
+  assert.ok(profile.includes('"'+territory+'"'),territory);
+ assert.match(profile,/Territorio común · IVA \/ AEAT/);
+ assert.match(profile,/Canarias · IGIC/);
+ assert.match(profile,/Ceuta · IPSI/);
+ assert.match(profile,/Melilla · IPSI/);
+ assert.match(profile,/País Vasco · normativa foral \/ TicketBAI/);
  assert.match(feat,/Emisión fiscal protegida/);
  assert.match(feat,/fiscalIssuanceSupported===false/);
- assert.match(feat,/if\(taxTerritory==="COMMON"\)/);
- assert.match(feat,/invoiceSeriesLocked===true/);
- assert.doesNotMatch(feat,/NIF \/ CIF \*/);
+ assert.match(profile,/if\(taxTerritory==="COMMON"\)/);
+ assert.match(profile,/invoiceSeriesLocked===true/);
+ assert.doesNotMatch(profile,/NIF \/ CIF \*/);
  assert.match(css,/V61 — structured workshop\/fiscal settings/);
  assert.match(css,/#feature-dialog\[data-mode="business-profile"\]/);
 });
 
 test("V61 business profile separates identity documents and fiscal configuration",async()=>{
- const feat=await source("public/portal-features.mjs");
+ const profile=await source("public/portal-business-profile.mjs");
  for(const heading of ["Datos fiscales del taller","Documentos comerciales","Facturación e impuestos"])
-  assert.ok(feat.includes(heading),heading);
- assert.match(feat,/País \*"[\s\S]*?\[\["ES","España"\]\]/);
- assert.match(feat,/Normativa de consumo/);
- assert.match(feat,/Validez del presupuesto \(días\)/);
- assert.match(feat,/Series protegidas/);
- assert.match(feat,/Guardar cambios/);
- assert.match(feat,/syncBusinessProfileForm\(e\.target\.name\)/);
+  assert.ok(profile.includes(heading),heading);
+ assert.match(profile,/País \*"[\s\S]*?\[\["ES","España"\]\]/);
+ assert.match(profile,/Normativa de consumo/);
+ assert.match(profile,/Validez del presupuesto \(días\)/);
+ assert.match(profile,/Series protegidas/);
+ assert.match(profile,/Guardar cambios/);
+ assert.match(profile,/syncBusinessProfileForm\(target\.name\)/);
 });
 
 test("V60 keeps one consolidated dashboard system with four core KPIs",async()=>{
