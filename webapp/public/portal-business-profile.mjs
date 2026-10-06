@@ -12,7 +12,7 @@ export function createBusinessProfile({api,success,layout,close,dlg}){
    ["COMMON","Territorio común · IVA / AEAT"],
    ["CANARY","Canarias · IGIC"],
    ["CEUTA","Ceuta · IPSI"],
-   ["MELILLA","IPSI"],
+   ["MELILLA","Melilla · IPSI"],
    ["BASQUE_FORAL","País Vasco · normativa foral / TicketBAI"],
    ["NAVARRA_FORAL","Navarra · normativa foral"]
   ]);
