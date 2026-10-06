@@ -74,6 +74,8 @@ http.createServer(async(req,res)=>{
     if(p === "/dashboard/today")return send(res,200,{dashboard:{summary:{dueToday:3,readyForPickup:12}}});
     if(p === "/dashboard/week")return send(res,200,{dashboard:{summary:{items:27}}});
     if(p === "/clients")return send(res,200,{clients:data.clients});
+    if(p === "/branches")return send(res,200,{branches:[{id:id(4),name:"Atelier de prueba",status:"active"}]});
+    if(p === "/workspace/members")return send(res,200,{members:[]});
     if(p === "/orders")return send(res,200,{orders:data.orders});
     if(p.endsWith("/measurements"))return send(res,200,{measurements:data.measurements.filter(m=>m.status!=="deleted")});
     if(p.endsWith("/photos"))return send(res,200,{photos:data.photos});
