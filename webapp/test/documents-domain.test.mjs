@@ -75,6 +75,7 @@ test('operational documents domain rejects invalid order identifiers',async()=>{
 test('portal delegates operational documents while fiscal handler stays separate',()=>{
  const features=read('public/portal-features.mjs');
  const documents=read('public/portal-documents.mjs');
+ const fiscal=read('public/portal-fiscal-invoice.mjs');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createOrderDocuments/);
@@ -82,7 +83,8 @@ test('portal delegates operational documents while fiscal handler stays separate
  assert.doesNotMatch(features,/function documentCards\(/);
  assert.doesNotMatch(features,/async function createOrderDocument\(/);
  assert.doesNotMatch(features,/async function openDocumentPrint\(/);
- assert.match(features,/action==="fiscal-invoice-open"/);
+ assert.match(features,/createFiscalInvoice/);
+ assert.match(fiscal,/action==="fiscal-invoice-open"/);
 
  assert.match(documents,/data-feature="document-create"/);
  assert.match(documents,/data-feature="fiscal-invoice-open"/);
