@@ -4,6 +4,7 @@
  */
 import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
+import {safePublicUrl,normalizePassportPhone,passportWhatsAppText} from "./portal-passport-share.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
@@ -408,9 +409,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(Number.isNaN(parsed.getTime()))return String(value);
   return parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"medium",timeStyle:"short"});
  };
- const safePublicUrl=value=>{
-  try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null}catch{return null}
- };
  async function openGarment(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
   const result=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
@@ -735,33 +733,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(existing)return existing;
   return createPassportShareLink({announce:false});
  }
- const callingCodes={
-  ES:"34",PT:"351",FR:"33",DE:"49",IT:"39",GR:"30",SK:"421",RS:"381",TR:"90",
-  BR:"55",MX:"52",AR:"54",CO:"57",CL:"56",PE:"51",UY:"598",PY:"595",BO:"591",
-  EC:"593",GT:"502"
- };
- function normalizePassportPhone(value,countryCode){
-  const raw=String(value||"").trim();
-  if(!raw)return null;
-  const hadPlus=raw.startsWith("+");
-  const had00=raw.startsWith("00");
-  let digits=raw.replace(/\D/g,"");
-  if(had00)digits=digits.slice(2);
-  if(!hadPlus&&!had00){
-   const calling=callingCodes[String(countryCode||"").toUpperCase()];
-   if(calling){
-    if(digits.startsWith("0"))digits=digits.replace(/^0+/,"");
-    if(!digits.startsWith(calling))digits=calling+digits;
-   }
-  }
-  return digits.length>=8&&digits.length<=15?digits:null;
- }
- function passportWhatsAppText(url){
-  const p=selected?.passport||{};
-  const name=String(p.client?.name||"").trim();
-  const greeting=name?"Hola "+name+" 👋":"Hola 👋";
-  return [greeting,"Puedes consultar el estado de tu pedido #"+String(p.orderNumber||"")+" aquí:",url,"RIMMA"].join("\n");
- }
  async function sendPassportWhatsApp(){
   const p=selected?.passport||{};
   const phone=normalizePassportPhone(p.client?.phone,p.workspace?.countryCode);
@@ -770,7 +741,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(popup)try{popup.opener=null}catch{}
   try{
    const url=await ensurePassportShare();
-   const wa="https://wa.me/"+phone+"?text="+encodeURIComponent(passportWhatsAppText(url));
+   const wa="https://wa.me/"+phone+"?text="+encodeURIComponent(passportWhatsAppText(p,url));
    if(popup)popup.location.replace(wa);
    else{
     const link=document.createElement("a");link.href=wa;link.target="_blank";link.rel="noopener noreferrer";
