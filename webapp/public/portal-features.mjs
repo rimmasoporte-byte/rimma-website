@@ -231,7 +231,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    }catch{measurements=[];}
   }
   selected={orderId,itemId,passport:p,measurements};
-  passportSharing.setContext({orderId,itemId,passport:p});
   const measurementOptions='<option value="">'+"Sin ficha vinculada"+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
     esc((m.garmentLabel||m.garmentType||"Ficha de medidas")+" · "+localDate(m.measuredAt))+'</option>').join("");
@@ -312,6 +311,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     }catch{measurements=[];}
   }
   selected={orderId,itemId,passport:p,measurements};
+  passportSharing.setContext({orderId,itemId,passport:p});
   const measurementOptions='<option value="">'+"Sin ficha vinculada"+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
     esc((m.garmentLabel||m.garmentType||"Ficha de medidas")+" · "+localDate(m.measuredAt))+'</option>').join("");
