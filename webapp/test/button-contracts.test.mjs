@@ -20,6 +20,7 @@ const serviceFeatures=sources["portal-services.mjs"];
 const measurementFeatures=sources["portal-measurements.mjs"];
 const paymentFeatures=sources["portal-payments.mjs"];
 const whatsappFeatures=sources["portal-whatsapp.mjs"];
+const documentFeatures=sources["portal-documents.mjs"];
 const billing=sources["billing-view.mjs"];
 const team=sources["team-view.mjs"];
 const css=await fs.readFile(new URL("../public/app.css",import.meta.url),"utf8");
@@ -126,7 +127,7 @@ test("every feature button emitted across portal tabs has a feature handler",()=
   const emitted=[...new Set(
     Object.values(sources).flatMap(source=>values(source,"data-feature"))
   )].sort();
-  const handled=[...new Set([features,serviceFeatures,measurementFeatures,paymentFeatures,whatsappFeatures].flatMap(source=>[...source.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1])))];
+  const handled=[...new Set([features,serviceFeatures,measurementFeatures,paymentFeatures,whatsappFeatures,documentFeatures].flatMap(source=>[...source.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1])))];
   assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
 });
 
