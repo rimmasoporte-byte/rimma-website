@@ -3,38 +3,13 @@
  * This module never requests or stores Android/Google Play tokens.
  */
 import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
+import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
+export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
-const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const uuid=v=>/^[a-f0-9-]{36}$/i.test(String(v||""));
-export const moneyMinor=value=>{
- const n=Number(value);
- if(!Number.isFinite(n)||n<=0||Math.round(n*100)>9000000000000)throw Error("El importe debe ser positivo y válido.");
- const cents=Math.round(n*100);
- if(!Number.isSafeInteger(cents))throw Error("El importe no es válido.");
- return cents;
-};
-const money=(v,c=L.currency||"EUR")=>{try{return new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency:c}).format(Number(v||0)/100)}catch{return esc(v)+" "+esc(c)}};
-const localDate=value=>{
- if(!value)return "—";
- const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
- if(match)return match[3]+"/"+match[2]+"/"+match[1];
- const parsed=new Date(value);
- return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleDateString(L.locale||"es-ES");
-};
-const localDateTime=value=>{
- if(!value)return "—";
- const parsed=new Date(value);
- return Number.isNaN(parsed.getTime())?String(value):parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"short",timeStyle:"short"});
-};
-const choice=(v,opts)=>opts.map(([id,label])=>'<option value="'+esc(id)+'"'+(id===v?' selected':'')+'>'+esc(label)+'</option>').join("");
 const garment=[["body","Cuerpo"],["pants","Pantalones"],["dress","Vestido"],["shirt","Camisa"],["jacket","Chaqueta"],["skirt","Falda"],["blouse","Blusa"],["other","Otro"]];
 const methods=[["cash","Efectivo"],["card","Tarjeta (pago externo)"],["bank_transfer","Transferencia"],["spei","SPEI"],["other","Otro"]];
 const photoTypes=[["intake","Recepción"],["detail","Detalle"],["after","Trabajo terminado"],["other","Otro"]];
-const b=(label,action,data="",extra="")=>'<button type="button" class="feature-button" data-feature="'+action+'" '+data+' '+extra+'>'+label+'</button>';
-const select=(id,label,options)=>'<label for="fx-'+id+'">'+label+'</label><select id="fx-'+id+'" name="'+id+'">'+options+'</select>';
-const field=(id,label,type="text",extra="")=>'<label for="fx-'+id+'">'+label+'</label><input id="fx-'+id+'" name="'+id+'" type="'+type+'" '+extra+'>';
-const textarea=(id,label,limit)=>'<label for="fx-'+id+'">'+label+'</label><textarea id="fx-'+id+'" name="'+id+'" maxlength="'+limit+'"></textarea>';
 export function createFeatureUI({api,success,globalError,confirmAction,refreshOrders,logoutAfterPassword}){
  const dlg=document.createElement("dialog");
  dlg.id="feature-dialog";dlg.className="feature-dialog";
