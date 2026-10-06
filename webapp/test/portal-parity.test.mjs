@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -159,6 +159,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-garment-works\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-garment-editor\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-passport-editor\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-fiscal-invoice\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -405,6 +406,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalPassportEditor,/method:"PATCH"/);
  assert.match(portalPassportEditor,/passportSharing\.renderShareSection\(passport\)/);
  assert.match(portalPassportEditor,/data-feature="item-photos"|b\("Ver \/ añadir fotografías","item-photos"/);
+ assert.match(feat,/createFiscalInvoice/);
+ assert.match(portalFiscalInvoice,/createFiscalInvoice/);
+ assert.match(portalFiscalInvoice,/method:"POST"/);
+ assert.match(portalFiscalInvoice,/fiscalIssuanceEnabled/);
+ assert.match(portalFiscalInvoice,/verifactuConnectorConfigured/);
+ assert.match(portalFiscalInvoice,/confirmAction\(/);
  assert.match(portalGarmentEditor,/measurementSetId/);
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
@@ -431,7 +438,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
 test("V61 fiscal settings are territory-aware and fail closed outside the implemented regime",async()=>{
  const html=await source("public/index.html");
  const js=await source("public/site.js");
- const feat=await source("public/portal-features.mjs");
+ const fiscal=await source("public/portal-fiscal-invoice.mjs");
  const profile=await source("public/portal-business-profile.mjs");
  const css=await source("public/app.css");
  assert.match(html,/Datos del taller y facturación/);
@@ -444,8 +451,8 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  assert.match(profile,/Ceuta · IPSI/);
  assert.match(profile,/Melilla · IPSI/);
  assert.match(profile,/País Vasco · normativa foral \/ TicketBAI/);
- assert.match(feat,/Emisión fiscal protegida/);
- assert.match(feat,/fiscalIssuanceSupported===false/);
+ assert.match(fiscal,/Emisión fiscal protegida/);
+ assert.match(fiscal,/fiscalIssuanceSupported===false/);
  assert.match(profile,/if\(taxTerritory==="COMMON"\)/);
  assert.match(profile,/invoiceSeriesLocked===true/);
  assert.doesNotMatch(profile,/NIF \/ CIF \*/);
