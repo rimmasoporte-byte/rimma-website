@@ -76,3 +76,5 @@ jobs:
         run: npm run engineering:audit
       - name: Regression tests
         run: npm test
+      - name: Browser E2E smoke
+        run: npm run e2e:browser

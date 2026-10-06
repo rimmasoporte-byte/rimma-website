@@ -82,7 +82,7 @@ http.createServer(async(req,res)=>{
     if(p.startsWith("/clients/"))return send(res,200,{client:data.clients.find(c=>c.id===p.split("/").at(-1))});
     if(p.startsWith("/orders/"))return send(res,200,{order:data.orders.find(o=>o.id===p.split("/").at(-1))});
     if(p === "/price-list")return send(res,200,{priceList:{defaultCurrencyCode:"EUR",categories:data.categories}});
-    if(p === "/billing")return send(res,200,{billing:{status:"trial",active:true,trialEndsAt:"2026-10-12"}});
+    if(p === "/billing")return send(res,200,{billing:{status:"trial",active:true,accessActive:true,trialEndsAt:"2026-10-12"}});
     if(p === "/reports/summary")return send(res,200,{report:{startDate:"2026-09-01",endDate:"2026-09-30",clients:{new:1},orders:{created:1,in_progress:1},orderMoneyByCurrency:[{currencyCode:"EUR",totalMinor:3500}]}});
     if(p === "/me")return send(res,200,{me:{user:{displayName:"María",email:"qa@example.invalid"},workspace:{name:"Pruebas locales",role:"owner"}}});
     return send(res,404,{error:"Unknown fixture route"});
