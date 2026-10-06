@@ -252,6 +252,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-features.mjs')return staticFile(res,'portal-features.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-payment-idempotency.mjs')return staticFile(res,'portal-payment-idempotency.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-core.mjs')return staticFile(res,'portal-core.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-services.mjs')return staticFile(res,'portal-services.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
