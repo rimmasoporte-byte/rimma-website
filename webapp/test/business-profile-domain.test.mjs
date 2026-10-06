@@ -184,6 +184,7 @@ test('special tax territories save the business profile without COMMON fiscal se
 test('portal delegates business profile while fiscal invoice issuance remains separate',()=>{
  const features=read('public/portal-features.mjs');
  const profile=read('public/portal-business-profile.mjs');
+ const fiscal=read('public/portal-fiscal-invoice.mjs');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createBusinessProfile/);
@@ -196,7 +197,8 @@ test('portal delegates business profile while fiscal invoice issuance remains se
  assert.match(profile,/\/business-profile/);
  assert.match(profile,/\/fiscal\/settings/);
  assert.match(profile,/taxTerritory==="COMMON"/);
- assert.match(features,/async function openFiscalInvoice\(/);
- assert.match(features,/async function issueFiscalInvoice\(/);
+ assert.match(features,/createFiscalInvoice/);
+ assert.match(fiscal,/async function openFiscalInvoice\(/);
+ assert.match(fiscal,/async function issueFiscalInvoice\(/);
  assert.match(server,/pathname==='\/app\/portal-business-profile\.mjs'/);
 });
