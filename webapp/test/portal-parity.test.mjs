@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -158,6 +158,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-garment-overview\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-garment-works\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-garment-editor\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-passport-editor\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -332,7 +333,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalGarmentEditor,/layout\("garment-edit"/);
  assert.match(portalOrderInfo,/layout\("order-info"/);
  assert.match(portalGarmentOverview,/Ficha de la prenda/);
- assert.match(feat,/Pasaporte digital/);
+ assert.match(portalPassportEditor,/Pasaporte digital de la prenda/);
  assert.match(portalGarmentOverview,/"garment-passport"/);
  assert.match(feat,/action==="garment-passport"/);
  assert.match(feat,/openGarment,openGarmentEdit,openOrderInfo,openPassport,openOrderPassport/);
@@ -398,6 +399,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalGarmentEditor,/createGarmentEditor/);
  assert.match(portalGarmentEditor,/mode!=="garment-edit"/);
  assert.match(portalGarmentEditor,/method:"PATCH"/);
+ assert.match(feat,/createPassportEditor/);
+ assert.match(portalPassportEditor,/createPassportEditor/);
+ assert.match(portalPassportEditor,/mode!=="passport-edit"/);
+ assert.match(portalPassportEditor,/method:"PATCH"/);
+ assert.match(portalPassportEditor,/passportSharing\.renderShareSection\(passport\)/);
+ assert.match(portalPassportEditor,/data-feature="item-photos"|b\("Ver \/ añadir fotografías","item-photos"/);
  assert.match(portalGarmentEditor,/measurementSetId/);
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
