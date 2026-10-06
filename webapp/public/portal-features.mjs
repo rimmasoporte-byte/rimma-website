@@ -7,10 +7,10 @@ import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,
 import {safePublicUrl,normalizePassportPhone,passportWhatsAppText} from "./portal-passport-share.mjs";
 import {preparePhoto} from "./photo-preparation.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
+import {createMeasurementsUI} from "./portal-measurements.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
-const garment=[["body","Cuerpo"],["pants","Pantalones"],["dress","Vestido"],["shirt","Camisa"],["jacket","Chaqueta"],["skirt","Falda"],["blouse","Blusa"],["other","Otro"]];
 const methods=[["cash","Efectivo"],["card","Tarjeta (pago externo)"],["bank_transfer","Transferencia"],["spei","SPEI"],["other","Otro"]];
 const photoTypes=[["intake","Recepción"],["detail","Detalle"],["after","Trabajo terminado"],["other","Otro"]];
 export function createFeatureUI({api,success,globalError,confirmAction,refreshOrders,logoutAfterPassword}){
@@ -57,34 +57,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  }
  const serviceCatalog=createServiceCatalog({api,success,globalError,confirmAction,layout,close,safe,dlg});
  const loadServices=()=>serviceCatalog.loadServices();
- async function openMeasurements(clientId){
-  if(!uuid(clientId)){globalError("Selecciona un cliente válido.");return;}
-  const existing=(await api("/clients/"+encodeURIComponent(clientId)+"/measurements?limit=30&offset=0")).measurements||[];
-  selected={clientId};
-  layout("measurements-list","Medidas del cliente",
-   '<p class="feature-muted">Las mediciones antiguas se conservan en el historial. Para corregir valores, crea una nueva ficha.</p>'+
-   (existing.length?existing.filter(x=>x.status!=="deleted").map(x=>
-     '<div class="feature-ledger"><strong>'+esc((garment.find(p=>p[0]===x.garmentType)||["",x.garmentType])[1])+
-     ' · '+esc(x.garmentLabel||"Ficha de medidas")+'</strong>'+
-     '<small>'+esc(x.unit||"cm")+' · '+esc((x.measurements||[]).map(m=>m.label+": "+m.value).join(" • "))+'</small>'+
-     b("Archivar","measurement-archive",'data-id="'+esc(x.id)+'" data-version="'+esc(x.version)+'"')+'</div>').join(""):'<p>No hay fichas de medidas registradas.</p>')+
-   '<div class="feature-bottom">'+b("+ Nueva ficha","measurement-new")+'</div>',null);
- }
- function newMeasurement(){
-  if(!uuid(selected?.clientId))return;
-  const clientId=selected.clientId;
-  layout("measurement-new","Nueva ficha de medidas",
-   '<div class="feature-fields">'+
-   select("garmentType","Prenda",choice("body",garment))+
-   field("garmentLabel","Descripción","text",'maxlength="100" placeholder="Por ejemplo, traje azul"')+
-   select("unit","Unidad",choice("cm",[["cm","Centímetros"],["in","Pulgadas"]]))+
-   '<div class="full"><div id="measure-fields">'+measurementLine(1)+'</div>'+
-   b("+ Otra medida","measurement-add")+'</div>'+textarea("notes","Notas",1000)+'</div>');
-  selected={clientId};
- }
- const measurementLine=n=>'<div class="measure-line"><input name="measureLabel" type="text" aria-label="Nombre de la medida '+n+'" placeholder="Ej. Cintura" maxlength="80" required>'+
-   '<input name="measureValue" type="number" aria-label="Valor de la medida '+n+'" step="0.01" min="0.01" max="1000" required placeholder="cm">'+
-   b("×","measure-remove",'aria-label="Quitar medida"')+'</div>';
+ const measurementsUI=createMeasurementsUI({api,success,globalError,confirmAction,layout,close,safe,dlg});
+ const openMeasurements=clientId=>measurementsUI.openMeasurements(clientId);
  async function openPayments(orderId){
   if(!uuid(orderId)){globalError("Selecciona un pedido válido.");return;}
   const [paymentData,orderData]=await Promise.all([
@@ -1101,22 +1075,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    await logoutAfterPassword();return;
   }
   if(await serviceCatalog.save(mode,get))return;
-  if(mode==="measurement-new"){
-   const lines=[...dlg.querySelectorAll(".measure-line")];
-   if(!lines.length)throw Error("Añade al menos una medida.");
-   const measurements=lines.map((line,i)=>({
-    key:"m"+String(i+1).padStart(2,"0"),
-    label:line.querySelector('[name="measureLabel"]').value.trim(),
-    value:Number(line.querySelector('[name="measureValue"]').value),
-    sortOrder:i
-   }));
-   if(measurements.some(x=>!x.label||!Number.isFinite(x.value)||x.value<=0||x.value>1000))throw Error("Revisa los valores de las medidas.");
-   const clientId=selected.clientId;
-   await api("/clients/"+encodeURIComponent(clientId)+"/measurements",{
-    method:"POST",body:JSON.stringify({garmentType:get("garmentType"),garmentLabel:get("garmentLabel").trim()||null,
-     unit:get("unit"),notes:get("notes").trim()||null,measurements})});
-   close();await openMeasurements(clientId);success("Nueva ficha de medidas guardada.");
-  }else if(mode==="payment-new"){
+  if(await measurementsUI.save(mode,get))return;
+  if(mode==="payment-new"){
    const orderId=selected.orderId,amountMinor=moneyMinor(get("amount"));
    const available=Math.max(0,Number(selected.summary.remainingMinor||0)-Number(selected.summary.pendingMinor||0));
    if(amountMinor>available)throw Error("El importe excede el saldo disponible del pedido.");
@@ -1262,22 +1222,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(action==="business-profile")return void safe(openBusinessProfile);
   if(action==="password-change")return passwordForm();
   if(serviceCatalog.handleAction(action,el))return;
-  if(action==="client-measurements")return void safe(async()=>openMeasurements(id));
-  if(action==="measurement-new")return newMeasurement();
-  if(action==="measurement-add"){
-   const holder=dlg.querySelector("#measure-fields");
-   if(holder.children.length<40)holder.insertAdjacentHTML("beforeend",measurementLine(holder.children.length+1));return;
-  }
-  if(action==="measure-remove"){const holder=dlg.querySelector("#measure-fields");if(holder.children.length>1)el.closest(".measure-line")?.remove();return;}
-  if(action==="measurement-archive"){
-   const clientId=selected.clientId;
-   return void safe(async()=>{
-    if(!await confirmAction({title:"Archivar ficha de medidas",message:"¿Archivar esta ficha? El historial del cliente seguirá conservado.",confirmLabel:"Archivar"}))return;
-    await api("/clients/"+encodeURIComponent(clientId)+"/measurements/"+encodeURIComponent(id),{
-     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"deleted"})});
-    close();await openMeasurements(clientId);success("Ficha archivada.");
-   });
-  }
+  if(measurementsUI.handleAction(action,el))return;
   if(action==="fiscal-invoice-open")return void safe(async()=>openFiscalInvoice(id||selected?.orderId));
   if(action==="fiscal-issue")return void safe(issueFiscalInvoice);
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
