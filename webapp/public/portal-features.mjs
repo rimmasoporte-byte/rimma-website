@@ -1113,6 +1113,30 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
   if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
+  if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
+  if(action==="whatsapp-open"){
+   const orderId=selected?.orderId;
+   const phone=String(el.dataset.phone||"").replace(/\D/g,"");
+   const templateKey=String(el.dataset.template||"message");
+   const editor=dlg.querySelector('[data-wa-message="'+CSS.escape(templateKey)+'"]');
+   const message=String(editor?.value||"").trim();
+   if(!uuid(orderId)||phone.length<8||phone.length>15||!message){
+    alertError("Revisa el número y el mensaje antes de abrir WhatsApp.");
+    return;
+   }
+   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
+   const opened=window.open(url,"_blank","noopener,noreferrer");
+   if(!opened){
+    alertError("El navegador ha bloqueado WhatsApp. Permite ventanas emergentes para RIMMA.");
+    return;
+   }
+   void api("/orders/"+encodeURIComponent(orderId)+"/whatsapp/log",{
+    method:"POST",
+    body:JSON.stringify({action:"opened",templateKey,messageLength:message.length})
+   }).catch(()=>{});
+   success("WhatsApp abierto. RIMMA no marca el mensaje como enviado.");
+   return;
+  }
   if(paymentsUI.handleAction(action,el))return;
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="garment-passport")return void safe(async()=>openPassport(el.dataset.order,id));
