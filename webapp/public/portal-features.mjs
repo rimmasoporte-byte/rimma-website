@@ -6,6 +6,7 @@ import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,
 import {createPassportSharing} from "./portal-passport-sharing.mjs";
 import {createBusinessProfile} from "./portal-business-profile.mjs";
 import {createOrderInfo} from "./portal-order-info.mjs";
+import {createGarmentOverview} from "./portal-garment-overview.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
 import {createPaymentsUI} from "./portal-payments.mjs";
@@ -103,68 +104,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(Number.isNaN(parsed.getTime()))return String(value);
   return parsed.toLocaleString(L.locale||"es-ES",{dateStyle:"medium",timeStyle:"short"});
  };
- async function openGarment(orderId,itemId){
-  if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
-  const result=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
-  const p=result.passport||{};
-  if(!uuid(p.id))throw Error("No se pudo cargar la prenda.");
-  selected={orderId,itemId,passport:p};
-  const photos=Array.isArray(p.photos)?p.photos.filter(photo=>photo.status!=="deleted"):[];
-  const history=Array.isArray(p.history)?p.history:[];
-  const measurement=p.measurementSheet;
-  const works=Array.isArray(p.works)?p.works:[];
-  const clientName=p.client?.name||"Cliente sin nombre";
-  const due=localDate(p.dueDate);
-  const responsibleNames=[...new Set(works.map(work=>work.assignedWorker?.name).filter(Boolean))];
-  const responsibilitySummary=responsibleNames.length
-   ?responsibleNames.join(" · ")
-   :"Sin responsables asignados";
-  const location=p.storageLocation||"Sin ubicación";
-  const measurementLabel=measurement
-   ? (measurement.garmentLabel||measurement.garmentType||"Ficha vinculada")
-   : "Sin ficha vinculada";
-  layout("garment-work","Ficha de la prenda",
-   '<div class="garment-work-hero"><div><span class="passport-kicker">'+"PEDIDO"+' #'+esc(p.orderNumber||"")+'</span>'+
-    '<h3>'+esc(p.name||"Prenda")+'</h3><span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
-    '<div class="garment-work-due"><small>'+"Entrega"+'</small><strong>'+esc(due)+'</strong></div></div>'+
-   '<div class="feature-summary garment-work-money"><div><small>'+"Total"+'</small><strong>'+esc(money(p.totalMinor,p.currencyCode))+'</strong></div>'+
-    '<div><small>'+"Pagado"+'</small><strong>'+esc(money(p.confirmedPaidMinor,p.currencyCode))+'</strong></div>'+
-    '<div><small>'+"Pendiente"+'</small><strong>'+esc(money(p.remainingMinor,p.currencyCode))+'</strong></div></div>'+
-   '<div class="garment-work-grid">'+
-    '<section class="garment-work-card"><small>'+"Cliente"+'</small><strong>'+esc(clientName)+'</strong><span>'+esc(p.client?.phone||p.client?.email||"—")+'</span></section>'+
-    '<section class="garment-work-card"><small>'+"Responsables de trabajos"+'</small><strong>'+esc(responsibilitySummary)+'</strong><span>'+esc(String(works.length))+' '+"trabajo(s) registrado(s)"+'</span></section>'+
-    '<section class="garment-work-card"><small>'+"Ubicación"+'</small><strong>'+esc(location)+'</strong><span>'+"Dónde está guardada la prenda"+'</span></section>'+
-    '<section class="garment-work-card"><small>'+"Medidas"+'</small><strong>'+esc(measurementLabel)+'</strong><span>'+(measurement?esc((measurement.measurements||[]).slice(0,4).map(x=>String(x.label||x.key||"")+" "+String(x.value||"")).join(" · ")||"Ficha guardada"):"Puedes vincular una ficha del cliente")+'</span></section>'+
-   '</div>'+
-   '<div class="passport-section garment-work-section"><h4>'+"Trabajo"+'</h4>'+
-    '<div class="garment-work-details">'+
-     '<span><small>'+"Tipo"+'</small><strong>'+esc(p.garmentType||"—")+'</strong></span>'+
-     '<span><small>'+"Marca"+'</small><strong>'+esc(p.brand||"—")+'</strong></span>'+
-     '<span><small>'+"Color"+'</small><strong>'+esc(p.color||"—")+'</strong></span>'+
-     '<span><small>'+"Talla"+'</small><strong>'+esc(p.sizeLabel||"—")+'</strong></span>'+
-    '</div>'+
-    (works.length?'<div class="garment-work-lines">'+works.map((work,index)=>
-      '<div class="garment-work-line"><span>'+(index+1)+'</span><div><strong>'+esc(work.name||"Trabajo")+'</strong><small>'+
-      esc(work.assignedWorker?.name||"Sin asignar")+
-      (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+"foto(s)":"")+
-      '</small></div><b>'+esc(money(work.priceMinor,p.currencyCode))+'</b></div>'
-    ).join("")+'</div>':
-    '<p class="feature-muted">'+"El trabajo está guardado en el resumen de la prenda."+'</p>')+
-    '</div>'+
-   '<div class="passport-section garment-work-section"><h4>'+"Herramientas de la prenda"+'</h4>'+
-    '<div class="garment-work-actions">'+
-     b("Editar trabajos","garment-works-edit",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
-     b("Fotografías","item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
-     b("Cobros y pagos","order-payments",'data-id="'+esc(orderId)+'"')+
-     (uuid(p.client?.id)?b("Ficha de medidas","client-measurements",'data-id="'+esc(p.client.id)+'"'):"")+
-     b("Pasaporte digital","garment-passport",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+
-    '</div>'+
-    '<p class="passport-section-help">'+"El pasaporte digital sirve para compartir la información de esta prenda con el cliente y acceder a su página privada y QR."+'</p></div>'+
-   '<div class="passport-section garment-work-section"><h4>'+"Actividad reciente"+'</h4>'+
-    (history.length?'<div class="passport-timeline">'+history.slice(0,6).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
-     '<p class="feature-muted">'+"Todavía no hay movimientos registrados."+'</p>')+'</div>',null);
- }
-
+ const garmentOverview=createGarmentOverview({api,globalError,layout,setSelection:value=>{selected=value;},statusLabel:passportStatusLabel,eventLabel:passportEventLabel,eventDate:passportDateTime});
+ const openGarment=(orderId,itemId)=>garmentOverview.openGarment(orderId,itemId);
 
  function workEditRow(work,index,services,members){
   const serviceOptions='<option value="">'+"Trabajo manual"+'</option>'+
