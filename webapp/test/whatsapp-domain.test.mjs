@@ -95,7 +95,7 @@ test('portal delegates WhatsApp behavior to its domain module',()=>{
   assert.match(features,/createOrderWhatsApp/);
   assert.match(features,/whatsappUI\.openPreparedWhatsApp\(el\)/);
   assert.doesNotMatch(features,/async function openWhatsApp\(/);
-  assert.doesNotMatch(features,/https:\/\/wa\.me\//);
+  assert.doesNotMatch(features,/RIMMA prepara el mensaje|data-feature="whatsapp-open"/);
   assert.match(whatsapp,/https:\/\/wa\.me\//);
   assert.match(whatsapp,/\/whatsapp\/log/);
   assert.match(server,/pathname==='\/app\/portal-whatsapp\.mjs'/);
