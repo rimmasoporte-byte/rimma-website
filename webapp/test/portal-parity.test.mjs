@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
