@@ -10,7 +10,7 @@
   "intentionalExceptions": {
     "documentWrite": {
       "public/site.js": "Isolated blank print popup for garment labels; dynamic values are escaped before rendering.",
-      "public/portal-features.mjs": "Isolated blank print popup using the dedicated atelier document renderer."
+      "public/portal-documents.mjs": "Isolated blank print popup using the dedicated atelier document renderer."
     }
   }
 }
