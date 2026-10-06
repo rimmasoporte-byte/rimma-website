@@ -5,6 +5,7 @@
 import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
 import {safePublicUrl,normalizePassportPhone,passportWhatsAppText} from "./portal-passport-share.mjs";
+import {preparePhoto} from "./photo-preparation.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
@@ -784,46 +785,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(target)target.innerHTML='<div class="passport-share-note '+(data.revoked?'passport-share-success':'')+'"><strong>'+(data.revoked?'✓ '+"Acceso revocado":"No había acceso activo")+'</strong><small>'+(data.revoked?"Las páginas anteriores del cliente ya no funcionan.":"No había enlaces activos para esta prenda.")+'</small></div>';
  }
 
- async function preparePhoto(file){
-  if(!file||!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size<1)throw new Error("Selecciona una fotografía JPEG, PNG o WebP.");
-  const MAX=150*1024;
-  if(file.size<=MAX)return {blob:file,name:file.name,contentType:file.type};
-  let image=null,objectUrl=null;
-  try{
-    if(typeof createImageBitmap==="function"){
-      try{image=await createImageBitmap(file,{imageOrientation:"from-image"});}
-      catch(_){try{image=await createImageBitmap(file);}catch(__){image=null;}}
-    }
-    if(!image){
-      image=await new Promise((resolve,reject)=>{
-        objectUrl=URL.createObjectURL(file);
-        const img=new Image();
-        img.onload=()=>resolve(img);
-        img.onerror=()=>reject(new Error("El teléfono no pudo decodificar esta fotografía. Selecciona otra foto o vuelve a guardarla como JPG."));
-        img.src=objectUrl;
-      });
-    }
-    const width=image.width||image.naturalWidth,height=image.height||image.naturalHeight;
-    if(!width||!height)throw new Error("La fotografía no tiene un tamaño válido.");
-    let scale=Math.min(1,1600/Math.max(width,height));
-    for(let attempt=0;attempt<12;attempt++){
-      const canvas=document.createElement("canvas");
-      canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-      const ctx=canvas.getContext("2d",{alpha:false});
-      if(!ctx)throw new Error("No se pudo preparar la fotografía.");
-      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(image,0,0,canvas.width,canvas.height);
-      for(const quality of [0.86,0.78,0.70,0.62,0.54,0.46,0.38]){
-        const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
-        if(blob&&blob.size<=MAX)return {blob,name:(file.name.replace(/\.[^.]+$/,"")||"foto")+".jpg",contentType:"image/jpeg"};
-      }
-      scale*=0.72;
-    }
-    throw new Error("No se pudo reducir la fotografía al tamaño permitido. Prueba con otra imagen.");
-  }finally{
-    try{if(typeof image?.close==="function")image.close();}catch(_){}
-    if(objectUrl)URL.revokeObjectURL(objectUrl);
-  }
-}
 
  const docTypeLabel=type=>({
   estimate:"Presupuesto",
