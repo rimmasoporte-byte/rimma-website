@@ -10,6 +10,7 @@ import {createPaymentsUI} from "./portal-payments.mjs";
 import {createOrderWhatsApp} from "./portal-whatsapp.mjs";
 import {createOrderDocuments} from "./portal-documents.mjs";
 import {createPhotoUI} from "./portal-photos.mjs";
+import {createAccountSecurity} from "./portal-account-security.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
@@ -67,6 +68,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const openOrderDocuments=orderId=>documentsUI.openOrderDocuments(orderId);
  const photosUI=createPhotoUI({api,success,globalError,confirmAction,layout,close,safe,dlg});
  const openPhotos=(orderId,itemId)=>photosUI.openPhotos(orderId,itemId);
+ const accountSecurity=createAccountSecurity({api,layout,close,logoutAfterPassword});
 
  const passportStatusLabel=value=>({
   accepted:"Recibido",
@@ -723,13 +725,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   success("Factura enviada al circuito fiscal.");
  }
 
- function passwordForm(){
-  selected=null;
-  layout("password-change","Cambiar contraseña",'<p class="feature-muted">Al guardar, se cerrará la sesión en todos los dispositivos. Tendrás que volver a iniciar sesión.</p>'+
-   '<div class="feature-fields">'+field("currentPassword","Contraseña actual *","password",'required minlength="1" maxlength="200" autocomplete="current-password"')+
-   field("newPassword","Nueva contraseña *","password",'required minlength="8" maxlength="200" autocomplete="new-password"')+
-   field("confirmPassword","Repetir contraseña *","password",'required minlength="8" maxlength="200" autocomplete="new-password"')+'</div>');
- }
  async function save(){
   const get=name=>form().elements.namedItem(name)?.value??"";
   if(mode==="business-profile"){
@@ -765,14 +760,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    close();success(taxTerritory==="COMMON"?"Datos del taller y facturación guardados.":"Datos del taller guardados. La emisión fiscal queda protegida para el territorio seleccionado.");
   }else if(mode==="fiscal-invoice"){
    await previewFiscalInvoice();return;
-  }else if(mode==="password-change"){
-   const currentPassword=get("currentPassword"),newPassword=get("newPassword");
-   if(newPassword!==get("confirmPassword"))throw Error("Las contraseñas nuevas no coinciden.");
-   if(newPassword.length<8||newPassword.length>200||currentPassword===newPassword)throw Error("Introduce una contraseña nueva de 8 a 200 caracteres, diferente de la actual.");
-   await api("/account/password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})});
-   form().reset();body().replaceChildren();close();
-   await logoutAfterPassword();return;
   }
+  if(await accountSecurity.save(mode,form()))return;
   if(await serviceCatalog.save(mode,get))return;
   if(await measurementsUI.save(mode,get))return;
   if(await paymentsUI.save(mode,get))return;
@@ -862,7 +851,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(action==="close"){close();return;}
   const id=el.dataset.id||"",version=Number(el.dataset.version);
   if(action==="business-profile")return void safe(openBusinessProfile);
-  if(action==="password-change")return passwordForm();
+  if(action==="password-change"){selected=null;accountSecurity.openPasswordForm();return;}
   if(serviceCatalog.handleAction(action,el))return;
   if(measurementsUI.handleAction(action,el))return;
   if(action==="fiscal-invoice-open")return void safe(async()=>openFiscalInvoice(id||selected?.orderId));

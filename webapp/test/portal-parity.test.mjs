@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -151,6 +151,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-whatsapp\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-documents\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-photos\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-account-security\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -359,6 +360,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalPhotos,/photo-preparation\.mjs/);
  assert.match(portalPhotos,/photo-archive/);
  assert.match(portalPhotos,/photo-mobile-done/);
+ assert.match(feat,/createAccountSecurity/);
+ assert.match(portalAccountSecurity,/createAccountSecurity/);
+ assert.match(portalAccountSecurity,/\/account\/password/);
+ assert.match(portalAccountSecurity,/logoutAfterPassword/);
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
  assert.match(server,/idempotency-key/);
