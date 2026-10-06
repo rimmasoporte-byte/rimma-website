@@ -1,4 +1,5 @@
 import {createOrderPhotoViewer,safePhotoUrl} from "./order-photo-viewer.mjs";
+import {createOrderMobileCapture} from "./order-mobile-capture.mjs";
 import {preparePhoto} from "./photo-preparation.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
@@ -54,18 +55,14 @@ export function createOrderWizard({
   const cancel=document.querySelector("#modal-cancel");
   const back=document.querySelector("#modal-back");
   const error=document.querySelector("#modal-error");
-  const mobileCaptureDialog=document.querySelector("#order-mobile-capture-dialog");
-  if(!mobileCaptureDialog)throw Error("No se pudo inicializar la cámara móvil.");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
-  let saveClock=null,capturePollTimer=null,capturePollBusy=false;
-  let mobileCaptureDialogState=null,mobileCaptureCloseTimer=null;
+  let saveClock=null;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
   const uploadedPhotoIndexes=new Set();
-  const mobileCaptureSessions=new Map();
   const localPhotoUrls=new Map();
   let localCoverFile=null;
   const photoViewer=createOrderPhotoViewer({
@@ -128,6 +125,20 @@ export function createOrderWizard({
     const member=members.find(row=>row.id===id);
     return member?.name||member?.email||"Sin asignar";
   };
+  const mobileCapture=createOrderMobileCapture({
+    dialog:document.querySelector("#order-mobile-capture-dialog"),
+    api,
+    getState:()=>state,
+    isActive:()=>active,
+    isCreated:()=>Boolean(created),
+    getStep:()=>state.step,
+    schedulePersist,
+    renderOrderPreservingScroll,
+    photoViewer,
+    formatDateTime,
+    escapeHtml:esc,
+    onError:e=>setError(humanError(e))
+  });
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
     state.items.some(item=>
@@ -572,191 +583,6 @@ export function createOrderWizard({
       '</details></div></section>';
   }
 
-  function workByKey(workKey){
-    for(let itemIndex=0;itemIndex<state.items.length;itemIndex++){
-      const item=state.items[itemIndex];
-      for(let workIndex=0;workIndex<(item.works||[]).length;workIndex++){
-        const work=item.works[workIndex];
-        if(work.key===workKey)return {item,itemIndex,work,workIndex};
-      }
-    }
-    return null;
-  }
-
-  function closeMobileCaptureDialog(){
-    clearTimeout(mobileCaptureCloseTimer);
-    mobileCaptureCloseTimer=null;
-    mobileCaptureDialogState=null;
-    if(mobileCaptureDialog.open)mobileCaptureDialog.close();
-    mobileCaptureDialog.replaceChildren();
-    syncCapturePolling();
-  }
-
-  function mobileCaptureDialogMarkup(work,session,{received=false}={}){
-    if(received){
-      return '<header class="mobile-capture-dialog-head">'+
-        '<div><span>FOTOGRAFÍA · MÓVIL</span><h2>Fotografía recibida</h2></div>'+
-        '<button type="button" data-mobile-capture-action="close" aria-label="Cerrar">×</button></header>'+
-        '<div class="mobile-capture-dialog-success" role="status" aria-live="assertive">'+
-        '<span class="mobile-capture-dialog-check" aria-hidden="true">✓</span>'+
-        '<strong>La fotografía ya está en el pedido</strong>'+
-        '<p>Este código QR se cerrará automáticamente.</p></div>';
-    }
-    return '<header class="mobile-capture-dialog-head">'+
-      '<div><span>FOTOGRAFÍA · MÓVIL</span><h2>Hacer foto con el móvil</h2></div>'+
-      '<button type="button" data-mobile-capture-action="close" aria-label="Cerrar">×</button></header>'+
-      '<div class="mobile-capture-dialog-body">'+
-      '<p>Escanea el código con tu móvil y haz la fotografía. RIMMA la añadirá automáticamente a <strong>'+esc(work.work||"este trabajo")+'</strong>.</p>'+
-      '<div class="mobile-capture-dialog-qr" data-mobile-capture-qr></div>'+
-      '<div class="mobile-capture-dialog-waiting" role="status" aria-live="polite">'+
-      '<span aria-hidden="true"></span><strong>Esperando fotografía…</strong></div>'+
-      '<small>Sesión segura hasta '+esc(formatDateTime(session.expiresAt))+'</small>'+
-      '</div>'+
-      '<footer class="mobile-capture-dialog-actions">'+
-      '<button type="button" class="secondary" data-mobile-capture-action="close">Cerrar</button>'+
-      '</footer>';
-  }
-
-  function renderMobileCaptureDialog({received=false}={}){
-    const dialogState=mobileCaptureDialogState;
-    if(!dialogState)return;
-    const row=workByKey(dialogState.workKey);
-    const session=mobileCaptureSessions.get(dialogState.workKey);
-    if(!row||!session){
-      closeMobileCaptureDialog();
-      return;
-    }
-    mobileCaptureDialog.innerHTML=mobileCaptureDialogMarkup(row.work,session,{received});
-    if(!mobileCaptureDialog.open)mobileCaptureDialog.showModal();
-    if(received)return;
-    const holder=mobileCaptureDialog.querySelector("[data-mobile-capture-qr]");
-    if(!holder)return;
-    if(!globalThis.QRCode){
-      holder.innerHTML='<p class="mobile-capture-dialog-error">No se pudo generar el código QR. Cierra la ventana y vuelve a intentarlo.</p>';
-      return;
-    }
-    try{
-      new QRCode(holder,{
-        text:session.url,
-        width:240,
-        height:240,
-        correctLevel:QRCode.CorrectLevel.M
-      });
-    }catch{
-      holder.innerHTML='<p class="mobile-capture-dialog-error">No se pudo generar el código QR. Cierra la ventana y vuelve a intentarlo.</p>';
-    }
-  }
-
-  function mobileCapturePhotoReceived(work,newPhotos){
-    if(!newPhotos.length||!mobileCaptureDialogState||mobileCaptureDialogState.received)return;
-    if(mobileCaptureDialogState.workKey!==work.key)return;
-    mobileCaptureDialogState.received=true;
-    renderMobileCaptureDialog({received:true});
-    clearTimeout(mobileCaptureCloseTimer);
-    mobileCaptureCloseTimer=setTimeout(()=>closeMobileCaptureDialog(),850);
-  }
-
-  function captureWorks(){
-    const rows=[];
-    state.items.forEach((item,itemIndex)=>{
-      (item.works||[]).forEach((work,workIndex)=>{
-        if(UUID.test(String(work.mobileCaptureId||""))){
-          rows.push({item,itemIndex,work,workIndex});
-        }
-      });
-    });
-    return rows;
-  }
-
-  async function refreshMobileCapture(work,{rerender=true}={}){
-    if(!UUID.test(String(work?.mobileCaptureId||"")))return false;
-    const result=await api("/draft-photo-captures/"+encodeURIComponent(work.mobileCaptureId));
-    const photos=Array.isArray(result.capture?.photos)
-      ?result.capture.photos.filter(photo=>photo.status==="active"||photo.status==="claimed")
-      :[];
-    const previousPhotos=Array.isArray(work.mobilePhotos)?work.mobilePhotos:[];
-    const previousIds=new Set(previousPhotos.map(photo=>photo.id));
-    const previous=JSON.stringify(previousPhotos.map(photo=>[
-      photo.id,photo.status,photo.isCover,photo.sizeBytes
-    ]));
-    work.mobilePhotos=photos;
-    work.mobilePhotoCount=photos.length;
-    if(photoViewer.preview?.workKey===work.key){
-      const fresh=photos.find(photo=>photo.id===photoViewer.preview.photo?.id);
-      photoViewer.preview=fresh?{...photoViewer.preview,photo:fresh}:null;
-    }
-    const next=JSON.stringify(photos.map(photo=>[
-      photo.id,photo.status,photo.isCover,photo.sizeBytes
-    ]));
-    const changed=previous!==next;
-    const added=photos.filter(photo=>!previousIds.has(photo.id));
-    if(changed)schedulePersist();
-    if(added.length)mobileCapturePhotoReceived(work,added);
-    if(changed&&rerender&&active&&!created&&state.step===1)renderOrderPreservingScroll();
-    return changed;
-  }
-
-  async function pollMobileCaptures(){
-    if(capturePollBusy||!active||created)return;
-    const rows=captureWorks();
-    if(!rows.length)return;
-    capturePollBusy=true;
-    let changed=false;
-    try{
-      for(const row of rows){
-        try{
-          if(await refreshMobileCapture(row.work,{rerender:false}))changed=true;
-        }catch{}
-      }
-    }finally{
-      capturePollBusy=false;
-    }
-    if(changed&&active&&!created&&state.step===1)renderOrderPreservingScroll();
-  }
-
-  function syncCapturePolling(){
-    clearInterval(capturePollTimer);
-    capturePollTimer=null;
-    if(!active||created||!captureWorks().length)return;
-    const interval=mobileCaptureDialog.open?1500:3000;
-    capturePollTimer=setInterval(()=>void pollMobileCaptures(),interval);
-  }
-
-  async function openMobileCapture(itemIndex,workIndex){
-    const item=state.items[itemIndex];
-    const work=item?.works?.[workIndex];
-    if(!item||!work)return;
-    const result=await api("/draft-photo-captures",{
-      method:"POST",
-      body:JSON.stringify({
-        draftKey:state.creationKey,
-        itemKey:item.key,
-        workKey:work.key,
-        garmentName:item.garmentType||"Prenda",
-        workName:work.work||"Trabajo"
-      })
-    });
-    const capture=result.capture||{};
-    if(!UUID.test(String(capture.id||""))||!capture.token){
-      throw Error("No se pudo preparar la cámara del móvil.");
-    }
-    work.mobileCaptureId=capture.id;
-    mobileCaptureSessions.set(work.key,{
-      id:capture.id,
-      url:location.origin+"/capture/"+encodeURIComponent(capture.token),
-      expiresAt:capture.expiresAt
-    });
-    schedulePersist();
-    let changed=false;
-    try{changed=await refreshMobileCapture(work,{rerender:false})}catch{}
-    if(changed&&active&&!created&&state.step===1)renderOrderPreservingScroll();
-    clearTimeout(mobileCaptureCloseTimer);
-    mobileCaptureCloseTimer=null;
-    mobileCaptureDialogState={workKey:work.key,received:false};
-    renderMobileCaptureDialog();
-    syncCapturePolling();
-  }
-
   function workAt(itemIndex,workIndex){
     const item=state.items[Number(itemIndex)];
     const work=item?.works?.[Number(workIndex)];
@@ -766,7 +592,7 @@ export function createOrderWizard({
   async function openMobilePhotoPreview(itemIndex,workIndex,photoId){
     const {work}=workAt(itemIndex,workIndex);
     if(!work||!UUID.test(String(work.mobileCaptureId||"")))return;
-    await refreshMobileCapture(work,{rerender:false});
+    await mobileCapture.refresh(work,{rerender:false});
     const photo=(work.mobilePhotos||[]).find(row=>row.id===photoId);
     if(!photo)throw Error("La fotografía ya no está disponible.");
     photoViewer.open({
@@ -887,27 +713,6 @@ export function createOrderWizard({
     renderOrderPreservingScroll();
   }
 
-  async function discardMobileCapture(work){
-    if(!UUID.test(String(work?.mobileCaptureId||"")))return;
-    const id=work.mobileCaptureId;
-    if(mobileCaptureDialogState?.workKey===work.key)closeMobileCaptureDialog();
-    mobileCaptureSessions.delete(work.key);
-    work.mobileCaptureId="";
-    work.mobilePhotoCount=0;
-    work.mobilePhotos=[];
-    if(photoViewer.preview?.workKey===work.key)photoViewer.preview=null;
-    try{
-      await api("/draft-photo-captures/"+encodeURIComponent(id),{method:"DELETE"});
-    }catch{}
-  }
-
-  async function discardAllMobileCaptures(){
-    const rows=captureWorks();
-    await Promise.allSettled(rows.map(row=>discardMobileCapture(row.work)));
-    mobileCaptureSessions.clear();
-    syncCapturePolling();
-  }
-
   function render(){
     if(!active)return;
     setError("");
@@ -920,7 +725,7 @@ export function createOrderWizard({
       :stepper()+(state.step===0?renderClient():state.step===1?renderGarments():state.step===2?renderDelivery():renderReview());
     if(created)fields.scrollTop=0;
     syncFooter();
-    syncCapturePolling();
+    mobileCapture.syncPolling();
   }
   function clearValidation(){
     fields.querySelectorAll('[aria-invalid="true"]').forEach(element=>element.removeAttribute("aria-invalid"));
@@ -1117,8 +922,7 @@ export function createOrderWizard({
               workLineId:work.id
             })
           });
-          mobileCaptureSessions.delete(sourceWork.key);
-          sourceWork.mobileCaptureId="";
+          mobileCapture.markClaimed(sourceWork);
           photoFailures.delete(key);
         }catch(e){
           photoFailures.set(key,e.message||"No se pudieron guardar las fotografías del móvil.");
@@ -1173,8 +977,7 @@ export function createOrderWizard({
       created=response;
       clearDraft();
       dirty=false;
-      clearInterval(capturePollTimer);
-      capturePollTimer=null;
+      mobileCapture.syncPolling();
       photoFailures.clear();
       await claimAllMobilePhotos({resetFailures:false});
       await uploadAllPhotos({resetFailures:false});
@@ -1320,7 +1123,7 @@ export function createOrderWizard({
       });
       if(!approved)return;
     }
-    await discardAllMobileCaptures();
+    await mobileCapture.discardAll();
     clearLocalPhotoUrls();
     localCoverFile=null;
     clearDraft();
@@ -1351,7 +1154,7 @@ export function createOrderWizard({
       alternativeValue:"discard"
     });
     if(decision==="discard"){
-      await discardAllMobileCaptures();
+      await mobileCapture.discardAll();
       clearDraft();
       dirty=false;
       clearLocalPhotoUrls();
@@ -1571,7 +1374,7 @@ export function createOrderWizard({
     if(actionName==="mobile-photo"){
       const index=Number(button.dataset.index);
       const workIndex=Number(button.dataset.workIndex);
-      void openMobileCapture(index,workIndex).catch(e=>setError(humanError(e)));
+      mobileCapture.runOpen(index,workIndex);
       return;
     }
     if(actionName==="add-work"){
@@ -1595,7 +1398,7 @@ export function createOrderWizard({
         const removed=item.works[workIndex];
         if(removed){
           releaseWorkLocalPhotos(removed);
-          void discardMobileCapture(removed);
+          void mobileCapture.discard(removed);
         }
         item.works.splice(workIndex,1);
         schedulePersist();
@@ -1609,7 +1412,7 @@ export function createOrderWizard({
         const removed=state.items[index];
         for(const work of removed?.works||[]){
           releaseWorkLocalPhotos(work);
-          void discardMobileCapture(work);
+          void mobileCapture.discard(work);
         }
         state.items.splice(index,1);
         schedulePersist();
@@ -1658,16 +1461,6 @@ export function createOrderWizard({
   });
   fields.addEventListener("pointerdown",event=>{
     if(event.target.closest(".wizard-client-result"))event.preventDefault();
-  });
-
-  mobileCaptureDialog.addEventListener("click",event=>{
-    const control=event.target.closest("[data-mobile-capture-action]");
-    if(!control)return;
-    if(control.dataset.mobileCaptureAction==="close")closeMobileCaptureDialog();
-  });
-  mobileCaptureDialog.addEventListener("cancel",event=>{
-    event.preventDefault();
-    closeMobileCaptureDialog();
   });
 
   window.addEventListener("beforeunload",event=>{
@@ -1780,15 +1573,7 @@ export function createOrderWizard({
   function closed(){
     persist();
     clearTimeout(clientSearchTimer);
-    clearInterval(capturePollTimer);
-    capturePollTimer=null;
-    capturePollBusy=false;
-    mobileCaptureSessions.clear();
-    clearTimeout(mobileCaptureCloseTimer);
-    mobileCaptureCloseTimer=null;
-    mobileCaptureDialogState=null;
-    if(mobileCaptureDialog.open)mobileCaptureDialog.close();
-    mobileCaptureDialog.replaceChildren();
+    mobileCapture.closed();
     clearLocalPhotoUrls();
     photoViewer.close();
     clientSearchSeq++;
