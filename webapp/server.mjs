@@ -263,6 +263,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-business-profile.mjs')return staticFile(res,'portal-business-profile.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-order-info.mjs')return staticFile(res,'portal-order-info.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-garment-overview.mjs')return staticFile(res,'portal-garment-overview.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-garment-works.mjs')return staticFile(res,'portal-garment-works.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-passport-share.mjs')return staticFile(res,'portal-passport-share.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/photo-preparation.mjs')return staticFile(res,'photo-preparation.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
