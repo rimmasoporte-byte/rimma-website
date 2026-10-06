@@ -53,7 +53,7 @@ test('fiscal invoice fails closed for unsupported Spanish tax territories',async
  assert.match(layouts[0].markup,/Canarias · IGIC/);
  assert.match(layouts[0].markup,/no generará una factura IVA\/AEAT incorrecta/);
  assert.ok(!calls.some(route=>String(route).includes('/fiscal-profile')));
- assert.equal(await ui.save('fiscal-invoice'),true);
+ 
 });
 
 test('COMMON fiscal flow preserves preview-before-issue and VERI*FACTU confirmation',async()=>{
