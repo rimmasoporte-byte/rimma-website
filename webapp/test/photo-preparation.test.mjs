@@ -37,13 +37,16 @@ test('order and portal photo flows use one shared implementation',()=>{
   const site=read('public/site.js');
   const wizard=read('public/order-wizard.mjs');
   const features=read('public/portal-features.mjs');
+  const photos=read('public/portal-photos.mjs');
 
   assert.doesNotMatch(site,/async function prepareOrderPhoto/);
   assert.doesNotMatch(site,/preparePhoto:prepareOrderPhoto/);
   assert.match(wizard,/import \{preparePhoto\} from "\.\/photo-preparation\.mjs"/);
   assert.doesNotMatch(wizard,/api,preparePhoto,confirmAction/);
-  assert.match(features,/import \{preparePhoto\} from "\.\/photo-preparation\.mjs"/);
+  assert.doesNotMatch(features,/import \{preparePhoto\} from "\.\/photo-preparation\.mjs"/);
+  assert.match(photos,/import \{preparePhoto\} from "\.\/photo-preparation\.mjs"/);
   assert.doesNotMatch(features,/async function preparePhoto\(/);
+  assert.doesNotMatch(photos,/async function preparePhoto\(/);
 });
 
 test('BFF explicitly serves the shared photo preparation module',()=>{
