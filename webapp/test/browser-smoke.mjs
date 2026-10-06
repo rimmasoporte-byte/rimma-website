@@ -120,7 +120,7 @@ async function main(){
   chrome.stdout.on('data',chunk=>chromeLog+=chunk);
   chrome.stderr.on('data',chunk=>chromeLog+=chunk);
   try{
-   await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`);
+   await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`,30000);
    await connectCdp();
    await cdp('Runtime.enable');
    await cdp('Page.enable');
