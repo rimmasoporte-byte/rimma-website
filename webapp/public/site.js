@@ -161,7 +161,7 @@ function getOrderWizard(){
  orderWizardLoad=import("/app/order-wizard.mjs?v=20261005-v22")
   .then(module=>{
    orderWizardInstance=module.createOrderWizard({
-    api,preparePhoto:prepareOrderPhoto,confirmAction,locale:L,success,getMe:()=>me,
+    api,confirmAction,locale:L,success,getMe:()=>me,
     onOpenClient:()=>openModal("client",null,{returnToOrder:true}),
     onOpenOrder:async id=>{go("pedidos");await (await featureUI).openOrderInfo(id);},
     onOpenPayments:async id=>{await (await featureUI).openPayments(id);},
@@ -309,62 +309,6 @@ function go(view){
  requestAnimationFrame(()=>{if($("#view-"+view)?.classList.contains("active"))window.scrollTo(0,0);});
  const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
-}
-async function prepareOrderPhoto(file){
-  if(!file)return null;
-  const allowed=["image/jpeg","image/png","image/webp"];
-  if(!allowed.includes(file.type)||file.size<1)throw new Error("Selecciona una fotografía JPEG, PNG o WebP.");
-  const MAX=150*1024;
-  if(file.size<=MAX)return {blob:file,name:file.name,contentType:file.type};
-
-  let image=null;
-  let objectUrl=null;
-  try{
-    if(typeof createImageBitmap==="function"){
-      try{
-        image=await createImageBitmap(file,{imageOrientation:"from-image"});
-      }catch(_){
-        image=await createImageBitmap(file);
-      }
-    }
-  }catch(_){ image=null; }
-
-  if(!image){
-    image=await new Promise((resolve,reject)=>{
-      objectUrl=URL.createObjectURL(file);
-      const img=new Image();
-      img.onload=()=>resolve(img);
-      img.onerror=()=>reject(new Error("El teléfono no pudo decodificar esta fotografía. Selecciona otra foto o vuelve a guardarla como JPG."));
-      img.src=objectUrl;
-    });
-  }
-
-  try{
-    let width=image.width||image.naturalWidth, height=image.height||image.naturalHeight;
-    if(!width||!height)throw new Error("La fotografía no tiene un tamaño válido.");
-    let scale=Math.min(1,1600/Math.max(width,height));
-    for(let attempt=0;attempt<12;attempt++){
-      const canvas=document.createElement("canvas");
-      canvas.width=Math.max(1,Math.round(width*scale));
-      canvas.height=Math.max(1,Math.round(height*scale));
-      const ctx=canvas.getContext("2d",{alpha:false});
-      if(!ctx)throw new Error("No se pudo preparar la fotografía.");
-      ctx.imageSmoothingEnabled=true;
-      ctx.imageSmoothingQuality="high";
-      ctx.drawImage(image,0,0,canvas.width,canvas.height);
-      for(const quality of [0.86,0.78,0.70,0.62,0.54,0.46,0.38]){
-        const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
-        if(blob&&blob.size<=MAX){
-          return {blob,name:(file.name.replace(/\.[^.]+$/,"")||"foto")+".jpg",contentType:"image/jpeg"};
-        }
-      }
-      scale*=0.72;
-    }
-    throw new Error("No se pudo reducir la fotografía al tamaño permitido. Prueba con otra imagen.");
-  }finally{
-    try{if(typeof image.close==="function")image.close();}catch(_){}
-    if(objectUrl)URL.revokeObjectURL(objectUrl);
-  }
 }
 function recordActions(type,id,canDelete=true) {
   const safe=esc(id);
