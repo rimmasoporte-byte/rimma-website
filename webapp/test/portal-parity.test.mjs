@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -147,6 +147,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-core\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-services\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-measurements\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-payments\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -325,8 +326,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/"garment-passport"/);
  assert.match(feat,/action==="garment-passport"/);
  assert.match(feat,/openGarment,openGarmentEdit,openOrderInfo,openPassport,openOrderPassport/);
- assert.match(feat,/Idempotency-Key/);
- assert.match(feat,/portal-payment-idempotency\.mjs/);
+ assert.match(portalPayments,/Idempotency-Key/);
+ assert.match(portalPayments,/portal-payment-idempotency\.mjs/);
  assert.match(paymentIdempotency,/sessionStorage/);
  assert.match(paymentIdempotency,/crypto\?\.randomUUID/);
  assert.match(feat,/portal-core\.mjs/);
@@ -342,6 +343,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalMeasurements,/measurement-archive/);
  assert.match(portalMeasurements,/measurement-add/);
  assert.match(portalMeasurements,/measure-remove/);
+ assert.match(feat,/createPaymentsUI/);
+ assert.match(portalPayments,/createPaymentsUI/);
+ assert.match(portalPayments,/Cobros del pedido/);
+ assert.match(portalPayments,/Registrar cobro recibido/);
+ assert.match(portalPayments,/Registrar cobro pendiente/);
+ assert.match(portalPayments,/paymentRetry/);
  assert.match(server,/idempotency-key/);
  assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
