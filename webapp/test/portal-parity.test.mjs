@@ -332,6 +332,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalCore,/export const moneyMinor=/);
  assert.match(portalCore,/export const localDate=/);
  assert.match(portalCore,/export const esc=/);
+ assert.match(feat,/createServiceCatalog/);
+ assert.match(portalServices,/createServiceCatalog/);
+ assert.match(portalServices,/Añadir catálogo inicial/);
+ assert.match(portalServices,/editableWorkServices/);
  assert.match(server,/idempotency-key/);
  assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
