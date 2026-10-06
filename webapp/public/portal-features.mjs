@@ -2,16 +2,15 @@
  * All mutations go through the existing same-origin session + CSRF BFF.
  * This module never requests or stores Android/Google Play tokens.
  */
-import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
 import {safePublicUrl,normalizePassportPhone,passportWhatsAppText} from "./portal-passport-share.mjs";
 import {preparePhoto} from "./photo-preparation.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
+import {createPaymentsUI} from "./portal-payments.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
-const methods=[["cash","Efectivo"],["card","Tarjeta (pago externo)"],["bank_transfer","Transferencia"],["spei","SPEI"],["other","Otro"]];
 const photoTypes=[["intake","Recepción"],["detail","Detalle"],["after","Trabajo terminado"],["other","Otro"]];
 export function createFeatureUI({api,success,globalError,confirmAction,refreshOrders,logoutAfterPassword}){
  const dlg=document.createElement("dialog");
@@ -59,80 +58,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const loadServices=()=>serviceCatalog.loadServices();
  const measurementsUI=createMeasurementsUI({api,success,globalError,confirmAction,layout,close,safe,dlg});
  const openMeasurements=clientId=>measurementsUI.openMeasurements(clientId);
- async function openPayments(orderId){
-  if(!uuid(orderId)){globalError("Selecciona un pedido válido.");return;}
-  const [paymentData,orderData]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
-   api("/orders/"+encodeURIComponent(orderId))
-  ]);
-  const payments=paymentData.payments||[],summary=paymentData.summary||{},order=orderData.order||{};
-  selected={orderId,summary,order};
-  const statusLabel={pending:"Pendiente",confirmed:"Confirmado",cancelled:"Anulado",failed:"Fallido",refunded:"Devuelto"};
-  const history=payments.length?payments.map(p=>
-   '<article class="payment-history-row"><div><strong>'+esc(money(p.amountMinor,p.currencyCode))+
-   ' · '+esc((methods.find(m=>m[0]===p.method)||["",p.method])[1])+'</strong>'+
-   '<small>'+esc(statusLabel[p.status]||p.status)+' · '+esc(localDateTime(p.confirmedAt||p.cancelledAt||p.createdAt))+'</small>'+
-   (p.cancellationReason?'<small>Motivo: '+esc(p.cancellationReason)+'</small>':"")+'</div>'+
-   '<div class="feature-inline">'+
-   (p.status==="pending"?b("Confirmar cobro","payment-confirm",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"')+
-    b("Anular","payment-cancel",'data-id="'+esc(p.id)+'" data-version="'+esc(p.version)+'" data-amount="'+esc(p.amountMinor)+'" data-method="'+esc(p.method)+'"'):"")+
-   '</div></article>'
-  ).join(""):'<p class="feature-muted">Todavía no hay cobros registrados.</p>';
-
-  layout("payments-list","Cobros del pedido",
-   '<div class="feature-summary"><div><small>Total del pedido</small><strong>'+esc(money(summary.totalMinor,summary.currencyCode))+'</strong></div>'+
-   '<div><small>Cobrado</small><strong>'+esc(money(summary.confirmedPaidMinor,summary.currencyCode))+'</strong></div>'+
-   '<div><small>Saldo pendiente</small><strong>'+esc(money(summary.remainingMinor,summary.currencyCode))+'</strong></div></div>'+
-   (summary.fullyPaid?'<div class="feature-success-note">✓ Pedido totalmente pagado</div>':"")+
-   (Number(summary.pendingMinor)>0?'<p class="feature-muted">Hay '+esc(money(summary.pendingMinor,summary.currencyCode))+' registrado como cobro pendiente de confirmación.</p>':"")+
-   '<section class="feature-section"><h3>Historial de cobros</h3>'+history+'</section>'+
-   (Number(summary.remainingMinor)>0?'<div class="feature-bottom payment-actions">'+
-     b("+ Registrar cobro recibido","payment-new",'data-status="confirmed"')+
-     b("Registrar cobro pendiente","payment-new",'data-status="pending"')+
-    '</div>':""),
-   null);
- }
-
- async function newPayment(status="confirmed"){
-  if(!uuid(selected?.orderId))return;
-  const orderId=selected.orderId;
-  const [paymentData,orderData]=await Promise.all([
-   api("/orders/"+encodeURIComponent(orderId)+"/payments"),
-   api("/orders/"+encodeURIComponent(orderId))
-  ]);
-  const summary=paymentData.summary||{},order=orderData.order||{};
-  const available=Math.max(0,Number(summary.remainingMinor||0)-Number(summary.pendingMinor||0));
-  if(available<=0){globalError("No queda saldo disponible para registrar.");return;}
-  const clientName=order.client?.name||"Cliente";
-  const orderNumber=String(order.orderNumber||"").padStart(4,"0");
-  const pending=status==="pending";
-  selected={orderId,summary,order,paymentStatus:pending?"pending":"confirmed"};
-  layout("payment-new",pending?"Registrar cobro pendiente":"Registrar cobro recibido",
-   '<div class="feature-context"><strong>Pedido #'+esc(orderNumber)+' · '+esc(clientName)+'</strong>'+
-   '<span>Saldo disponible: '+esc(money(available,summary.currencyCode))+'</span></div>'+
-   '<p class="feature-muted">'+(pending
-    ?"Úsalo solo cuando el dinero todavía no haya llegado. El saldo no se considerará cobrado hasta confirmarlo."
-    :"Registra únicamente dinero que ya hayas recibido. RIMMA actualizará el saldo al confirmar.")+'</p>'+
-   '<div class="feature-fields">'+
-   field("amount","Importe *","number",'min="0.01" max="'+(available/100).toFixed(2)+'" step="0.01" required value="'+(available/100).toFixed(2)+'"')+
-   select("method","Método de cobro *",choice(pending?"bank_transfer":"cash",methods))+
-   '<div class="feature-readonly"><small>Fecha y hora</small><strong>'+esc(localDateTime(new Date().toISOString()))+'</strong></div>'+
-   textarea("notes","Notas (opcional)",5000)+'</div>',
-   pending?"Guardar como pendiente":"Continuar");
- }
-
- function cancelPaymentForm(payment){
-  if(!uuid(selected?.orderId)||!payment?.id)return;
-  selected={...selected,cancelPayment:payment};
-  layout("payment-cancel","Anular cobro pendiente",
-   '<div class="feature-context"><strong>'+esc(money(payment.amountMinor,selected.summary?.currencyCode||L.currency))+
-   ' · '+esc((methods.find(m=>m[0]===payment.method)||["",payment.method])[1])+'</strong>'+
-   '<span>Este registro pendiente se conservará en el historial como anulado.</span></div>'+
-   '<div class="feature-fields">'+textarea("cancellationReason","Motivo de la anulación *",500)+'</div>',
-   "Anular cobro");
-  submit().classList?.add?.("danger");
- }
-
+ const paymentsUI=createPaymentsUI({api,success,globalError,confirmAction,refreshOrders,layout,close,safe,dlg});
+ const openPayments=orderId=>paymentsUI.openPayments(orderId);
  async function openWhatsApp(orderId){
   if(!uuid(orderId)){globalError("Pedido inválido.");return;}
   const data=(await api("/orders/"+encodeURIComponent(orderId)+"/whatsapp")).whatsapp||{};
@@ -1076,50 +1003,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   }
   if(await serviceCatalog.save(mode,get))return;
   if(await measurementsUI.save(mode,get))return;
-  if(mode==="payment-new"){
-   const orderId=selected.orderId,amountMinor=moneyMinor(get("amount"));
-   const available=Math.max(0,Number(selected.summary.remainingMinor||0)-Number(selected.summary.pendingMinor||0));
-   if(amountMinor>available)throw Error("El importe excede el saldo disponible del pedido.");
-   const method=get("method"),status=selected.paymentStatus==="pending"?"pending":"confirmed";
-   if(status==="confirmed"){
-    const approved=await confirmAction({
-     title:"Confirmar cobro",
-     message:"Has recibido "+money(amountMinor,selected.summary.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+". Esta operación actualizará el saldo del pedido.",
-     cancelLabel:"Volver",
-     confirmLabel:"Confirmar cobro",
-     danger:false
-    });
-    if(!approved)return;
-   }
-   const paymentBody=JSON.stringify({
-    amountMinor,
-    currencyCode:selected.summary.currencyCode,
-    method,
-    status,
-    notes:get("notes").trim()||null
-   });
-   const retry=paymentRetry(orderId,paymentBody);
-   await api("/orders/"+encodeURIComponent(orderId)+"/payments",{
-    method:"POST",headers:{"Idempotency-Key":retry.key},body:paymentBody
-   });
-   clearPaymentRetry(retry);
-   await openPayments(orderId);
-   await refreshOrders();
-   success(status==="confirmed"?"Cobro confirmado.":"Cobro registrado como pendiente.");
-  }else if(mode==="payment-cancel"){
-   const payment=selected.cancelPayment;
-   const reason=get("cancellationReason").trim();
-   if(!payment||!uuid(payment.id))throw Error("Actualiza los cobros e inténtalo de nuevo.");
-   if(!reason)throw Error("Indica el motivo de la anulación.");
-   const orderId=selected.orderId;
-   await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(payment.id),{
-    method:"PATCH",
-    body:JSON.stringify({expectedVersion:Number(payment.version),status:"cancelled",cancellationReason:reason})
-   });
-   await openPayments(orderId);
-   await refreshOrders();
-   success("Cobro pendiente anulado.");
-  }else if(mode==="garment-works-edit"){
+  if(await paymentsUI.save(mode,get))return;
+  if(mode==="garment-works-edit"){
    if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error("Actualiza la prenda antes de guardar.");
    const rows=[...dlg.querySelectorAll("[data-work-edit-row]")];
    if(!rows.length)throw Error("Añade al menos un trabajo.");
@@ -1228,59 +1113,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
   if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
-  if(action==="order-payments")return void safe(async()=>openPayments(id));
-  if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
-  if(action==="whatsapp-open"){
-   const orderId=selected?.orderId;
-   const phone=String(el.dataset.phone||"").replace(/\D/g,"");
-   const templateKey=String(el.dataset.template||"message");
-   const editor=dlg.querySelector('[data-wa-message="'+CSS.escape(templateKey)+'"]');
-   const message=String(editor?.value||"").trim();
-   if(!uuid(orderId)||phone.length<8||phone.length>15||!message){
-    alertError("Revisa el número y el mensaje antes de abrir WhatsApp.");
-    return;
-   }
-   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
-   const opened=window.open(url,"_blank","noopener,noreferrer");
-   if(!opened){
-    alertError("El navegador ha bloqueado WhatsApp. Permite ventanas emergentes para RIMMA.");
-    return;
-   }
-   void api("/orders/"+encodeURIComponent(orderId)+"/whatsapp/log",{
-    method:"POST",
-    body:JSON.stringify({action:"opened",templateKey,messageLength:message.length})
-   }).catch(()=>{});
-   success("WhatsApp abierto. RIMMA no marca el mensaje como enviado.");
-   return;
-  }
-  if(action==="payment-new")return void safe(()=>newPayment(el.dataset.status||"confirmed"));
-  if(action==="payment-cancel"){
-   return cancelPaymentForm({
-    id,version,
-    amountMinor:Number(el.dataset.amount||0),
-    method:el.dataset.method||"other"
-   });
-  }
-  if(action==="payment-confirm"){
-   const orderId=selected.orderId;
-   return void safe(async()=>{
-    const amount=Number(el.dataset.amount||0);
-    const method=el.dataset.method||"other";
-    const approved=await confirmAction({
-     title:"Confirmar cobro",
-     message:"¿Has recibido realmente "+money(amount,selected.summary?.currencyCode)+" mediante "+((methods.find(m=>m[0]===method)||["",method])[1])+"? La confirmación modificará el saldo del pedido.",
-     cancelLabel:"Volver",
-     confirmLabel:"Confirmar cobro",
-     danger:false
-    });
-    if(!approved)return;
-    await api("/orders/"+encodeURIComponent(orderId)+"/payments/"+encodeURIComponent(id),{
-     method:"PATCH",body:JSON.stringify({expectedVersion:version,status:"confirmed"})});
-    await openPayments(orderId);
-    await refreshOrders();
-    success("Cobro confirmado.");
-   });
-  }
+  if(paymentsUI.handleAction(action,el))return;
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="garment-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="garment-works-edit")return void safe(async()=>openGarmentWorksEdit(el.dataset.order,id));
