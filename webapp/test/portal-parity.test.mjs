@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -146,6 +146,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/portal-payment-idempotency\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-core\.mjs'/);
  assert.match(server,/pathname==='\/app\/portal-services\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-measurements\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -336,6 +337,11 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalServices,/createServiceCatalog/);
  assert.match(portalServices,/Añadir catálogo inicial/);
  assert.match(portalServices,/editableWorkServices/);
+ assert.match(feat,/createMeasurementsUI/);
+ assert.match(portalMeasurements,/createMeasurementsUI/);
+ assert.match(portalMeasurements,/measurement-archive/);
+ assert.match(portalMeasurements,/measurement-add/);
+ assert.match(portalMeasurements,/measure-remove/);
  assert.match(server,/idempotency-key/);
  assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
