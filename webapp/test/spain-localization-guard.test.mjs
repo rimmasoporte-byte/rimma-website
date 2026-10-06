@@ -38,10 +38,10 @@ test('production portal has no legacy Portuguese UI branch',()=>{
 });
 
 test('international phone normalization stays independent from UI localization',()=>{
-  const features=read('public/portal-features.mjs');
-  assert.match(features,/const callingCodes=/);
+  const share=read('public/portal-passport-share.mjs');
+  assert.match(share,/const callingCodes=/);
   for(const country of ['ES','PT','FR','DE','IT','BR','MX','AR','CO'])
-    assert.match(features,new RegExp('\\b'+country+':"'));
+    assert.match(share,new RegExp('\\b'+country+':"'));
 });
 
 test('unsupported stored or query locales safely fall back to Spanish',()=>{
