@@ -1,3 +1,4 @@
+import {preparePhoto} from "./photo-preparation.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
@@ -43,7 +44,7 @@ const blankState=currency=>({
 });
 
 export function createOrderWizard({
-  api,preparePhoto,confirmAction,locale,success,getMe,
+  api,confirmAction,locale,success,getMe,
   onOpenClient,onOpenOrder,onOpenPayments,onOpenWhatsApp,onOpenDocuments,onOpenGarment,onPrintLabel,onRefresh
 }){
   const modal=document.querySelector("#modal");
