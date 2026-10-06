@@ -8,6 +8,7 @@ import {preparePhoto} from "./photo-preparation.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
 import {createPaymentsUI} from "./portal-payments.mjs";
+import {createOrderWhatsAppUI} from "./portal-order-whatsapp.mjs";
 export {moneyMinor};
 
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
@@ -60,35 +61,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const openMeasurements=clientId=>measurementsUI.openMeasurements(clientId);
  const paymentsUI=createPaymentsUI({api,success,globalError,confirmAction,refreshOrders,layout,close,safe,dlg});
  const openPayments=orderId=>paymentsUI.openPayments(orderId);
- async function openWhatsApp(orderId){
-  if(!uuid(orderId)){globalError("Pedido inválido.");return;}
-  const data=(await api("/orders/"+encodeURIComponent(orderId)+"/whatsapp")).whatsapp||{};
-  const actions=(Array.isArray(data.actions)?data.actions:[]).filter(action=>action.enabled===true);
-  const phone=String(data.client?.whatsappPhone||"").replace(/\D/g,"");
-  selected={orderId,whatsapp:data};
-
-  if(!phone){
-   layout("whatsapp-list","Mensajes de WhatsApp",
-    '<div class="feature-unavailable"><strong>WhatsApp no disponible</strong>'+
-    '<p>El cliente no tiene un número de teléfono válido.</p></div>',null);
-   return;
-  }
-
-  const markup=actions.length
-   ? actions.map(action=>
-      '<article class="whatsapp-card">'+
-       '<div class="whatsapp-card-head"><strong>'+esc(action.label||"Mensaje")+'</strong>'+
-       '<small>Vista previa editable</small></div>'+
-       '<textarea class="whatsapp-message-editor" data-wa-message="'+esc(action.key||"message")+'" maxlength="4000">'+esc(action.text||"")+'</textarea>'+
-       '<button type="button" class="feature-button" data-feature="whatsapp-open" data-template="'+esc(action.key||"message")+'" data-phone="'+esc(phone)+'">Abrir en WhatsApp ↗</button>'+
-      '</article>'
-     ).join("")
-   : '<p class="feature-muted">No hay mensajes útiles para el estado actual de este pedido.</p>';
-
-  layout("whatsapp-list","Mensajes de WhatsApp",
-   '<p class="feature-muted">RIMMA prepara el mensaje. Tú decides cuándo enviarlo.</p>'+markup,null);
- }
-
+ const orderWhatsAppUI=createOrderWhatsAppUI({api,success,globalError,layout,safe,dlg,alertError});
+ const openWhatsApp=orderId=>orderWhatsAppUI.openWhatsApp(orderId);
  const safePhotoUrl=value=>{
   try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:null;}catch{return null;}
  };
@@ -1113,30 +1087,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(action==="order-documents")return void safe(async()=>openOrderDocuments(id));
   if(action==="document-create")return void safe(async()=>createOrderDocument(el.dataset.type));
   if(action==="document-open")return void safe(async()=>openDocumentPrint(id));
-  if(action==="order-whatsapp")return void safe(async()=>openWhatsApp(id));
-  if(action==="whatsapp-open"){
-   const orderId=selected?.orderId;
-   const phone=String(el.dataset.phone||"").replace(/\D/g,"");
-   const templateKey=String(el.dataset.template||"message");
-   const editor=dlg.querySelector('[data-wa-message="'+CSS.escape(templateKey)+'"]');
-   const message=String(editor?.value||"").trim();
-   if(!uuid(orderId)||phone.length<8||phone.length>15||!message){
-    alertError("Revisa el número y el mensaje antes de abrir WhatsApp.");
-    return;
-   }
-   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
-   const opened=window.open(url,"_blank","noopener,noreferrer");
-   if(!opened){
-    alertError("El navegador ha bloqueado WhatsApp. Permite ventanas emergentes para RIMMA.");
-    return;
-   }
-   void api("/orders/"+encodeURIComponent(orderId)+"/whatsapp/log",{
-    method:"POST",
-    body:JSON.stringify({action:"opened",templateKey,messageLength:message.length})
-   }).catch(()=>{});
-   success("WhatsApp abierto. RIMMA no marca el mensaje como enviado.");
-   return;
-  }
+  if(orderWhatsAppUI.handleAction(action,el))return;
   if(paymentsUI.handleAction(action,el))return;
   if(action==="item-passport")return void safe(async()=>openPassport(el.dataset.order,id));
   if(action==="garment-passport")return void safe(async()=>openPassport(el.dataset.order,id));
