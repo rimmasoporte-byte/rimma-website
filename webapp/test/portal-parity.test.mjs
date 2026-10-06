@@ -316,7 +316,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/async function openGarmentEdit\(orderId,itemId\)/);
  assert.match(portalGarmentWorks,/async function openGarmentWorksEdit\(orderId,itemId\)/);
  assert.match(portalGarmentWorks,/mode!=="garment-works-edit"/);
- assert.match(feat,/encodeURIComponent\(itemId\)\+"\/works"/);
+ assert.match(portalGarmentWorks,/encodeURIComponent\(itemId\)\+"\/works"/);
  assert.match(portalGarmentWorks,/data-feature="work-add"/);
  assert.match(portalGarmentWorks,/data-feature="work-remove"/);
  assert.match(portalGarmentOverview,/class="garment-work-lines"/);
