@@ -113,11 +113,12 @@ test('passport sharing revokes the active client link',async()=>{
 test('portal delegates share markup and actions to the passport sharing domain',()=>{
  const features=read('public/portal-features.mjs');
  const sharing=read('public/portal-passport-sharing.mjs');
+ const passportEditor=read('public/portal-passport-editor.mjs');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createPassportSharing/);
- assert.match(features,/passportSharing\.setContext\(\{orderId,itemId,passport:p\}\)/);
- assert.match(features,/passportSharing\.renderShareSection\(p\)/);
+ assert.match(passportEditor,/passportSharing\.setContext\(\{orderId,itemId,passport\}\)/);
+ assert.match(passportEditor,/passportSharing\.renderShareSection\(passport\)/);
  assert.match(features,/passportSharing\.handleAction\(action,el\)/);
  assert.doesNotMatch(features,/async function createPassportShareLink/);
  assert.doesNotMatch(features,/async function sendPassportEmail/);

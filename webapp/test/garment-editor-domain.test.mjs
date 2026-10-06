@@ -122,7 +122,7 @@ test('garment editor ignores unrelated save modes and rejects invalid scope',asy
  assert.deepEqual(errors,['Prenda inválida.']);
 });
 
-test('portal delegates garment editing while passport editing stays separate',()=>{
+test('portal delegates garment editing while passport editing has its own domain',()=>{
  const features=read('public/portal-features.mjs');
  const editor=read('public/portal-garment-editor.mjs');
  const server=read('../webapp/server.mjs');
@@ -132,7 +132,8 @@ test('portal delegates garment editing while passport editing stays separate',()
  assert.match(features,/garmentEditor\.save\(mode,form\(\)\)/);
  assert.doesNotMatch(features,/async function openGarmentEdit\(/);
  assert.doesNotMatch(features,/mode==="passport-edit"\|\|mode==="garment-edit"/);
- assert.match(features,/if\(mode==="passport-edit"\)/);
+ assert.match(features,/createPassportEditor/);
+ assert.doesNotMatch(features,/if\(mode==="passport-edit"\)/);
 
  assert.match(editor,/mode!=="garment-edit"/);
  assert.match(editor,/method:"PATCH"/);
