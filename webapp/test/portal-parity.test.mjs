@@ -379,7 +379,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/createOrderInfo/);
  assert.match(portalOrderInfo,/createOrderInfo/);
  assert.match(portalOrderInfo,/passport-picker/);
- assert.match(portalOrderInfo,/data-feature="passport-open"/);
+ assert.match(portalOrderInfo,/b\("Abrir pasaporte","passport-open"/);
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
  assert.match(server,/idempotency-key/);
