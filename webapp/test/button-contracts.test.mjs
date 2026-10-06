@@ -15,6 +15,7 @@ const sources=Object.fromEntries(await Promise.all(sourceNames.map(async name=>[
 const html=sources["index.html"];
 const site=sources["site.js"];
 const wizard=sources["order-wizard.mjs"];
+const viewer=sources["order-photo-viewer.mjs"];
 const features=sources["portal-features.mjs"];
 const serviceFeatures=sources["portal-services.mjs"];
 const measurementFeatures=sources["portal-measurements.mjs"];
@@ -121,8 +122,9 @@ test("every order-wizard action emitted by the UI has an owner",()=>{
 });
 
 test("photo and mobile-capture controls have explicit local handlers",()=>{
-  const photo=values(wizard,"data-photo-action");
-  const photoHandled=[...new Set([...wizard.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
+  const photo=values(viewer,"data-photo-action");
+  assert.ok(photo.length>=6,"viewer controls must actually be covered");
+  const photoHandled=[...new Set([...viewer.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
   assert.deepEqual(photo.filter(action=>!photoHandled.includes(action)),[]);
 
   const mobile=values(wizard,"data-mobile-capture-action");

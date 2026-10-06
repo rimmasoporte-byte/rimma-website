@@ -1,9 +1,8 @@
+import {createOrderPhotoViewer,safePhotoUrl} from "./order-photo-viewer.mjs";
 import {preparePhoto} from "./photo-preparation.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
-const PHOTO_ZOOMS=Object.freeze([50,75,100,125,150,200,300,400]);
-const PHOTO_ZOOM_DEFAULT=2;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
 const requestKey=()=>{
@@ -55,15 +54,13 @@ export function createOrderWizard({
   const cancel=document.querySelector("#modal-cancel");
   const back=document.querySelector("#modal-back");
   const error=document.querySelector("#modal-error");
-  const photoViewer=document.querySelector("#order-photo-viewer");
   const mobileCaptureDialog=document.querySelector("#order-mobile-capture-dialog");
-  if(!photoViewer)throw Error("No se pudo inicializar el visor de fotografías.");
   if(!mobileCaptureDialog)throw Error("No se pudo inicializar la cámara móvil.");
   let state=blankState(locale?.currency||"EUR");
-  let active=false,busy=false,dirty=false,restored=false,created=null,photoPreview=null;
+  let active=false,busy=false,dirty=false,restored=false,created=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
-  let saveClock=null,capturePollTimer=null,capturePollBusy=false,photoPan=null;
+  let saveClock=null,capturePollTimer=null,capturePollBusy=false;
   let mobileCaptureDialogState=null,mobileCaptureCloseTimer=null;
   const preparedPhotos=new Map();
   const photoFailures=new Map();
@@ -71,6 +68,14 @@ export function createOrderWizard({
   const mobileCaptureSessions=new Map();
   const localPhotoUrls=new Map();
   let localCoverFile=null;
+  const photoViewer=createOrderPhotoViewer({
+    dialog:document.querySelector("#order-photo-viewer"),
+    getLocalCoverFile:()=>localCoverFile,
+    onSetLocalCover:setLocalPhotoCover,
+    onSetMobileCover:setMobilePhotoCover,
+    onDelete:deletePhoto,
+    onError:e=>setError(humanError(e))
+  });
 
   const localPhotoUrl=file=>{
     if(!file||typeof URL.createObjectURL!=="function")return "";
@@ -96,14 +101,6 @@ export function createOrderWizard({
     localPhotoUrls.clear();
   };
 
-  const safePhotoUrl=value=>{
-    try{
-      const url=new URL(String(value||""),location.origin);
-      return url.protocol==="https:"||(url.protocol==="http:"&&url.origin===location.origin)
-        ?url.href
-        :null;
-    }catch{return null}
-  };
   const money=minor=>{
     try{
       return new Intl.NumberFormat(locale?.locale||"es-ES",{
@@ -400,67 +397,6 @@ export function createOrderWizard({
     return markup?'<div class="wizard-photo-gallery" aria-label="Fotografías del trabajo">'+markup+'</div>':"";
   }
 
-  function photoViewerMarkup(){
-    const preview=photoPreview;
-    const photo=preview?.photo;
-    if(!preview||!photo)return "";
-    const local=preview.source==="local";
-    const viewUrl=local&&String(photo.viewUrl||"").startsWith("blob:")
-      ?String(photo.viewUrl)
-      :safePhotoUrl(photo.viewUrl);
-    const remoteDownload=!local&&
-      UUID.test(String(preview.captureId||""))&&UUID.test(String(photo.id||""))
-        ?"/api/data/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
-          "/photos/"+encodeURIComponent(photo.id)+"/download"
-        :null;
-    const downloadPath=local?viewUrl:remoteDownload;
-    if(!viewUrl)return "";
-    const isCover=local?photo.fileRef===localCoverFile:photo.isCover===true;
-    const zoomIndex=Math.max(0,Math.min(
-      PHOTO_ZOOMS.length-1,
-      Number.isInteger(preview.zoomIndex)?preview.zoomIndex:PHOTO_ZOOM_DEFAULT
-    ));
-    const zoom=PHOTO_ZOOMS[zoomIndex];
-    const panX=Number.isFinite(preview.panX)?preview.panX:0;
-    const panY=Number.isFinite(preview.panY)?preview.panY:0;
-    return '<header class="wizard-photo-viewer-bar">'+
-      '<div class="wizard-photo-viewer-title"><span>FOTOGRAFÍA</span><strong>'+esc(preview.workName||"Trabajo")+'</strong></div>'+
-      '<div class="wizard-photo-viewer-actions">'+
-      '<div class="wizard-photo-zoom" role="group" aria-label="Escala de fotografía">'+
-      '<button type="button" data-photo-action="zoom-out" aria-label="Reducir fotografía" '+(zoomIndex===0?'disabled':'')+'>'+
-      '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>'+
-      '<span data-photo-zoom-label aria-live="polite">'+zoom+'%</span>'+
-      '<button type="button" data-photo-action="zoom-in" aria-label="Ampliar fotografía" '+(zoomIndex===PHOTO_ZOOMS.length-1?'disabled':'')+'>'+
-      '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7h8M7 3v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>'+
-      '<button type="button" class="wizard-photo-fit" data-photo-action="zoom-reset">Ajustar</button>'+
-      '</div>'+
-      (downloadPath?'<a class="wizard-photo-viewer-action" href="'+esc(downloadPath)+'" download="'+esc(photo.fileName||"rimma-foto.jpg")+'">Descargar</a>':"")+
-      (!isCover?'<button type="button" class="wizard-photo-viewer-action" data-photo-action="set-cover">Usar como portada</button>':"")+
-      '<button type="button" class="wizard-photo-viewer-action danger" data-photo-action="delete">Eliminar</button>'+
-      '<button type="button" class="wizard-photo-viewer-close" data-photo-action="close" aria-label="Cerrar visor">×</button>'+
-      '</div></header>'+
-      '<div class="wizard-photo-viewport'+(zoom>100?' can-pan':'')+'" data-photo-viewport>'+
-      '<div class="wizard-photo-stage">'+
-      '<img data-photo-image src="'+esc(viewUrl)+'" alt="Fotografía del trabajo" '+
-      'style="transform:translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom/100)+')">'+
-      '</div></div>'+
-      '<footer class="wizard-photo-viewer-meta">'+
-      '<span>Fotografía · '+Math.max(1,Math.round(Number(photo.sizeBytes||0)/1024))+' KB</span>'+
-      (isCover?'<span class="is-cover">Portada del pedido</span>':"")+
-      '<small>Arrastra la imagen para desplazarte cuando esté ampliada.</small>'+
-      '</footer>';
-  }
-
-  function renderPhotoViewer(){
-    if(!photoPreview){
-      if(photoViewer.open)photoViewer.close();
-      photoViewer.replaceChildren();
-      return;
-    }
-    photoViewer.innerHTML=photoViewerMarkup();
-    if(!photoViewer.open)photoViewer.showModal();
-  }
-
   function renderOrderPreservingScroll(){
     const top=fields.scrollTop;
     render();
@@ -745,9 +681,9 @@ export function createOrderWizard({
     ]));
     work.mobilePhotos=photos;
     work.mobilePhotoCount=photos.length;
-    if(photoPreview?.workKey===work.key){
-      const fresh=photos.find(photo=>photo.id===photoPreview.photo?.id);
-      photoPreview=fresh?{...photoPreview,photo:fresh}:null;
+    if(photoViewer.preview?.workKey===work.key){
+      const fresh=photos.find(photo=>photo.id===photoViewer.preview.photo?.id);
+      photoViewer.preview=fresh?{...photoViewer.preview,photo:fresh}:null;
     }
     const next=JSON.stringify(photos.map(photo=>[
       photo.id,photo.status,photo.isCover,photo.sizeBytes
@@ -833,19 +769,15 @@ export function createOrderWizard({
     await refreshMobileCapture(work,{rerender:false});
     const photo=(work.mobilePhotos||[]).find(row=>row.id===photoId);
     if(!photo)throw Error("La fotografía ya no está disponible.");
-    photoPreview={
+    photoViewer.open({
       source:"mobile",
       itemIndex:Number(itemIndex),
       workIndex:Number(workIndex),
       workKey:work.key,
       workName:work.work||"Trabajo",
       captureId:work.mobileCaptureId,
-      zoomIndex:PHOTO_ZOOM_DEFAULT,
-      panX:0,
-      panY:0,
       photo
-    };
-    renderPhotoViewer();
+    });
   }
 
   function openLocalPhotoPreview(itemIndex,workIndex,fileIndex){
@@ -854,15 +786,12 @@ export function createOrderWizard({
     if(!work||!file)return;
     const viewUrl=localPhotoUrl(file);
     if(!viewUrl)throw Error("No se pudo preparar la vista previa de esta fotografía.");
-    photoPreview={
+    photoViewer.open({
       source:"local",
       itemIndex:Number(itemIndex),
       workIndex:Number(workIndex),
       workKey:work.key,
       workName:work.work||"Trabajo",
-      zoomIndex:PHOTO_ZOOM_DEFAULT,
-      panX:0,
-      panY:0,
       photo:{
         fileName:file.name||"Fotografía",
         sizeBytes:Number(file.size||0),
@@ -871,110 +800,25 @@ export function createOrderWizard({
         fileRef:file,
         isCover:file===localCoverFile
       }
-    };
-    renderPhotoViewer();
-  }
-
-  function photoScale(){
-    const index=Number.isInteger(photoPreview?.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
-    return PHOTO_ZOOMS[Math.max(0,Math.min(PHOTO_ZOOMS.length-1,index))]/100;
-  }
-
-  function photoPanLimits(){
-    const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    const image=photoViewer.querySelector("[data-photo-image]");
-    if(!viewport||!image)return {maxX:0,maxY:0};
-    const scale=photoScale();
-    return {
-      maxX:Math.max(0,(image.offsetWidth*scale-viewport.clientWidth)/2),
-      maxY:Math.max(0,(image.offsetHeight*scale-viewport.clientHeight)/2)
-    };
-  }
-
-  function clampPhotoPan(){
-    if(!photoPreview)return;
-    if(photoScale()<=1){
-      photoPreview.panX=0;
-      photoPreview.panY=0;
-      return;
-    }
-    const {maxX,maxY}=photoPanLimits();
-    photoPreview.panX=Math.max(-maxX,Math.min(maxX,Number(photoPreview.panX)||0));
-    photoPreview.panY=Math.max(-maxY,Math.min(maxY,Number(photoPreview.panY)||0));
-  }
-
-  function applyPhotoTransform(){
-    if(!photoPreview)return;
-    const image=photoViewer.querySelector("[data-photo-image]");
-    const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    const label=photoViewer.querySelector("[data-photo-zoom-label]");
-    const out=photoViewer.querySelector('[data-photo-action="zoom-out"]');
-    const zoomIn=photoViewer.querySelector('[data-photo-action="zoom-in"]');
-    if(!image||!viewport)return;
-    clampPhotoPan();
-    const index=Math.max(0,Math.min(
-      PHOTO_ZOOMS.length-1,
-      Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT
-    ));
-    const zoom=PHOTO_ZOOMS[index];
-    image.style.transform='translate3d('+(Number(photoPreview.panX)||0)+'px,'+
-      (Number(photoPreview.panY)||0)+'px,0) scale('+(zoom/100)+')';
-    viewport.classList.toggle("can-pan",zoom>100);
-    if(label)label.textContent=zoom+"%";
-    if(out)out.disabled=index===0;
-    if(zoomIn)zoomIn.disabled=index===PHOTO_ZOOMS.length-1;
-  }
-
-  function applyPhotoZoom(nextIndex){
-    if(!photoPreview)return;
-    const next=Math.max(0,Math.min(PHOTO_ZOOMS.length-1,Number(nextIndex)));
-    if(next===photoPreview.zoomIndex)return;
-    photoPreview.zoomIndex=next;
-    if(PHOTO_ZOOMS[next]<=100){
-      photoPreview.panX=0;
-      photoPreview.panY=0;
-    }
-    applyPhotoTransform();
-  }
-
-  function changePhotoZoom(delta){
-    if(!photoPreview)return;
-    const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
-    applyPhotoZoom(current+delta);
-  }
-
-  function resetPhotoZoom(){
-    if(!photoPreview)return;
-    photoPreview.zoomIndex=PHOTO_ZOOM_DEFAULT;
-    photoPreview.panX=0;
-    photoPreview.panY=0;
-    applyPhotoTransform();
-  }
-
-  function closePhotoViewer(){
-    if(!photoPreview&&!photoViewer.open)return;
-    photoPreview=null;
-    photoPan=null;
-    if(photoViewer.open)photoViewer.close();
-    photoViewer.replaceChildren();
+    });
   }
 
   function setLocalPhotoCover(){
-    const preview=photoPreview;
+    const preview=photoViewer.preview;
     const file=preview?.photo?.fileRef;
     if(!preview||preview.source!=="local"||!file)return;
     localCoverFile=file;
     state.items.forEach(item=>(item.works||[]).forEach(work=>
       (work.mobilePhotos||[]).forEach(photo=>{photo.isCover=false})
     ));
-    photoPreview={...preview,photo:{...preview.photo,isCover:true}};
+    photoViewer.preview={...preview,photo:{...preview.photo,isCover:true}};
     schedulePersist();
     renderOrderPreservingScroll();
-    renderPhotoViewer();
+    photoViewer.render();
   }
 
   async function setMobilePhotoCover(){
-    const preview=photoPreview;
+    const preview=photoViewer.preview;
     if(!preview||preview.source!=="mobile"||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
     const result=await api(
       "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
@@ -991,15 +835,15 @@ export function createOrderWizard({
       work.mobilePhotos=photos;
       work.mobilePhotoCount=photos.length;
       const fresh=photos.find(photo=>photo.id===preview.photo.id);
-      photoPreview=fresh?{...preview,photo:fresh}:null;
+      photoViewer.preview=fresh?{...preview,photo:fresh}:null;
       schedulePersist();
     }
     renderOrderPreservingScroll();
-    renderPhotoViewer();
+    photoViewer.render();
   }
 
   async function deletePhoto(){
-    const preview=photoPreview;
+    const preview=photoViewer.preview;
     if(!preview)return;
     const local=preview.source==="local";
     if(!local&&(
@@ -1038,11 +882,8 @@ export function createOrderWizard({
       }
     }
 
-    photoPreview=null;
-    photoPan=null;
+    photoViewer.close();
     schedulePersist();
-    if(photoViewer.open)photoViewer.close();
-    photoViewer.replaceChildren();
     renderOrderPreservingScroll();
   }
 
@@ -1054,7 +895,7 @@ export function createOrderWizard({
     work.mobileCaptureId="";
     work.mobilePhotoCount=0;
     work.mobilePhotos=[];
-    if(photoPreview?.workKey===work.key)photoPreview=null;
+    if(photoViewer.preview?.workKey===work.key)photoViewer.preview=null;
     try{
       await api("/draft-photo-captures/"+encodeURIComponent(id),{method:"DELETE"});
     }catch{}
@@ -1419,10 +1260,8 @@ export function createOrderWizard({
       work.photoFiles=files;
       work.photoNames=files.map(file=>file.name);
       preparedPhotos.clear();
-      if(photoPreview?.source==="local"&&photoPreview.workKey===work.key){
-        photoPreview=null;
-        if(photoViewer.open)photoViewer.close();
-        photoViewer.replaceChildren();
+      if(photoViewer.preview?.source==="local"&&photoViewer.preview.workKey===work.key){
+        photoViewer.close();
       }
       schedulePersist();
       render();
@@ -1831,87 +1670,6 @@ export function createOrderWizard({
     closeMobileCaptureDialog();
   });
 
-  photoViewer.addEventListener("click",event=>{
-    if(!photoPreview)return;
-    const control=event.target.closest("[data-photo-action]");
-    if(!control)return;
-    const action=control.dataset.photoAction;
-    if(event.detail>0)control.blur?.();
-    if(action==="zoom-out"){changePhotoZoom(-1);return}
-    if(action==="zoom-in"){changePhotoZoom(1);return}
-    if(action==="zoom-reset"){resetPhotoZoom();return}
-    if(action==="close"){closePhotoViewer();return}
-    if(action==="set-cover"){
-      if(photoPreview.source==="local"){
-        setLocalPhotoCover();
-      }else{
-        void setMobilePhotoCover().catch(e=>setError(humanError(e)));
-      }
-      return;
-    }
-    if(action==="delete"){
-      void deletePhoto().catch(e=>setError(humanError(e)));
-    }
-  });
-  photoViewer.addEventListener("cancel",event=>{
-    event.preventDefault();
-    closePhotoViewer();
-  });
-  photoViewer.addEventListener("keydown",event=>{
-    if(!photoPreview)return;
-    if(event.key==="+"||event.key==="="){event.preventDefault();changePhotoZoom(1);return}
-    if(event.key==="-"){event.preventDefault();changePhotoZoom(-1);return}
-    if(event.key==="0"){event.preventDefault();resetPhotoZoom()}
-  });
-  photoViewer.addEventListener("pointerdown",event=>{
-    const viewport=event.target.closest?.("[data-photo-viewport]");
-    const image=photoViewer.querySelector("[data-photo-image]");
-    if(!viewport||!image||!photoPreview||photoScale()<=1||event.button!==0)return;
-    const {maxX,maxY}=photoPanLimits();
-    photoPan={
-      pointerId:event.pointerId,
-      startX:event.clientX,
-      startY:event.clientY,
-      panX:Number(photoPreview.panX)||0,
-      panY:Number(photoPreview.panY)||0,
-      maxX,
-      maxY
-    };
-    viewport.classList.add("is-panning");
-    viewport.setPointerCapture?.(event.pointerId);
-    event.preventDefault();
-  });
-  photoViewer.addEventListener("pointermove",event=>{
-    if(!photoPan||event.pointerId!==photoPan.pointerId||!photoPreview)return;
-    const image=photoViewer.querySelector("[data-photo-image]");
-    if(!image)return;
-    photoPreview.panX=Math.max(-photoPan.maxX,Math.min(photoPan.maxX,
-      photoPan.panX+(event.clientX-photoPan.startX)));
-    photoPreview.panY=Math.max(-photoPan.maxY,Math.min(photoPan.maxY,
-      photoPan.panY+(event.clientY-photoPan.startY)));
-    image.style.transform='translate3d('+photoPreview.panX+'px,'+photoPreview.panY+'px,0) scale('+photoScale()+')';
-  });
-  const endPhotoPan=event=>{
-    if(!photoPan||event.pointerId!==photoPan.pointerId)return;
-    const viewport=photoViewer.querySelector("[data-photo-viewport]");
-    viewport?.classList.remove("is-panning");
-    try{viewport?.releasePointerCapture?.(event.pointerId)}catch{}
-    photoPan=null;
-  };
-  photoViewer.addEventListener("pointerup",endPhotoPan);
-  photoViewer.addEventListener("pointercancel",endPhotoPan);
-  photoViewer.addEventListener("wheel",event=>{
-    if(!photoPreview||!event.ctrlKey||!event.target.closest?.("[data-photo-viewport]"))return;
-    event.preventDefault();
-    changePhotoZoom(event.deltaY<0?1:-1);
-  },{passive:false});
-  photoViewer.addEventListener("dblclick",event=>{
-    if(!photoPreview||!event.target.closest?.("[data-photo-viewport]"))return;
-    event.preventDefault();
-    const current=Number.isInteger(photoPreview.zoomIndex)?photoPreview.zoomIndex:PHOTO_ZOOM_DEFAULT;
-    applyPhotoZoom(current===PHOTO_ZOOM_DEFAULT?5:PHOTO_ZOOM_DEFAULT);
-  });
-
   window.addEventListener("beforeunload",event=>{
     if(active&&!created&&dirty&&meaningful()){
       persist();
@@ -1923,7 +1681,7 @@ export function createOrderWizard({
   async function open(preferredClientId=null){
     active=true;
     created=null;
-    photoPreview=null;
+    photoViewer.preview=null;
     localCoverFile=null;
     photoFailures.clear();
     preparedPhotos.clear();
@@ -2032,10 +1790,7 @@ export function createOrderWizard({
     if(mobileCaptureDialog.open)mobileCaptureDialog.close();
     mobileCaptureDialog.replaceChildren();
     clearLocalPhotoUrls();
-    photoPreview=null;
-    photoPan=null;
-    if(photoViewer.open)photoViewer.close();
-    photoViewer.replaceChildren();
+    photoViewer.close();
     clientSearchSeq++;
     clientMatches=[];
     clientActiveIndex=-1;
