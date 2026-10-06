@@ -143,6 +143,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/requireSession\(req,res\)/);
  assert.match(server,/requireCsrf\(req,res,s\)/);
  assert.match(server,/pathname==='\/app\/portal-features\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-payment-idempotency\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
