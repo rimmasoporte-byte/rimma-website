@@ -8,6 +8,7 @@ import {createBusinessProfile} from "./portal-business-profile.mjs";
 import {createOrderInfo} from "./portal-order-info.mjs";
 import {createGarmentOverview} from "./portal-garment-overview.mjs";
 import {createGarmentWorks} from "./portal-garment-works.mjs";
+import {createGarmentEditor} from "./portal-garment-editor.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
 import {createPaymentsUI} from "./portal-payments.mjs";
@@ -108,36 +109,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const garmentOverview=createGarmentOverview({api,globalError,layout,setSelection:value=>{selected=value;},statusLabel:passportStatusLabel,eventLabel:passportEventLabel,eventDate:passportDateTime});
  const openGarment=(orderId,itemId)=>garmentOverview.openGarment(orderId,itemId);
  const garmentWorks=createGarmentWorks({api,success,refreshOrders,layout,dlg,safe,alertError,serviceCatalog,openGarment,getCurrency:()=>L.currency||"EUR"});
-
- async function openGarmentEdit(orderId,itemId){
-  if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
-  const passportResult=await api("/orders/"+encodeURIComponent(orderId)+"/items/"+encodeURIComponent(itemId)+"/passport");
-  const p=passportResult.passport||{};
-  if(!uuid(p.id))throw Error("No se pudo cargar la prenda.");
-  let measurements=[];
-  if(uuid(p.client?.id)){
-   try{
-    const measurementResult=await api("/clients/"+encodeURIComponent(p.client.id)+"/measurements?limit=100&offset=0");
-    measurements=Array.isArray(measurementResult.measurements)?measurementResult.measurements.filter(m=>m.status==="active"):[];
-   }catch{measurements=[];}
-  }
-  selected={orderId,itemId,passport:p,measurements};
-  const measurementOptions='<option value="">'+"Sin ficha vinculada"+'</option>'+
-   measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
-    esc((m.garmentLabel||m.garmentType||"Ficha de medidas")+" · "+localDate(m.measuredAt))+'</option>').join("");
-  layout("garment-edit","Editar prenda",
-   '<div class="garment-edit-head"><div><span class="passport-kicker">'+"PEDIDO"+' #'+esc(p.orderNumber||"")+'</span><h3>'+esc(p.name||"Prenda")+'</h3></div>'+
-    '<span class="status '+esc(p.status||"accepted")+'">'+esc(passportStatusLabel(p.status))+'</span></div>'+
-   '<p class="feature-muted">'+"Edita los datos físicos de la prenda. El responsable se asigna dentro de cada trabajo."+'</p>'+
-   '<div class="feature-fields">'+
-    field("garmentType","Tipo de prenda","text",'maxlength="80" placeholder="'+"Pantalón, vestido, chaqueta…"+'" value="'+esc(p.garmentType||"")+'"')+
-    field("brand","Marca","text",'maxlength="120" value="'+esc(p.brand||"")+'"')+
-    field("color","Color","text",'maxlength="80" value="'+esc(p.color||"")+'"')+
-    field("sizeLabel","Talla","text",'maxlength="60" value="'+esc(p.sizeLabel||"")+'"')+
-    field("storageLocation","Lugar de almacenamiento","text",'maxlength="120" value="'+esc(p.storageLocation||"")+'"')+
-    '<label for="fx-measurementSetId">'+"Ficha de medidas"+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select>'+
-   '</div>',"Guardar cambios");
- }
+ const garmentEditor=createGarmentEditor({api,globalError,layout,refreshOrders,success,openGarment,statusLabel:passportStatusLabel});
+ const openGarmentEdit=(orderId,itemId)=>garmentEditor.openGarmentEdit(orderId,itemId);
 
  async function openPassport(orderId,itemId){
   if(!uuid(orderId)||!uuid(itemId)){globalError("Prenda inválida.");return;}
@@ -381,7 +354,8 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   if(await measurementsUI.save(mode,get))return;
   if(await paymentsUI.save(mode,get))return;
   if(await garmentWorks.save(mode))return;
-  if(mode==="passport-edit"||mode==="garment-edit"){
+  if(await garmentEditor.save(mode,form()))return;
+  if(mode==="passport-edit"){
    if(!uuid(selected?.orderId)||!uuid(selected?.itemId)||!Number.isSafeInteger(Number(selected?.passport?.version)))throw Error("Actualiza la prenda antes de guardar.");
    const payload={
     expectedVersion:Number(selected.passport.version),
@@ -392,14 +366,12 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     storageLocation:get("storageLocation").trim()||null,
     measurementSetId:get("measurementSetId")||null
    };
-   const nextMode=mode;
    await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport",{
     method:"PATCH",body:JSON.stringify(payload)});
    const {orderId,itemId}=selected;
-   if(nextMode==="garment-edit")await openGarment(orderId,itemId);
-   else await openPassport(orderId,itemId);
+   await openPassport(orderId,itemId);
    await refreshOrders();
-   success(nextMode==="garment-edit"?"Prenda actualizada.":"Pasaporte de la prenda actualizado.");
+   success("Pasaporte de la prenda actualizado.");
   }else if(await photosUI.handleSave(mode,form())){
    return;
   }
