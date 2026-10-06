@@ -3,12 +3,11 @@
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const L=window.RimmaLocale||{isPt:false,locale:"es-ES",currency:"EUR",t:(es)=>es};
+const L=window.RimmaLocale||{locale:"es-ES",currency:"EUR",t:(es)=>es};
 const lt=es=>L.t?L.t(es):es;
-const tr=(es,pt)=>L.isPt?pt:es;
 const money=(value,currency=L.currency||"EUR")=>L.money?L.money(value,currency):new Intl.NumberFormat(L.locale||"es-ES",{style:"currency",currency}).format(Number(value||0)/100);
 const n=v=>L.number?L.number(v):(Number.isFinite(Number(v))?Number(v).toLocaleString(L.locale||"es-ES"):"—");
-const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):tr("Sin fecha","Sem data"));
+const date=v=>L.date?L.date(v):(v?new Date(String(v).slice(0,10)+"T12:00:00").toLocaleDateString(L.locale||"es-ES",{day:"2-digit",month:"short",year:"numeric"}):"Sin fecha");
 const currentCountry=()=>{
  const explicit=String(new URLSearchParams(location.search).get("country")||"").trim().toUpperCase();
  if(explicit)return explicit;
@@ -135,8 +134,8 @@ async function createClientProtected(form){
  }
  throw new Error("Los datos coinciden con un cliente existente. Revisa la ficha antes de continuar.");
 }
-const status={accepted:tr("Recibido","Recebido"),in_progress:tr("En proceso","Em andamento"),ready:tr("Listo","Pronto"),issued:tr("Entregado","Entregue"),cancelled:tr("Cancelado","Cancelado")};
-const views={inicio:tr("Inicio","Início"),pedidos:"Pedidos",citas:tr("Citas","Citas"),clientes:"Clientes",servicios:tr("Servicios","Serviços"),informes:tr("Informes","Relatórios"),suscripcion:tr("Suscripción","Assinatura"),cuenta:tr("Mi cuenta","Minha conta")};
+const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
+const views={inicio:"Inicio",pedidos:"Pedidos",citas:"Citas",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
 const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
@@ -386,9 +385,9 @@ async function downloadOrder(id){
     if(!order||order.id!==id)throw Error("No se pudo cargar el pedido.");
     const customer=order.client?.name||order.clientName||"Cliente";
     const items=(order.items||[]).map(item=>'<tr><td>'+esc(item.name)+'</td><td>'+esc(String(item.quantity??1))+'</td><td>'+esc(money(item.unitPriceMinor,order.currencyCode))+'</td><td>'+esc(money(item.totalMinor,order.currencyCode))+'</td></tr>').join("");
-    const docLang=L.isPt?"pt-BR":"es";
-    const docTitle=tr("Pedido","Pedido")+" #"+esc(order.orderNumber);
-    const html='<!doctype html><html lang="'+docLang+'"><head><meta charset="utf-8"><title>RIMMA — '+docTitle+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#222}h1{font-size:24px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{font-size:12px;text-transform:uppercase;color:#777}.meta{line-height:1.7}.total{text-align:right;font-size:20px;font-weight:700;margin-top:20px}@media print{body{margin:0}}</style></head><body><h1>RIMMA — '+docTitle+'</h1><div class="meta"><strong>'+tr("Cliente","Cliente")+':</strong> '+esc(customer)+'<br><strong>'+tr("Fecha de entrega","Data de entrega")+':</strong> '+esc(date(order.dueDate))+'<br><strong>'+tr("Estado","Status")+':</strong> '+esc(status[order.status]||order.status||"—")+(order.notes?'<br><strong>'+tr("Notas","Observações")+':</strong> '+esc(order.notes):'')+'</div><table><thead><tr><th>'+tr("Trabajo","Serviço")+'</th><th>'+tr("Cantidad","Quantidade")+'</th><th>'+tr("Precio","Preço")+'</th><th>'+tr("Importe","Valor")+'</th></tr></thead><tbody>'+items+'</tbody></table><div class="total">Total: '+esc(money(order.totalMinor,order.currencyCode))+'</div></body></html>';
+    const docLang="es";
+    const docTitle="Pedido"+" #"+esc(order.orderNumber);
+    const html='<!doctype html><html lang="'+docLang+'"><head><meta charset="utf-8"><title>RIMMA — '+docTitle+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#222}h1{font-size:24px}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{font-size:12px;text-transform:uppercase;color:#777}.meta{line-height:1.7}.total{text-align:right;font-size:20px;font-weight:700;margin-top:20px}@media print{body{margin:0}}</style></head><body><h1>RIMMA — '+docTitle+'</h1><div class="meta"><strong>'+"Cliente"+':</strong> '+esc(customer)+'<br><strong>'+"Fecha de entrega"+':</strong> '+esc(date(order.dueDate))+'<br><strong>'+"Estado"+':</strong> '+esc(status[order.status]||order.status||"—")+(order.notes?'<br><strong>'+"Notas"+':</strong> '+esc(order.notes):'')+'</div><table><thead><tr><th>'+"Trabajo"+'</th><th>'+"Cantidad"+'</th><th>'+"Precio"+'</th><th>'+"Importe"+'</th></tr></thead><tbody>'+items+'</tbody></table><div class="total">Total: '+esc(money(order.totalMinor,order.currencyCode))+'</div></body></html>';
     const blob=new Blob([html],{type:"text/html;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
     a.href=url;a.download="RIMMA-pedido-"+String(order.orderNumber||id)+".html";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
     success("Pedido descargado.");
