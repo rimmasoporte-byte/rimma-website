@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,css,index,server]=await Promise.all([
+const [wizard,viewer,css,index,server]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-photo-viewer.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/app.css',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/index.html',import.meta.url),'utf8'),
   fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
@@ -11,15 +12,15 @@ const [wizard,css,index,server]=await Promise.all([
 
 test('photo viewer remains a separate native top-layer dialog',()=>{
   assert.match(index,/<dialog id="order-photo-viewer" aria-label="Visor de fotografía"><\/dialog>/);
-  assert.match(wizard,/const photoViewer=document\.querySelector\("#order-photo-viewer"\)/);
-  assert.match(wizard,/photoViewer\.showModal\(\)/);
+  assert.match(wizard,/dialog:document\.querySelector\("#order-photo-viewer"\)/);
+  assert.match(viewer,/dialog\.showModal\(\)/);
   assert.match(css,/#order-photo-viewer\{/);
 });
 
 test('zoom uses compositor transforms instead of resizing layout',()=>{
-  const a=wizard.indexOf('function photoScale');
-  const b=wizard.indexOf('async function setMobilePhotoCover',a);
-  const block=wizard.slice(a,b);
+  const a=viewer.indexOf('function photoScale');
+  const b=viewer.indexOf('dialog.addEventListener',a);
+  const block=viewer.slice(a,b);
   assert.match(block,/image\.style\.transform=/);
   assert.match(block,/translate3d/);
   assert.match(block,/scale\(/);
@@ -30,9 +31,9 @@ test('zoom uses compositor transforms instead of resizing layout',()=>{
 });
 
 test('dragging updates transform only and does not rerender order',()=>{
-  const a=wizard.indexOf('photoViewer.addEventListener("pointerdown"');
-  const b=wizard.indexOf('photoViewer.addEventListener("wheel"',a);
-  const block=wizard.slice(a,b);
+  const a=viewer.indexOf('dialog.addEventListener("pointerdown"');
+  const b=viewer.indexOf('dialog.addEventListener("wheel"',a);
+  const block=viewer.slice(a,b);
   assert.match(block,/photoPreview\.panX=/);
   assert.match(block,/photoPreview\.panY=/);
   assert.match(block,/image\.style\.transform=/);
@@ -41,11 +42,11 @@ test('dragging updates transform only and does not rerender order',()=>{
 });
 
 test('viewer controls have one event owner',()=>{
-  assert.equal((wizard.match(/photoViewer\.addEventListener\("click"/g)||[]).length,1);
-  assert.match(wizard,/if\(action==="zoom-out"\)\{changePhotoZoom\(-1\);return\}/);
-  assert.match(wizard,/if\(action==="zoom-in"\)\{changePhotoZoom\(1\);return\}/);
-  assert.match(wizard,/if\(action==="zoom-reset"\)\{resetPhotoZoom\(\);return\}/);
-  assert.match(wizard,/if\(action==="close"\)\{closePhotoViewer\(\);return\}/);
+  assert.equal((viewer.match(/dialog\.addEventListener\("click"/g)||[]).length,1);
+  assert.match(viewer,/if\(action==="zoom-out"\)\{changePhotoZoom\(-1\);return\}/);
+  assert.match(viewer,/if\(action==="zoom-in"\)\{changePhotoZoom\(1\);return\}/);
+  assert.match(viewer,/if\(action==="zoom-reset"\)\{resetPhotoZoom\(\);return\}/);
+  assert.match(viewer,/if\(action==="close"\)\{closePhotoViewer\(\);return\}/);
 });
 
 test('delete and download security paths remain intact',()=>{

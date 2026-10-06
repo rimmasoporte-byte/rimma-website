@@ -4,6 +4,7 @@ import {readFile} from "node:fs/promises";
 import {createFeatureUI,moneyMinor} from "../public/portal-features.mjs";
 import {renderReportSummary} from "../public/report-view.mjs";
 const source=p=>readFile(new URL("../"+p,import.meta.url),"utf8");
+const viewer=await source("public/order-photo-viewer.mjs");
 function harness(){
  const elements=new Map(),listeners=new Map(),calls=[];
  const el=id=>elements.get(id)||elements.set(id,{
@@ -238,13 +239,13 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/claimAllMobilePhotos/);
  assert.match(wizard,/wizard-photo-gallery/);
  assert.match(wizard,/data-wizard-action="preview-mobile-photo"/);
- assert.match(wizard,/data-photo-action="set-cover"/);
- assert.match(wizard,/data-photo-action="delete"/);
- assert.match(wizard,/data-photo-action="zoom-in"/);
- assert.match(wizard,/Descargar/);
+ assert.match(viewer,/data-photo-action="set-cover"/);
+ assert.match(viewer,/data-photo-action="delete"/);
+ assert.match(viewer,/data-photo-action="zoom-in"/);
+ assert.match(viewer,/Descargar/);
  assert.match(wizard,/Eliminar fotografía/);
- assert.match(wizard,/Usar como portada/);
- assert.match(wizard,/remoteDownload/);
+ assert.match(viewer,/Usar como portada/);
+ assert.match(viewer,/remoteDownload/);
  assert.match(wizard,/replaceWorkPhotos/);
  assert.match(wizard,/file\.size>150\*1024/);
  assert.match(wizard,/localCoverFile/);

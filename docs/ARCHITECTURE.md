@@ -87,3 +87,12 @@ Recommended extraction order:
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
 
 Each extraction should preserve behavior and land with regression tests.
+
+### Order photo viewer extraction
+
+`webapp/public/order-photo-viewer.mjs` owns the separate native photo dialog,
+preview metadata, zoom/pan transforms, keyboard/pointer controls and safe download
+markup. The wizard supplies cover/delete callbacks and keeps capture polling,
+upload/claim/retry, local object URL ownership and persistence. Capture refreshes
+replace viewer metadata through its `preview` accessor; wizard cleanup closes the
+viewer. The BFF explicitly serves the module under `/app/order-photo-viewer.mjs`.
