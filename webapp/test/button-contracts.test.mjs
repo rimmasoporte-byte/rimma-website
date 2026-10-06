@@ -123,7 +123,7 @@ test("every feature button emitted across portal tabs has a feature handler",()=
   const emitted=[...new Set(
     Object.values(sources).flatMap(source=>values(source,"data-feature"))
   )].sort();
-  const handled=[...new Set([...features,serviceFeatures].flatMap(source=>[...source.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1])))];
+  const handled=[...new Set([features,serviceFeatures].flatMap(source=>[...source.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1])))];
   assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
 });
 
