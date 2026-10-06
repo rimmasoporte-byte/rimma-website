@@ -2,23 +2,11 @@
  * All mutations go through the existing same-origin session + CSRF BFF.
  * This module never requests or stores Android/Google Play tokens.
  */
+import {paymentRetry,clearPaymentRetry} from "./portal-payment-idempotency.mjs";
+
 const L=(typeof window!=='undefined'&&window.RimmaLocale)||{locale:'es-ES',currency:'EUR'};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uuid=v=>/^[a-f0-9-]{36}$/i.test(String(v||""));
-function paymentRetry(orderId,body){
- const slot="rimma.payment.retry."+orderId;
- const make=()=>{
-  const key=globalThis.crypto?.randomUUID?.();
-  if(!uuid(key))throw Error("No se pudo crear un identificador seguro para el cobro. Actualiza el navegador e inténtalo de nuevo.");
-  return key;
- };
- try{
-  const previous=JSON.parse(sessionStorage.getItem(slot)||"null");
-  if(previous?.body===body&&uuid(previous?.key))return {key:previous.key,slot};
-  const key=make();sessionStorage.setItem(slot,JSON.stringify({key,body}));return {key,slot};
- }catch{return {key:make(),slot:null};}
-}
-function clearPaymentRetry(retry){if(retry?.slot)try{sessionStorage.removeItem(retry.slot)}catch{}}
 export const moneyMinor=value=>{
  const n=Number(value);
  if(!Number.isFinite(n)||n<=0||Math.round(n*100)>9000000000000)throw Error("El importe debe ser positivo y válido.");

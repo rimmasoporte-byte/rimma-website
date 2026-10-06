@@ -130,10 +130,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,wizard]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,wizard]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/order-wizard.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/order-wizard.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -143,6 +143,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/requireSession\(req,res\)/);
  assert.match(server,/requireCsrf\(req,res,s\)/);
  assert.match(server,/pathname==='\/app\/portal-features\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-payment-idempotency\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
@@ -322,8 +323,9 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(feat,/action==="garment-passport"/);
  assert.match(feat,/openGarment,openGarmentEdit,openOrderInfo,openPassport,openOrderPassport/);
  assert.match(feat,/Idempotency-Key/);
- assert.match(feat,/sessionStorage/);
- assert.match(feat,/crypto\?\.randomUUID/);
+ assert.match(feat,/portal-payment-idempotency\.mjs/);
+ assert.match(paymentIdempotency,/sessionStorage/);
+ assert.match(paymentIdempotency,/crypto\?\.randomUUID/);
  assert.match(server,/idempotency-key/);
  assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
