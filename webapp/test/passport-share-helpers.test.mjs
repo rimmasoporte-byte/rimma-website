@@ -40,6 +40,8 @@ test('BFF explicitly serves the extracted passport share module',()=>{
   const server=read('../webapp/server.mjs');
   assert.match(server,/pathname==='\/app\/portal-passport-share\.mjs'/);
   const features=read('public/portal-features.mjs');
-  assert.match(features,/portal-passport-share\.mjs/);
+  const sharing=read('public/portal-passport-sharing.mjs');
+  assert.match(sharing,/portal-passport-share\.mjs/);
   assert.doesNotMatch(features,/const callingCodes=|function normalizePassportPhone|function passportWhatsAppText|const safePublicUrl=/);
+  assert.doesNotMatch(sharing,/const callingCodes=|function normalizePassportPhone|function passportWhatsAppText|const safePublicUrl=/);
 });

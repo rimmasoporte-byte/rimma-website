@@ -3,7 +3,7 @@
  * This module never requests or stores Android/Google Play tokens.
  */
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
-import {safePublicUrl,normalizePassportPhone,passportWhatsAppText} from "./portal-passport-share.mjs";
+import {createPassportSharing} from "./portal-passport-sharing.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
 import {createPaymentsUI} from "./portal-payments.mjs";
@@ -69,6 +69,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
  const photosUI=createPhotoUI({api,success,globalError,confirmAction,layout,close,safe,dlg});
  const openPhotos=(orderId,itemId)=>photosUI.openPhotos(orderId,itemId);
  const accountSecurity=createAccountSecurity({api,layout,close,logoutAfterPassword});
+ const passportSharing=createPassportSharing({api,dlg,safe,getLocale:()=>L.locale||"es-ES"});
 
  const passportStatusLabel=value=>({
   accepted:"Recibido",
@@ -310,6 +311,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     }catch{measurements=[];}
   }
   selected={orderId,itemId,passport:p,measurements};
+  passportSharing.setContext({orderId,itemId,passport:p});
   const measurementOptions='<option value="">'+"Sin ficha vinculada"+'</option>'+
    measurements.map(m=>'<option value="'+esc(m.id)+'"'+(m.id===p.measurementSheet?.id?' selected':'')+'>'+
     esc((m.garmentLabel||m.garmentType||"Ficha de medidas")+" · "+localDate(m.measuredAt))+'</option>').join("");
@@ -343,121 +345,11 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    '<div class="passport-section passport-photo-section"><h4>'+"Fotografías por trabajo"+'</h4>'+
     '<p class="passport-section-help">'+"Cada fotografía queda vinculada al trabajo correspondiente para mantener el historial ordenado."+'</p>'+
     '<div class="passport-single-action">'+b("Ver / añadir fotografías","item-photos",'data-order="'+esc(orderId)+'" data-id="'+esc(itemId)+'"')+'</div></div>'+
-   '<div class="passport-section passport-share-section"><h4>'+"Compartir con el cliente"+'</h4>'+
-    '<p class="passport-section-help">'+"RIMMA crea una página privada del pedido. Elige cómo quieres enviarla."+'</p>'+
-    '<div class="passport-channel-grid">'+
-     (p.client?.phone?'<button type="button" class="passport-channel passport-channel-whatsapp" data-feature="passport-whatsapp"><span class="passport-channel-icon">WA</span><span><strong>WhatsApp</strong><small>'+"Abrir mensaje preparado"+'</small></span></button>':'<button type="button" class="passport-channel" disabled title="'+"Añade un teléfono al cliente"+'"><span class="passport-channel-icon">WA</span><span><strong>WhatsApp</strong><small>'+"Falta teléfono"+'</small></span></button>')+
-     (p.client?.email?'<button type="button" class="passport-channel passport-channel-email" data-feature="passport-email"><span class="passport-channel-icon">@</span><span><strong>'+"Correo electrónico"+'</strong><small>'+"Enviar automáticamente"+'</small></span></button>':'<button type="button" class="passport-channel" disabled title="'+"Añade un correo al cliente"+'"><span class="passport-channel-icon">@</span><span><strong>'+"Correo electrónico"+'</strong><small>'+"Falta correo"+'</small></span></button>')+
-    '</div>'+
-    '<div class="passport-secondary-actions">'+
-     '<button type="button" class="passport-text-action" data-feature="passport-copy">'+"Copiar enlace"+'</button>'+
-     '<button type="button" class="passport-text-action" data-feature="passport-open-page">'+"Ver página y QR"+'</button>'+
-     '<button type="button" class="passport-text-action passport-text-danger" data-feature="passport-revoke">'+"Revocar acceso"+'</button>'+
-    '</div>'+
-    '<div id="passport-share-result" class="passport-share-result" aria-live="polite"></div></div>'+
+   passportSharing.renderShareSection(p)+
    '<div class="passport-section"><h4>'+"Actividad reciente"+'</h4>'+
     (history.length?'<div class="passport-timeline">'+history.slice(0,12).map(event=>'<div class="passport-event"><span class="passport-event-dot" aria-hidden="true"></span><div><strong>'+esc(passportEventLabel(event))+'</strong><small>'+esc(passportDateTime(event.at))+(event.actorName?' · '+esc(event.actorName):'')+'</small></div></div>').join("")+'</div>':
      '<p class="feature-muted">'+"Todavía no hay movimientos registrados."+'</p>')+'</div>',"Guardar cambios");
  }
- async function createPassportShareLink({announce=false}={}){
-  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))throw Error("Prenda inválida.");
-  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"POST",body:"{}"});
-  const url=safePublicUrl(data.share?.shareUrl);
-  if(!url)throw Error("El servidor no devolvió un enlace seguro.");
-  selected.shareUrl=url;
-  if(announce){
-   const target=dlg.querySelector("#passport-share-result");
-   if(target)target.innerHTML='<div class="passport-share-note"><strong>✓ '+"Acceso preparado"+'</strong><small>'+"La página privada del cliente ya está lista."+'</small></div>';
-  }
-  return url;
- }
- async function createPassportShare(){
-  return createPassportShareLink({announce:true});
- }
- async function copyPassportShare(){
-  const url=await ensurePassportShare();
-  const target=dlg.querySelector("#passport-share-result");
-  try{
-   await navigator.clipboard.writeText(url);
-   if(target)target.innerHTML='<div class="passport-share-note passport-share-success"><strong>✓ '+"Enlace copiado"+'</strong><small>'+"Ya puedes pegarlo donde quieras."+'</small></div>';
-  }catch{
-   if(target)target.innerHTML='<div class="passport-share-note passport-share-error"><strong>'+"No se pudo copiar automáticamente"+'</strong><small>'+"Abre la página del cliente y copia la dirección desde el navegador."+'</small></div>';
-  }
- }
- async function openPassportShare(){
-  const popup=window.open("about:blank","_blank");
-  if(popup)try{popup.opener=null}catch{}
-  try{
-   const url=await ensurePassportShare();
-   if(popup)popup.location.replace(url);
-   else{
-    const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";
-    document.body.appendChild(link);link.click();link.remove();
-   }
-   const target=dlg.querySelector("#passport-share-result");
-   if(target)target.innerHTML='<div class="passport-share-note"><strong>'+"Página del cliente abierta"+'</strong><small>'+"Ahí puedes ver también el código QR."+'</small></div>';
-  }catch(error){
-   try{popup?.close()}catch{}
-   throw error;
-  }
- }
- async function ensurePassportShare(){
-  const existing=safePublicUrl(selected?.shareUrl);
-  if(existing)return existing;
-  return createPassportShareLink({announce:false});
- }
- async function sendPassportWhatsApp(){
-  const p=selected?.passport||{};
-  const phone=normalizePassportPhone(p.client?.phone,p.workspace?.countryCode);
-  if(!phone)throw Error("El cliente no tiene un teléfono válido para WhatsApp.");
-  const popup=window.open("about:blank","_blank");
-  if(popup)try{popup.opener=null}catch{}
-  try{
-   const url=await ensurePassportShare();
-   const wa="https://wa.me/"+phone+"?text="+encodeURIComponent(passportWhatsAppText(p,url));
-   if(popup)popup.location.replace(wa);
-   else{
-    const link=document.createElement("a");link.href=wa;link.target="_blank";link.rel="noopener noreferrer";
-    document.body.appendChild(link);link.click();link.remove();
-   }
-   const target=dlg.querySelector("#passport-share-result");
-   if(target)target.innerHTML='<div class="passport-share-note passport-share-success"><strong>✓ '+"WhatsApp abierto"+'</strong><small>'+"El mensaje está preparado. Confirma el envío en WhatsApp."+'</small></div>';
-  }catch(error){
-   try{popup?.close()}catch{}
-   throw error;
-  }
- }
- async function sendPassportEmail(button){
-  const p=selected?.passport||{};
-  if(!String(p.client?.email||"").trim())throw Error("El cliente no tiene correo electrónico.");
-  const target=dlg.querySelector("#passport-share-result");
-  const originalHtml=button?.innerHTML||"";
-  if(button){button.disabled=true;button.classList.add("is-loading");button.innerHTML='<span class="passport-channel-icon">@</span><span><strong>'+"Enviando…"+'</strong><small>'+"Un momento"+'</small></span>';}
-  if(target)target.innerHTML='<div class="passport-share-note passport-share-pending"><strong>'+"Enviando correo…"+'</strong><small>'+"Espera la confirmación."+'</small></div>';
-  try{
-   const url=await ensurePassportShare();
-   const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share/email",{
-    method:"POST",
-    body:JSON.stringify({shareUrl:url,locale:L.locale||"es-ES"})
-   });
-   const recipient=String(data.email?.recipient||p.client.email);
-   if(target)target.innerHTML='<div class="passport-share-note passport-share-success"><strong>✓ '+"Correo enviado"+'</strong><small>'+"Enviado correctamente a "+esc(recipient)+'</small></div>';
-  }catch(error){
-   if(target)target.innerHTML='<div class="passport-share-note passport-share-error"><strong>'+"No se pudo enviar el correo"+'</strong><small>'+esc(error?.message||"Inténtalo de nuevo.")+'</small></div>';
-   throw error;
-  }finally{
-   if(button){button.disabled=false;button.classList.remove("is-loading");button.innerHTML=originalHtml;}
-  }
- }
- async function revokePassportShare(){
-  if(!uuid(selected?.orderId)||!uuid(selected?.itemId))return;
-  const data=await api("/orders/"+encodeURIComponent(selected.orderId)+"/items/"+encodeURIComponent(selected.itemId)+"/passport/share",{method:"DELETE",body:"{}"});
-  selected.shareUrl=null;
-  const target=dlg.querySelector("#passport-share-result");
-  if(target)target.innerHTML='<div class="passport-share-note '+(data.revoked?'passport-share-success':'')+'"><strong>'+(data.revoked?'✓ '+"Acceso revocado":"No había acceso activo")+'</strong><small>'+(data.revoked?"Las páginas anteriores del cliente ya no funcionan.":"No había enlaces activos para esta prenda.")+'</small></div>';
- }
-
-
  async function openBusinessProfile(){
   const data=await api("/business-profile");
   const p=data.profile||{};
@@ -885,12 +777,7 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
    renumberWorkEditRows();syncWorkEditTotal();return;
   }
   if(action==="passport-open")return void safe(async()=>openPassport(el.dataset.order,id));
-  if(action==="passport-share")return void safe(createPassportShare);
-  if(action==="passport-copy")return void safe(copyPassportShare);
-  if(action==="passport-open-page")return void safe(openPassportShare);
-  if(action==="passport-whatsapp")return void safe(sendPassportWhatsApp);
-  if(action==="passport-email")return void safe(()=>sendPassportEmail(el));
-  if(action==="passport-revoke")return void safe(revokePassportShare);
+  if(passportSharing.handleAction(action,el))return;
   if(photosUI.handleAction(action,el))return;
  });
  return {loadServices,openMeasurements,openPayments,openPhotos,openWhatsApp,openGarment,openGarmentEdit,openOrderInfo,openPassport,openOrderPassport,openOrderDocuments,openBusinessProfile,openFiscalInvoice};
