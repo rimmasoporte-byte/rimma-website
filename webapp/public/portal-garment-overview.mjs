@@ -12,7 +12,6 @@ export function createGarmentOverview({api,globalError,layout,setSelection,statu
   if(!uuid(passport.id))throw Error("No se pudo cargar la prenda.");
   setSelection?.({orderId,itemId,passport});
 
-  const photos=Array.isArray(passport.photos)?passport.photos.filter(photo=>photo.status!=="deleted"):[];
   const history=Array.isArray(passport.history)?passport.history:[];
   const measurement=passport.measurementSheet;
   const works=Array.isArray(passport.works)?passport.works:[];
