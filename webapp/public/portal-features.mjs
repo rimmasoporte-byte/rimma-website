@@ -5,6 +5,7 @@
 import {esc,uuid,moneyMinor,money,localDate,localDateTime,choice,b,select,field,textarea} from "./portal-core.mjs";
 import {createPassportSharing} from "./portal-passport-sharing.mjs";
 import {createBusinessProfile} from "./portal-business-profile.mjs";
+import {createOrderInfo} from "./portal-order-info.mjs";
 import {createServiceCatalog} from "./portal-services.mjs";
 import {createMeasurementsUI} from "./portal-measurements.mjs";
 import {createPaymentsUI} from "./portal-payments.mjs";
@@ -81,6 +82,9 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
   issued:"Entregado",
   cancelled:"Cancelado"
  })[value]||String(value||"—");
+ const orderInfoUI=createOrderInfo({api,globalError,layout,openPassport:(orderId,itemId)=>openPassport(orderId,itemId),setSelection:value=>{selected=value;},statusLabel:passportStatusLabel});
+ const openOrderInfo=orderId=>orderInfoUI.openOrderInfo(orderId);
+ const openOrderPassport=orderId=>orderInfoUI.openOrderPassport(orderId);
  const passportEventLabel=event=>{
   const data=event?.data||{};
   if(event?.type==="created")return "Prenda recibida";
@@ -249,56 +253,6 @@ export function createFeatureUI({api,success,globalError,confirmAction,refreshOr
     field("storageLocation","Lugar de almacenamiento","text",'maxlength="120" value="'+esc(p.storageLocation||"")+'"')+
     '<label for="fx-measurementSetId">'+"Ficha de medidas"+'</label><select id="fx-measurementSetId" name="measurementSetId">'+measurementOptions+'</select>'+
    '</div>',"Guardar cambios");
- }
-
- async function openOrderInfo(orderId){
-  if(!uuid(orderId)){globalError("Pedido inválido.");return;}
-  const result=await api("/orders/"+encodeURIComponent(orderId));
-  const o=result.order||{};
-  if(!uuid(o.id))throw Error("No se pudo cargar el pedido.");
-  selected={orderId,order:o};
-  const items=Array.isArray(o.items)?o.items:[];
-  const customer=o.client?.name||"Cliente sin nombre";
-  const branch=o.branch?.name||"Sin sucursal";
-  const due=localDate(o.dueDate);
-  const orderNumber=String(o.orderNumber||"").padStart(4,"0");
-  layout("order-info","Información del pedido"+" #"+esc(orderNumber),
-   '<div class="order-info-hero"><div><span class="passport-kicker">'+"PEDIDO"+' #'+esc(orderNumber)+'</span><h3>'+esc(customer)+'</h3>'+
-    '<span class="status '+esc(o.status||"accepted")+'">'+esc(passportStatusLabel(o.status))+'</span></div>'+
-    '<div class="order-info-total"><small>'+"Total"+'</small><strong>'+esc(money(o.totalMinor,o.currencyCode))+'</strong></div></div>'+
-   '<div class="feature-summary order-info-summary"><div><small>'+"Entrega"+'</small><strong>'+esc(due)+'</strong></div>'+
-    '<div><small>'+"Sucursal"+'</small><strong>'+esc(branch)+'</strong></div>'+
-    '<div><small>'+"Prendas"+'</small><strong>'+esc(String(items.length))+'</strong></div></div>'+
-   (o.notes?'<div class="passport-section"><h4>'+"Notas del pedido"+'</h4><p class="order-info-notes">'+esc(o.notes)+'</p></div>':"")+
-   '<div class="passport-section"><h4>'+"Prendas del pedido"+'</h4>'+
-    (items.length?'<div class="order-info-items">'+items.map((item,index)=>{
-      const works=Array.isArray(item.works)?item.works:[];
-      return '<div class="order-info-item"><div class="order-info-item-main"><strong>'+esc(item.garmentType||item.name||"Prenda"+" "+(index+1))+'</strong><small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(localDate(item.dueDate)):'')+'</small>'+
-       (works.length?'<div class="order-info-work-lines">'+works.map(work=>'<span><span><b>'+esc(work.name)+'</b><small>'+esc(work.assignedWorker?.name||"Sin asignar")+
-       (Number(work.photoCount||0)>0?' · '+esc(String(work.photoCount))+' '+"foto(s)":"")+'</small></span><em>'+esc(money(work.priceMinor,o.currencyCode))+'</em></span>').join("")+'</div>':'')+
-       '</div><strong>'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></div>';
-     }).join("")+'</div>':
-     '<p class="feature-muted">'+"No hay prendas en este pedido."+'</p>')+
-   '</div>',null);
- }
-
- async function openOrderPassport(orderId){
-  if(!uuid(orderId)){globalError("Pedido inválido.");return;}
-  const result=await api("/orders/"+encodeURIComponent(orderId));
-  const order=result.order||{};
-  const items=Array.isArray(order.items)?order.items.filter(item=>uuid(item?.id)):[];
-  if(!items.length)throw Error("Este pedido no contiene prendas disponibles.");
-  if(items.length===1)return openPassport(orderId,items[0].id);
-
-  selected={orderId,items};
-  layout("passport-picker","Selecciona una prenda",
-   '<p class="feature-muted">'+"Este pedido contiene varias prendas. Elige cuál quieres abrir."+'</p>'+
-   items.map((item,index)=>
-    '<div class="feature-ledger passport-picker-row"><strong>'+esc(item.name||"Prenda"+' '+(index+1))+'</strong>'+
-    '<small>'+esc(passportStatusLabel(item.status))+(item.dueDate?' · '+esc(item.dueDate):'')+'</small>'+
-    b("Abrir pasaporte","passport-open",'data-order="'+esc(orderId)+'" data-id="'+esc(item.id)+'"')+
-    '</div>'
-   ).join(""),null);
  }
 
  async function openPassport(orderId,itemId){
