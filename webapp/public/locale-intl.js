@@ -305,7 +305,7 @@ const number=value=>Number.isFinite(Number(value))?Number(value).toLocaleString(
 const date=value=>value?new Date(String(value).slice(0,10)+'T12:00:00')
  .toLocaleDateString(formatLocale,{day:'2-digit',month:'short',year:'numeric'}):translate('Sin fecha');
 
-window.RimmaLocale=Object.freeze({...base,locale,country:'ES',isPt:false,isIntl:true,currency:'EUR',
+window.RimmaLocale=Object.freeze({...base,locale,country:'ES',isIntl:true,currency:'EUR',
  translate,t:(es)=>translate(es),money,number,date});
 
 const translateElement=element=>{

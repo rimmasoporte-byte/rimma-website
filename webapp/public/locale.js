@@ -54,7 +54,7 @@ const withLocale=url=>{
 };
 const identity=value=>value;
 window.RimmaLocale=Object.freeze({
- locale,country,isPt:false,isIntl:locale!=='es-ES',currency:'EUR',
+ locale,country,isIntl:locale!=='es-ES',currency:'EUR',
  supportedLocales:SUPPORTED,translate:identity,t:(es)=>es,money,number,date,withLocale
 });
 })();
