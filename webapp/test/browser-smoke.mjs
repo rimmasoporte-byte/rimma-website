@@ -130,7 +130,7 @@ async function main(){
    for(const width of widths){
     await setViewport(width,width<=430?844:900);
     await assertBrowser(`window.innerWidth===${width}`,`Viewport ${width}px was not applied.`);
-    await assertBrowser(`(()=>{const expected=['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'];const selects=[...document.querySelectorAll('.app-locale-select')];return selects.length>0&&selects.every(select=>JSON.stringify([...select.options].map(option=>option.value))===JSON.stringify(expected))})()`,`Every locale picker must expose exactly the five Spain locales at ${width}px.`);
+    await assertBrowser(`(()=>{const expected=['es-ES','ca-ES','ca-ES-valencia','eu-ES','gl-ES'];const selects=[...document.querySelectorAll('.app-locale-select')];return selects.length>0&&selects.every(select=>{const parts=[...select.options].map(option=>String(option.value).split('|'));return JSON.stringify(parts.map(([locale])=>locale))===JSON.stringify(expected)&&parts.every(([,country])=>country==='ES')})})()`,`Every locale picker must expose exactly the five Spain locales at ${width}px.`);
     await assertBrowser(`(()=>{const ids=[...document.querySelectorAll('[id]')].map(x=>x.id);return new Set(ids).size===ids.length})()`,`Duplicate DOM ids detected at ${width}px.`);
     await assertBrowser(`document.documentElement.scrollWidth<=window.innerWidth+2`,`Unexpected page-level horizontal overflow at ${width}px.`);
     await assertBrowser(`(()=>{const el=document.querySelector('#menu-toggle');const s=getComputedStyle(el);return ${width<=430}?s.display!=='none':true})()`,`Mobile menu toggle unavailable at ${width}px.`);
