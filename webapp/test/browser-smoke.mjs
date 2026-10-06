@@ -14,6 +14,7 @@ let chrome;
 let ws;
 let nextId=1;
 const pending=new Map();
+const browserErrors=[];
 
 const fail=message=>{throw new Error(message);};
 
@@ -47,6 +48,7 @@ async function connectCdp(){
  });
  ws.addEventListener('message',event=>{
   const message=JSON.parse(String(event.data));
+  if(message.method==='Runtime.exceptionThrown')browserErrors.push(message.params.exceptionDetails);
   if(!message.id)return;
   const slot=pending.get(message.id);if(!slot)return;
   pending.delete(message.id);
@@ -89,14 +91,19 @@ async function assertBrowser(expression,message){
 
 async function setViewport(width,height=900){
  await cdp('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=430,screenWidth:width,screenHeight:height});
+ await evaluate('window.__rimmaReloadPending=true');
  await cdp('Page.reload',{ignoreCache:true});
- await waitFor(`document.readyState==='complete'`,'document load');
+ await waitFor(`window.__rimmaReloadPending!==true&&document.readyState==='complete'`,'new document load');
  await waitFor(`document.querySelector('#portal')&&!document.querySelector('#portal').hidden`,'authenticated portal');
 }
 
 async function click(selector){
  const ok=await evaluate(`(()=>{const el=document.querySelector(${quote(selector)});if(!el)return false;el.click();return true})()`);
  if(!ok)throw new Error(`Missing click target: ${selector}`);
+}
+
+async function closeEmptyModal(){
+ await evaluate(`new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Modal close event timed out')),5000);const modal=document.querySelector('#modal');modal.addEventListener('close',()=>{clearTimeout(timer);resolve()},{once:true});document.querySelector('#modal-close').click()})`);
 }
 
 async function main(){
@@ -126,6 +133,9 @@ async function main(){
    await cdp('Page.enable');
    await cdp('Network.enable');
    await cdp('Network.setBlockedURLs',{urls:['https://fonts.googleapis.com/*','https://fonts.gstatic.com/*']});
+   await waitFor(`document.querySelector('#onboarding-dialog')?.open`,'first-run guide');
+   await click('#onboarding-close');
+   await waitFor(`!document.querySelector('#onboarding-dialog')?.open`,'first-run guide close');
 
    for(const width of widths){
     await setViewport(width,width<=430?844:900);
@@ -142,7 +152,7 @@ async function main(){
    await click('#view-clientes [data-action="new-client"]');
    await waitFor(`document.querySelector('#modal')?.open`,'new-client modal');
    await assertBrowser(`document.querySelector('#modal-title')?.textContent?.trim().length>0`,'New-client modal title is empty.');
-   await click('#modal-close');
+   await closeEmptyModal();
    await waitFor(`!document.querySelector('#modal')?.open`,'new-client modal close');
 
    await click('#brand-art-open');
@@ -154,12 +164,57 @@ async function main(){
    await waitFor(`document.querySelector('#view-inicio')?.classList.contains('active')`,'Inicio navigation');
    await click('#view-inicio [data-action="new-order"]');
    await waitFor(`document.querySelector('#modal')?.open`,'new-order modal');
+   await waitFor(`document.querySelector('#ow-client-search')`,'initialized order wizard');
    await assertBrowser(`document.querySelector('#modal-fields')?.textContent?.trim().length>0`,'New-order wizard did not render content.');
-   await click('#modal-close');
+   await closeEmptyModal();
    await waitFor(`!document.querySelector('#modal')?.open`,'new-order modal close');
 
-   console.log(`Browser E2E passed: ${widths.join(', ')} px + navigation/modal/order smoke.`);
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await evaluate(`localStorage.removeItem('rimma.order.draft.v63')`);
+    await click('#view-inicio [data-action="new-order"]');
+    await waitFor(`document.querySelector('.wizard-branch-readonly')?.textContent.includes('Atelier de prueba')`,'loaded wizard client step');
+    await evaluate(`(()=>{const input=document.querySelector('#ow-client-search');input.focus();input.value='María';input.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+    await waitFor(`document.querySelector('[data-wizard-action="select-client"]')`,'client search result');
+    await click('[data-wizard-action="select-client"]');
+    await waitFor(`document.querySelector('#modal-submit')?.disabled===false`,'confirmed client selection');
+    await click('#modal-submit');
+    await waitFor(`document.querySelector('#ow-photo-0-0')`,'wizard photo input');
+    await evaluate(`(async()=>{const canvas=document.createElement('canvas');canvas.width=400;canvas.height=300;canvas.getContext('2d').fillRect(0,0,400,300);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'viewer-fixture.png',{type:'image/png'}));const input=document.querySelector('#ow-photo-0-0');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+    await waitFor(`document.querySelector('[data-wizard-action="preview-local-photo"]')`,'local photo thumbnail');
+    await click('[data-wizard-action="preview-local-photo"]');
+    await waitFor(`document.querySelector('#order-photo-viewer')?.open&&document.querySelector('[data-photo-image]')?.naturalWidth===400`,'decoded native photo viewer');
+    await assertBrowser(`document.querySelector('#order-photo-viewer [download]')?.href.startsWith('blob:')`,'Local download must retain the object URL.');
+    await click('#order-photo-viewer [data-photo-action="zoom-in"]');
+    await assertBrowser(`document.querySelector('[data-photo-zoom-label]').textContent==='125%'`,'Zoom-in must fire once.');
+    await evaluate(`document.querySelector('#order-photo-viewer').dispatchEvent(new KeyboardEvent('keydown',{key:'0',bubbles:true,cancelable:true}))`);
+    await assertBrowser(`document.querySelector('[data-photo-zoom-label]').textContent==='100%'`,'Keyboard zoom reset failed.');
+    await assertBrowser(`(()=>{const dlg=document.querySelector('#order-photo-viewer');const rect=dlg.getBoundingClientRect();const viewport=dlg.querySelector('[data-photo-viewport]');return rect.left>=-2&&rect.right<=innerWidth+2&&getComputedStyle(viewport).overflowX==='hidden'})()`,`Photo viewer must fit the screen and clip zoomed image overflow at ${width}px.`);
+    await click('#order-photo-viewer [data-photo-action="set-cover"]');
+    await assertBrowser(`!!document.querySelector('.wizard-photo-thumb.is-cover')&&!document.querySelector('#order-photo-viewer [data-photo-action="set-cover"]')`,'Cover callback must update both thumbnail and viewer.');
+    await click('#order-photo-viewer [data-photo-action="delete"]');
+    await waitFor(`document.querySelector('#confirm-dialog')?.open`,'photo deletion confirmation');
+    await click('#confirm-cancel');
+    await waitFor(`!document.querySelector('#confirm-dialog')?.open`,'photo deletion cancel');
+    await assertBrowser(`document.querySelector('#order-photo-viewer').open&&!!document.querySelector('.wizard-photo-thumb')`,'Cancelled deletion must preserve photo and viewer.');
+    await click('#order-photo-viewer [data-photo-action="close"]');
+    await click('[data-wizard-action="preview-local-photo"]');
+    await waitFor(`document.querySelector('#order-photo-viewer')?.open`,'photo viewer reopen');
+    await assertBrowser(`document.querySelector('[data-photo-zoom-label]').textContent==='100%'`,'Reopen must reset zoom.');
+    await click('#order-photo-viewer [data-photo-action="delete"]');
+    await waitFor(`document.querySelector('#confirm-dialog')?.open`,'confirmed photo deletion');
+    await click('#confirm-ok');
+    await waitFor(`!document.querySelector('#order-photo-viewer')?.open&&!document.querySelector('.wizard-photo-thumb')`,'deleted photo cleanup');
+    await click('#modal-close');
+    await waitFor(`document.querySelector('#confirm-dialog')?.open`,'dirty wizard close confirmation');
+    await click('#confirm-alternative');
+    await waitFor(`!document.querySelector('#modal')?.open`,'wizard discard');
+   }
+
+   console.log(`Browser E2E passed: ${widths.join(', ')} px + navigation/modal/order smoke + local photo viewer at 390/1280 px.`);
   }catch(error){
+   console.error(JSON.stringify(browserErrors));
+   try{console.error(await evaluate(`JSON.stringify({step:document.querySelector('#modal')?.dataset.wizardStep,disabled:document.querySelector('#modal-submit')?.disabled,fields:document.querySelector('#modal-fields')?.innerText,error:document.querySelector('#modal-error')?.textContent,value:document.querySelector('#ow-client-search')?.value,focus:document.activeElement?.id})`));}catch{}
    console.error(chromeLog.slice(-5000));
    throw error;
   }

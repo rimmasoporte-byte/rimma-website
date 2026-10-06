@@ -1681,7 +1681,7 @@ export function createOrderWizard({
   });
   fields.addEventListener("click",event=>{
     if(!active)return;
-    const stepButton=event.target.closest("[data-wizard-step]");
+    const stepButton=event.target.closest("button[data-wizard-step]");
     if(stepButton&&!created){
       const next=Number(stepButton.dataset.wizardStep);
       if(next<state.step){
