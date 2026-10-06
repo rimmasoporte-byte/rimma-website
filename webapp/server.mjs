@@ -257,6 +257,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-payments.mjs')return staticFile(res,'portal-payments.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-whatsapp.mjs')return staticFile(res,'portal-whatsapp.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-documents.mjs')return staticFile(res,'portal-documents.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-photos.mjs')return staticFile(res,'portal-photos.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-passport-share.mjs')return staticFile(res,'portal-passport-share.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/photo-preparation.mjs')return staticFile(res,'photo-preparation.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
