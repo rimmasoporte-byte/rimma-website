@@ -16,6 +16,7 @@ const html=sources["index.html"];
 const site=sources["site.js"];
 const wizard=sources["order-wizard.mjs"];
 const viewer=sources["order-photo-viewer.mjs"];
+const mobileCapture=sources["order-mobile-capture.mjs"];
 const features=sources["portal-features.mjs"];
 const serviceFeatures=sources["portal-services.mjs"];
 const measurementFeatures=sources["portal-measurements.mjs"];
@@ -127,8 +128,8 @@ test("photo and mobile-capture controls have explicit local handlers",()=>{
   const photoHandled=[...new Set([...viewer.matchAll(/action==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
   assert.deepEqual(photo.filter(action=>!photoHandled.includes(action)),[]);
 
-  const mobile=values(wizard,"data-mobile-capture-action");
-  const mobileHandled=[...new Set([...wizard.matchAll(/mobileCaptureAction==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
+  const mobile=values(mobileCapture,"data-mobile-capture-action");
+  const mobileHandled=[...new Set([...mobileCapture.matchAll(/mobileCaptureAction==="([a-z0-9-]+)"/g)].map(match=>match[1]))];
   assert.deepEqual(mobile.filter(action=>!mobileHandled.includes(action)),[]);
 });
 
@@ -147,9 +148,9 @@ test("destructive record and photo actions remain confirmation-gated",()=>{
   assert.match(site.slice(deleteStart,logoutStart),/confirmAction\(/);
 
   const photoStart=wizard.indexOf("async function deletePhoto");
-  const discardStart=wizard.indexOf("async function discardMobileCapture",photoStart);
-  assert.ok(photoStart>=0&&discardStart>photoStart);
-  assert.match(wizard.slice(photoStart,discardStart),/confirmAction\([\s\S]*?danger:true/);
+  const photoEnd=wizard.indexOf("function render()",photoStart);
+  assert.ok(photoStart>=0&&photoEnd>photoStart);
+  assert.match(wizard.slice(photoStart,photoEnd),/confirmAction\([\s\S]*?danger:true/);
 });
 
 test("the portal has one canonical ordinary-button system instead of stacked base definitions",()=>{
