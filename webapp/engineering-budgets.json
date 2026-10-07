@@ -5,7 +5,7 @@
     "public/site.js": 1150,
     "public/order-wizard.mjs": 625,
     "public/portal-features.mjs": 1750,
-    "public/app.css": 4585
+    "public/app.css": 4570
   },
   "intentionalExceptions": {
     "documentWrite": {
