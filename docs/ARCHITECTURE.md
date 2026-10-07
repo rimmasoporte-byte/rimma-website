@@ -33,6 +33,7 @@ Key responsibilities:
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and shared foundations;
+- `portal-garment-cards.css`: garment-card list presentation, status markers, financial summary and responsive actions rendered by `portal-record-lists.mjs`;
 - `portal-locale-control.css`: single topbar locale-control implementation and its responsive behavior;
 - `portal-dashboard.css`: final Inicio/dashboard hero, KPI, operational-card and responsive presentation layer;
 - `portal-business-profile.css`: workshop identity and territory-aware fiscal-settings presentation;
