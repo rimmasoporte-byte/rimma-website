@@ -1,5 +1,6 @@
 /* ===== SETTINGS / ACCOUNT ===== */
 #view-cuenta .account-grid{align-items:start}
+#view-cuenta #notifications-panel,#view-cuenta #notifications-panel + .paper-panel{grid-column:1/-1}
 #view-cuenta .paper-panel{min-width:0;align-self:start}
 #view-cuenta .feature-bottom{margin-top:22px}
 .branch-overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0 18px}
