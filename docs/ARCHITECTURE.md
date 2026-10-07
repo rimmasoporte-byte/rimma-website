@@ -33,6 +33,7 @@ Key responsibilities:
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and shared foundations;
+- `portal-order-wizard.css`: canonical order-creation wizard shell, controls, responsive steps and review presentation owned by `order-wizard.mjs` and its step domains;
 - `portal-garment-passport.css`: garment passport hero, balance, timeline and base share-result presentation owned by `portal-passport-editor.mjs`;
 - `portal-passport-sharing.css`: passport communication-channel and share-state presentation owned by `portal-passport-sharing.mjs`;
 - `portal-order-documents.css`: operational order-document picker/history/payment-linked receipt presentation owned by `portal-documents.mjs`;
