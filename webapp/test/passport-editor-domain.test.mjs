@@ -155,6 +155,8 @@ test('passport editor ignores unrelated save modes and rejects invalid scope',as
 test('portal delegates passport editing to the dedicated domain',()=>{
  const features=read('public/portal-features.mjs');
  const editor=read('public/portal-passport-editor.mjs');
+ const passportCss=read('public/portal-garment-passport.css');
+ const appCss=read('public/app.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createPassportEditor/);
@@ -166,5 +168,10 @@ test('portal delegates passport editing to the dedicated domain',()=>{
  assert.match(editor,/mode!=="passport-edit"/);
  assert.match(editor,/method:"PATCH"/);
  assert.match(editor,/passportSharing\.renderShareSection\(passport\)/);
+ assert.match(passportCss,/^\/\* Garment passport: one operational record from intake to collection\. \*\//);
+ assert.match(passportCss,/\.passport-hero/);
+ assert.match(passportCss,/\.passport-timeline/);
+ assert.doesNotMatch(appCss,/Garment passport: one operational record from intake to collection/);
  assert.match(server,/pathname==='\/app\/portal-passport-editor\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-passport\.css'/);
 });
