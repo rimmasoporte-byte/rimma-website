@@ -5,6 +5,13 @@
 #view-cuenta .settings-section-nav a:focus-visible{outline:2px solid #476f52;outline-offset:3px}
 #view-cuenta .paper-panel[id]{scroll-margin-top:94px}
 @media(max-width:760px){#view-cuenta .settings-section-nav{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;padding:0 0 8px;scrollbar-width:thin}#view-cuenta .settings-section-nav a{flex:none}}
+#view-cuenta .settings-section-nav a[aria-current="location"]{color:#fff;background:#244431;border-color:#244431}
+#view-cuenta .account-grid[data-settings-focus] .paper-panel:not([data-settings-active]){display:none}
+#view-cuenta .account-grid[data-settings-focus] .settings-two-columns,#view-cuenta .account-grid[data-settings-focus] .settings-data-actions{grid-template-columns:minmax(0,1fr)}
+#view-cuenta .account-grid[data-settings-focus] .settings-stack:not(:has(.paper-panel[data-settings-active])){display:none}
+#view-cuenta .account-grid[data-settings-focus] .settings-notification-group:not(:has(.paper-panel[data-settings-active])),#view-cuenta .account-grid[data-settings-focus] .settings-data-group:not(:has(.paper-panel[data-settings-active])){display:none}
+#view-cuenta .account-grid[data-settings-focus] .settings-data-actions:not(:has(.paper-panel[data-settings-active])){display:none}
+#view-cuenta .account-grid[data-settings-focus] .settings-data-group>.paper-panel[data-settings-active]{display:grid}
 /* Settings layout: independent content-height columns, ordered column-first for reading and keyboard navigation. */
 #view-cuenta .account-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 #view-cuenta .settings-two-columns,#view-cuenta .settings-data-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
