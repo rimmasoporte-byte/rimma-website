@@ -22,6 +22,7 @@ Key responsibilities:
 - `order-garments.mjs`: Step 2 garment/work rendering, catalog selection, pricing/assignment updates, validation and add/remove lifecycle coordination;
 - `order-delivery.mjs`: Step 3 general/per-garment delivery dates, physical storage location editing and delivery validation;
 - `order-review.mjs`: Step 4 review/created presentation, work attribution, photo counts and order subtotal/total calculation;
+- `order-draft.mjs`: order draft serialization, session-storage persistence, debounce, TTL validation and safe restoration;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -80,6 +81,7 @@ Use the narrowest owner that can correctly perform an action:
 - order garment/work editing and Step 2 presentation -> `order-garments.mjs`;
 - order delivery/date editing and Step 3 presentation -> `order-delivery.mjs`;
 - order review/created presentation and monetary summaries -> `order-review.mjs`;
+- order draft persistence and restoration -> `order-draft.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -94,9 +96,10 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. move client/order list rendering out of `site.js`;
-2. harden async request ownership and stale-response cancellation;
-3. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
+1. extract the remaining order submission/payload transaction boundary from `order-wizard.mjs`;
+2. move client/order list rendering out of `site.js`;
+3. harden async request ownership and stale-response cancellation;
+4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
 
 Each extraction should preserve behavior and land with regression tests.
 
@@ -122,6 +125,8 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `order-delivery.mjs` owns Step 3 delivery markup, the general due date, per-garment date overrides, physical storage-location editing and delivery-date validation.
 
 `order-review.mjs` owns Step 4 review and post-create presentation plus deterministic garment/order subtotal calculations. It does not call APIs or own submission state.
+
+`order-draft.mjs` owns draft meaning detection, serialization, debounce, session-storage IO, TTL enforcement, bounded restoration and validation of restored creation keys. The wizard still decides when a draft should be saved or discarded.
 
 `order-wizard.mjs` composes these domains and keeps cross-step orchestration, payload construction, idempotency and final order submission.
 The BFF explicitly serves every browser module under `/app/`.
