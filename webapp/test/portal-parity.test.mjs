@@ -131,10 +131,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -169,6 +169,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-garments\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-delivery\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-review\.mjs'/);
+ assert.match(server,/pathname==='\/app\/order-draft\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
@@ -201,7 +202,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
  assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.wizard-client-results\{position:static/);
  assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
- assert.match(wizard,/const DRAFT_KEY="rimma\.order\.draft\.v63"/);
+ assert.match(draft,/const KEY="rimma\.order\.draft\.v63"/);
+ assert.doesNotMatch(wizard,/sessionStorage|DRAFT_KEY|DRAFT_TTL/);
  assert.match(wizard,/const names=\["Cliente","Prendas","Entrega","Confirmación"\]/);
  assert.match(garments,/data-wizard-action="add-item"/);
  assert.match(garments,/data-wizard-action="add-work"/);

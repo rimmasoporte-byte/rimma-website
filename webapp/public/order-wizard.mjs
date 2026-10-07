@@ -6,8 +6,7 @@ import {createOrderClientSelection} from "./order-client-selection.mjs";
 import {createOrderGarments} from "./order-garments.mjs";
 import {createOrderDelivery} from "./order-delivery.mjs";
 import {createOrderReview} from "./order-review.mjs";
-const DRAFT_KEY="rimma.order.draft.v63";
-const DRAFT_TTL=12*60*60*1000;
+import {createOrderDraft} from "./order-draft.mjs";
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
@@ -23,7 +22,6 @@ const requestKey=()=>{
   const hex=[...bytes].map(value=>value.toString(16).padStart(2,"0"));
   return hex.slice(0,4).join("")+"-"+hex.slice(4,6).join("")+"-"+hex.slice(6,8).join("")+"-"+hex.slice(8,10).join("")+"-"+hex.slice(10).join("");
 };
-const IDEMPOTENCY=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const toMinor=value=>{
   const parsed=Number(value);
   if(!Number.isFinite(parsed)||parsed<0)throw Error("El precio debe ser un número válido.");
@@ -62,7 +60,6 @@ export function createOrderWizard({
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
-  let saveClock=null;
   let photoInteractions=null;
   const photoViewer=createOrderPhotoViewer({
     dialog:document.querySelector("#order-photo-viewer"),
@@ -96,6 +93,18 @@ export function createOrderWizard({
       ?String(value)
       :parsed.toLocaleString(locale?.locale||"es-ES",{dateStyle:"short",timeStyle:"short"});
   };
+  const draft=createOrderDraft({
+    getState:()=>state,
+    isActive:()=>active,
+    isCreated:()=>Boolean(created),
+    setDirty:value=>{dirty=Boolean(value);},
+    makeBlankState:blankState,
+    makeItem,
+    makeWork,
+    makeUid:uid,
+    getCurrency:()=>locale?.currency||"EUR"
+  });
+  const schedulePersist=()=>draft.schedule();
   const mobileCapture=createOrderMobileCapture({
     dialog:document.querySelector("#order-mobile-capture-dialog"),
     api,
@@ -177,64 +186,6 @@ export function createOrderWizard({
     money,
     escapeHtml:esc
   });
-  const meaningful=()=>Boolean(
-    state.clientId||state.notes.trim()||
-    state.items.some(item=>
-      item.garmentType.trim()||item.label.trim()||
-      (item.works||[]).some(work=>
-        work.work.trim()||Number(work.price)>0||(work.photoNames||[]).length||Number(work.mobilePhotoCount||0)>0
-      )
-    )
-  );
-  const serializable=()=>({
-    version:63,savedAt:Date.now(),step:Math.max(0,Math.min(3,state.step)),
-    creationKey:state.creationKey,clientId:state.clientId,clientLabel:state.clientLabel,
-    branchId:state.branchId,currencyCode:state.currencyCode,
-    dueDate:state.dueDate,notes:state.notes,
-    items:state.items.map(item=>({
-      ...item,
-      works:(item.works||[]).map(({photoFiles,photoNames,mobilePhotos,...work})=>work)
-    }))
-  });
-  function persist(){
-    clearTimeout(saveClock);
-    if(!active||created||!meaningful()){
-      if(!meaningful())try{sessionStorage.removeItem(DRAFT_KEY)}catch{}
-      return;
-    }
-    try{sessionStorage.setItem(DRAFT_KEY,JSON.stringify(serializable()))}catch{}
-  }
-  function schedulePersist(){
-    dirty=true;
-    clearTimeout(saveClock);
-    saveClock=setTimeout(persist,180);
-  }
-  function clearDraft(){
-    clearTimeout(saveClock);
-    try{sessionStorage.removeItem(DRAFT_KEY)}catch{}
-  }
-  function readDraft(){
-    try{
-      const draft=JSON.parse(sessionStorage.getItem(DRAFT_KEY)||"null");
-      if(!draft||draft.version!==63||!Number.isFinite(draft.savedAt)||Date.now()-draft.savedAt>DRAFT_TTL){
-        sessionStorage.removeItem(DRAFT_KEY);
-        return null;
-      }
-      if(!Array.isArray(draft.items)||!draft.items.length)return null;
-      const base=blankState(locale?.currency||"EUR");
-      return {
-        ...base,...draft,
-        creationKey:IDEMPOTENCY.test(String(draft.creationKey||""))?draft.creationKey:base.creationKey,
-        items:draft.items.slice(0,30).map(item=>{
-          const baseItem=makeItem(draft.currencyCode);
-          const works=Array.isArray(item.works)&&item.works.length
-            ?item.works.slice(0,50).map(work=>({...makeWork(),...work,key:work.key||uid(),photoFiles:[],photoNames:[],mobilePhotos:[]}))
-            :baseItem.works;
-          return {...baseItem,...item,key:item.key||uid(),works};
-        })
-      };
-    }catch{return null}
-  }
   function setError(message=""){
     error.textContent=message;
     error.hidden=!message;
@@ -417,7 +368,7 @@ export function createOrderWizard({
       });
       if(!response?.order?.id)throw Error("El servidor no confirmó el pedido creado.");
       created=response;
-      clearDraft();
+      draft.clear();
       dirty=false;
       mobileCapture.syncPolling();
       photoPersistence.clearFailures();
@@ -452,7 +403,7 @@ export function createOrderWizard({
     await createOrder();
   }
   async function discardDraft(){
-    if(meaningful()){
+    if(draft.meaningful()){
       const approved=await confirmAction({
         title:"Empezar un pedido nuevo",
         message:"Se borrará el borrador actual. El pedido todavía no se ha creado.",
@@ -463,7 +414,7 @@ export function createOrderWizard({
     await mobileCapture.discardAll();
     photoInteractions.clearLocalPhotoUrls();
     photoInteractions.resetLocalCover();
-    clearDraft();
+    draft.clear();
     restored=false;
     dirty=false;
     state=blankState(locale?.currency||"EUR");
@@ -476,7 +427,7 @@ export function createOrderWizard({
       modal.close();
       return;
     }
-    if(created||!meaningful()){
+    if(created||!draft.meaningful()){
       modal.close();
       return;
     }
@@ -492,7 +443,7 @@ export function createOrderWizard({
     });
     if(decision==="discard"){
       await mobileCapture.discardAll();
-      clearDraft();
+      draft.clear();
       dirty=false;
       photoInteractions.clearLocalPhotoUrls();
       photoInteractions.resetLocalCover();
@@ -502,7 +453,7 @@ export function createOrderWizard({
       return;
     }
     if(decision===true){
-      persist();
+      draft.persist();
       modal.close();
     }
   }
@@ -513,7 +464,7 @@ export function createOrderWizard({
       setError("No se pudo abrir el formulario de cliente.");
       return;
     }
-    persist();
+    draft.persist();
     clientSelection.reset();
     active=false;
     delete modal.dataset.wizardStep;
@@ -640,8 +591,8 @@ export function createOrderWizard({
   });
 
   window.addEventListener("beforeunload",event=>{
-    if(active&&!created&&dirty&&meaningful()){
-      persist();
+    if(active&&!created&&dirty&&draft.meaningful()){
+      draft.persist();
       event.preventDefault();
       event.returnValue="";
     }
@@ -694,9 +645,9 @@ export function createOrderWizard({
             currencyCode:service.currencyCode||locale?.currency||"EUR"
           }))
       );
-      const draft=readDraft();
-      if(draft){
-        state=draft;
+      const restoredDraft=draft.read();
+      if(restoredDraft){
+        state=restoredDraft;
         restored=true;
         dirty=true;
       }else{
@@ -713,7 +664,7 @@ export function createOrderWizard({
           state.clientLabel=String(client.name||"Cliente");
           if(preferredClientId){
             dirty=true;
-            persist();
+            draft.persist();
           }
         }else{
           state.clientId="";
@@ -731,7 +682,7 @@ export function createOrderWizard({
     }
   }
   function closed(){
-    persist();
+    draft.persist();
     clientSelection.reset();
     mobileCapture.closed();
     photoInteractions.clearLocalPhotoUrls();
