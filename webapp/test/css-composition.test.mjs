@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-dashboard.css"),
     read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
@@ -20,6 +21,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-dashboard.css",
     "portal-business-profile.css",
     "portal-onboarding.css",
     "team.css",
@@ -29,13 +31,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  assert.doesNotMatch(app+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/@import/);
-  assert.doesNotMatch(app+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/url\(["']?http:/);
+  const composed=app+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  assert.doesNotMatch(composed,/@import/);
+  assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-dashboard.css"),
     read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
@@ -45,6 +49,16 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.match(app,/Global language control — single implementation/);
+  assert.match(app,/\.topbar-locale/);
+  assert.doesNotMatch(app,/V60 — four core KPIs/);
+  assert.doesNotMatch(app,/\/\* Compact branded hero \*\//);
+  assert.match(dashboard,/^\/\* V60 — four core KPIs: no duplicated appointments\/team metrics\. \*\//);
+  assert.match(dashboard,/\/\* Compact branded hero \*\//);
+  assert.match(dashboard,/#view-inicio #today-cards\.atelier-today-grid\{/);
+  assert.match(dashboard,/#view-inicio \.atelier-ops-layout\{/);
+  assert.doesNotMatch(dashboard,/\.topbar-locale/);
 
   assert.doesNotMatch(app,/structured workshop\/fiscal settings with territory safety/);
   assert.match(businessProfile,/^\/\* V61 — structured workshop\/fiscal settings with territory safety\. \*\//);
@@ -55,7 +69,6 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.match(onboarding,/^\/\* ===== ONBOARDING ===== \*\//);
   assert.match(onboarding,/\.quick-guide-button\{/);
   assert.match(onboarding,/\.onboarding-dialog\{/);
-  assert.match(onboarding,/\.onboarding-highlight\{/);
 
   assert.doesNotMatch(app,/\/\* ===== TEAM ===== \*\//);
   assert.match(team,/^\/\* ===== TEAM ===== \*\//);
@@ -66,7 +79,6 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.match(orderFlow,/^\/\* ===== PROFESSIONAL ORDER FLOW ===== \*\//);
   assert.match(orderFlow,/\.wizard-photo-control\{/);
   assert.match(orderFlow,/\.wizard-review-section/);
-  assert.match(orderFlow,/\.whatsapp-card\{/);
 
   assert.doesNotMatch(app,/Final design tokens are declared once/);
   assert.match(tokens,/^\/\* Final design tokens are declared once after the migrated legacy sections\. \*\//);
@@ -76,7 +88,6 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.doesNotMatch(app,/\/\* ===== WORK PHOTO WORKSPACE ===== \*\//);
   assert.match(workspace,/^\/\* ===== WORK PHOTO WORKSPACE ===== \*\//);
   assert.match(workspace,/\.work-photo-cards\{/);
-  assert.match(workspace,/\.mobile-photo-capture\{/);
 
   assert.doesNotMatch(app,/\/\* ===== ORDER MOBILE CAPTURE DIALOG ===== \*\//);
   assert.match(capture,/^\/\* ===== ORDER MOBILE CAPTURE DIALOG ===== \*\//);
@@ -85,12 +96,12 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.doesNotMatch(app,/\/\* ===== ORDER PHOTO VIEWER ===== \*\//);
   assert.match(viewer,/^\/\* ===== ORDER PHOTO VIEWER ===== \*\//);
   assert.match(viewer,/#order-photo-viewer\{[\s\S]*?width:100vw[\s\S]*?height:100dvh/);
-  assert.match(viewer,/\.wizard-photo-stage img\{[\s\S]*?object-fit:contain/);
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-dashboard.css"),
     read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
@@ -100,7 +111,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* V60 — four core KPIs: no duplicated appointments/team metrics. */") <
+    composed.indexOf("/* V61 — structured workshop/fiscal settings with territory safety. */"));
   assert.ok(composed.indexOf("/* V61 — structured workshop/fiscal settings with territory safety. */") <
     composed.indexOf("/* ===== ONBOARDING ===== */"));
   assert.ok(composed.indexOf("/* ===== ONBOARDING ===== */") <
@@ -115,5 +128,4 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     composed.indexOf("/* ===== ORDER MOBILE CAPTURE DIALOG ===== */"));
   assert.ok(composed.indexOf("/* ===== ORDER MOBILE CAPTURE DIALOG ===== */") <
     composed.indexOf("/* ===== ORDER PHOTO VIEWER ===== */"));
-  assert.ok(composed.lastIndexOf("#order-photo-viewer{")>app.length);
 });

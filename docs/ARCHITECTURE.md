@@ -32,7 +32,8 @@ Key responsibilities:
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
-- `app.css`: canonical portal base styling and legacy/base cascade;
+- `app.css`: canonical portal base styling and shared foundations, including the global locale control;
+- `portal-dashboard.css`: final Inicio/dashboard hero, KPI, operational-card and responsive presentation layer;
 - `portal-business-profile.css`: workshop identity and territory-aware fiscal-settings presentation;
 - `portal-onboarding.css`: quick-guide/onboarding dialog and highlight styling;
 - `team.css`: shared team-management styling for the authenticated portal and invite page;
@@ -155,5 +156,5 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `portal-record-lists.mjs` owns pure client/order list and garment-card markup, including record action buttons. API loading, passport/payment/photo hydration, pagination state, navigation and mutations stay in `site.js` or their dedicated feature modules.
 
 `portal-request-ownership.mjs` gives repeatable portal reads one current owner per scope. Starting a newer request aborts the previous request and stale/aborted work is prevented from mutating the UI. The primary interactive loaders for Inicio, Pedidos, Citas, Clientes and Informes use this contract.
-Portal CSS composition uses explicit ordered `<link>` elements rather than CSS `@import`. The business-profile layer loads immediately after `app.css`, followed by onboarding, shared `team.css`, order-flow, final design tokens, photo workspace, mobile-capture dialog and photo-viewer layers in their former source order. The invite page reuses the same team stylesheet.
+Portal CSS composition uses explicit ordered `<link>` elements rather than CSS `@import`. The final dashboard layer loads after `app.css` (whose global locale control remains a shared shell concern), followed by business profile, onboarding, shared `team.css`, order-flow, final design tokens, photo workspace, mobile-capture dialog and photo-viewer layers in their former source order. The invite page reuses the same team stylesheet.
 The BFF explicitly serves every browser module and stylesheet under `/app/`.

@@ -243,6 +243,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/signup.css')return staticFile(res,'signup.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/staging.css')return staticFile(res,'staging.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/app.css')return staticFile(res,'app.css','text/css; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-dashboard.css')return staticFile(res,'portal-dashboard.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-business-profile.css')return staticFile(res,'portal-business-profile.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-onboarding.css')return staticFile(res,'portal-onboarding.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-order-flow.css')return staticFile(res,'portal-order-flow.css','text/css; charset=utf-8');
