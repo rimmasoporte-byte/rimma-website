@@ -13,7 +13,7 @@ This document gives a future engineer a high-level map of the production web app
 Key responsibilities:
 
 - `site.js`: application shell, navigation, cross-module transitions, shared API orchestration;
-- `order-wizard.mjs`: cross-step order creation orchestration, draft/review state, payload construction and final submission;
+- `order-wizard.mjs`: cross-step order UI orchestration, validation focus, lifecycle decisions and post-create navigation;
 - `order-photo-viewer.mjs`: native order photo viewer presentation and zoom/pan controls;
 - `order-mobile-capture.mjs`: QR capture sessions, polling and capture cleanup;
 - `order-photo-persistence.mjs`: photo preparation, upload, retry and mobile-claim persistence;
@@ -23,6 +23,7 @@ Key responsibilities:
 - `order-delivery.mjs`: Step 3 general/per-garment delivery dates, physical storage location editing and delivery validation;
 - `order-review.mjs`: Step 4 review/created presentation, work attribution, photo counts and order subtotal/total calculation;
 - `order-draft.mjs`: order draft serialization, session-storage persistence, debounce, TTL validation and safe restoration;
+- `order-submission.mjs`: order-create payload construction, idempotent POST transaction, draft finalization and post-create photo claim/upload sequence;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -82,6 +83,7 @@ Use the narrowest owner that can correctly perform an action:
 - order delivery/date editing and Step 3 presentation -> `order-delivery.mjs`;
 - order review/created presentation and monetary summaries -> `order-review.mjs`;
 - order draft persistence and restoration -> `order-draft.mjs`;
+- order-create payload and submission transaction -> `order-submission.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -96,7 +98,7 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. extract the remaining order submission/payload transaction boundary from `order-wizard.mjs`;
+1. evaluate the remaining order-wizard shell for only coherent orchestration boundaries;
 2. move client/order list rendering out of `site.js`;
 3. harden async request ownership and stale-response cancellation;
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
@@ -128,5 +130,7 @@ Order photo behavior is intentionally split by responsibility instead of living 
 
 `order-draft.mjs` owns draft meaning detection, serialization, debounce, session-storage IO, TTL enforcement, bounded restoration and validation of restored creation keys. The wizard still decides when a draft should be saved or discarded.
 
-`order-wizard.mjs` composes these domains and keeps cross-step orchestration, payload construction, idempotency and final order submission.
+`order-submission.mjs` owns the normalized order-create payload, the stable idempotency header and the confirmed-order transaction sequence: prepare photos, POST the order, publish created state, clear the draft, then claim mobile photos and upload desktop photos. UI busy/error/render decisions stay in the wizard.
+
+`order-wizard.mjs` composes these domains and keeps cross-step UI orchestration, validation focus, lifecycle decisions and post-create navigation.
 The BFF explicitly serves every browser module under `/app/`.

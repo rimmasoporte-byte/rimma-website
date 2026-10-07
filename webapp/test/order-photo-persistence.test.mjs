@@ -150,15 +150,16 @@ test('failed desktop upload remains retryable and successful retry clears failur
 });
 
 test('wizard delegates photo persistence state and BFF serves the domain',async()=>{
-  const [wizard,persistence,server]=await Promise.all([
+  const [wizard,submission,persistence,server]=await Promise.all([
     fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
+    fs.readFile(new URL('../public/order-submission.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../public/order-photo-persistence.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
   ]);
 
   assert.match(wizard,/createOrderPhotoPersistence/);
-  assert.match(wizard,/photoPersistence\.prepareAll\(\)/);
-  assert.match(wizard,/photoPersistence\.retryAll\(\)/);
+  assert.match(submission,/photoPersistence\.prepareAll\(\)/);
+  assert.match(submission,/photoPersistence\.retryAll\(\)/);
   assert.match(wizard,/photoPersistence\.reset\(\)/);
   assert.doesNotMatch(wizard,/preparedPhotos|photoFailures|uploadedPhotoIndexes|async function uploadPhoto|async function uploadAllPhotos|async function claimAllMobilePhotos/);
 

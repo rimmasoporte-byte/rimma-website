@@ -109,10 +109,11 @@ test("created presentation shows retry only when photo persistence reports failu
   assert.doesNotMatch(html,/data-wizard-action="label"/);
 });
 
-test("wizard delegates review presentation while payload and submission stay in the orchestrator",async()=>{
-  const [wizard,review,server]=await Promise.all([
+test("wizard delegates review presentation while submission stays in its transaction domain",async()=>{
+  const [wizard,review,submission,server]=await Promise.all([
     fs.readFile(new URL("../public/order-wizard.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/order-review.mjs",import.meta.url),"utf8"),
+    fs.readFile(new URL("../public/order-submission.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../server.mjs",import.meta.url),"utf8")
   ]);
   assert.match(wizard,/createOrderReview/);
@@ -121,9 +122,9 @@ test("wizard delegates review presentation while payload and submission stay in 
   assert.match(wizard,/review\.totalMinor\(\)/);
   assert.match(wizard,/review\.itemMinor\(item\)/);
   assert.doesNotMatch(wizard,/function renderReview|function renderCreated|const itemMinor|const totalMinor|const memberName/);
-  assert.match(wizard,/function payload\(/);
-  assert.match(wizard,/async function createOrder\(/);
-  assert.match(wizard,/Idempotency-Key/);
+  assert.match(wizard,/submission\.create\(\)/);
+  assert.doesNotMatch(wizard,/function payload|Idempotency-Key/);
+  assert.match(submission,/Idempotency-Key/);
   assert.match(review,/data-wizard-action="retry-photos"/);
   assert.match(server,/pathname==='\/app\/order-review\.mjs'/);
 });
