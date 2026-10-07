@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 
 const js=await fs.readFile(new URL('../public/site.js',import.meta.url),'utf8');
 const wizard=await fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8');
+const clientSelection=await fs.readFile(new URL('../public/order-client-selection.mjs',import.meta.url),'utf8');
 
 test('new order uses one delegated click owner and no startup per-button patch',()=>{
   assert.match(js,/case "new-order":void openNewOrder\(\);break;/);
@@ -55,8 +56,8 @@ test('bodyless mutations carry the same CSRF protection as JSON mutations',()=>{
 test('first order step enables Continue only after client and workshop location are valid',()=>{
   assert.match(wizard,/const clientStepReady=UUID\.test\(String\(state\.clientId\|\|""\)\)&&UUID\.test\(String\(state\.branchId\|\|""\)\)/);
   assert.match(wizard,/submit\.disabled=busy\|\|\(state\.step===0&&!clientStepReady\)/);
-  assert.match(wizard,/clearClientSelection[\s\S]*?syncFooter\(\)/);
-  assert.match(wizard,/wizard-branch-readonly"><small>Ubicación del taller<\/small>/);
+  assert.match(clientSelection,/function clear\([\s\S]*?syncFooter\(\)/);
+  assert.match(clientSelection,/wizard-branch-readonly"><small>Ubicación del taller<\/small>/);
 });
 
 test('order wizard exposes the current step to CSS and removes it when the wizard closes',()=>{
@@ -66,7 +67,7 @@ test('order wizard exposes the current step to CSS and removes it when the wizar
 
 
 test('new client action uses the portal dispatcher and a dedicated wizard transition',()=>{
-  assert.match(wizard,/data-action="new-client-from-order"/);
+  assert.match(clientSelection,/data-action="new-client-from-order"/);
   assert.match(wizard,/function openClientFromOrder\(\)\{[\s\S]*?persist\(\);[\s\S]*?active=false;[\s\S]*?modal\.classList\.remove\("order-wizard-modal"\);[\s\S]*?onOpenClient\(\)/);
   assert.match(wizard,/openClient:openClientFromOrder/);
   assert.match(js,/case "new-client-from-order":[\s\S]*?getOrderWizard\(\)[\s\S]*?wizard=>wizard\.openClient\(\)/);

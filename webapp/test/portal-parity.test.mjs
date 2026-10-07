@@ -131,10 +131,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -165,6 +165,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-mobile-capture\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-photo-persistence\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-photo-interactions\.mjs'/);
+ assert.match(server,/pathname==='\/app\/order-client-selection\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
@@ -175,25 +176,25 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/data-feature="order-whatsapp"/);
  assert.match(js,/data-feature="item-photos"/);
  assert.match(js,/order-wizard\.mjs\?v=20261005-v\d+/);
- assert.match(wizard,/role="combobox"/);
- assert.match(wizard,/\/clients\?limit=8&offset=0&q=/);
- assert.match(wizard,/Escribe al menos 2 caracteres/);
- assert.match(wizard,/data-wizard-action="select-client"/);
- assert.match(wizard,/wizard-client-confirmation/);
- assert.match(wizard,/const shouldOpen=!state\.clientId&&document\.activeElement===input/);
- assert.match(wizard,/clientSearchSeq\+\+;[\s\S]*?clientSearchBusy=false;[\s\S]*?state\.clientId=client\.id/);
- assert.match(wizard,/fields\.querySelector\("\.wizard-client-confirmation"\)\?\.remove\(\)/);
- assert.doesNotMatch(wizard,/Cliente seleccionado/);
- assert.doesNotMatch(wizard,/wizard-client-selected/);
- assert.doesNotMatch(wizard,/wizard-client-meta/);
- assert.doesNotMatch(wizard,/data-wizard-action="clear-client"/);
+ assert.match(clientSelection,/role="combobox"/);
+ assert.match(clientSelection,/\/clients\?limit=8&offset=0&q=/);
+ assert.match(clientSelection,/Escribe al menos 2 caracteres/);
+ assert.match(clientSelection,/data-wizard-action="select-client"/);
+ assert.match(clientSelection,/wizard-client-confirmation/);
+ assert.match(clientSelection,/const shouldOpen=!state\(\)\.clientId&&document\.activeElement===input/);
+ assert.match(clientSelection,/searchSeq\+\+;[\s\S]*?searchBusy=false;[\s\S]*?state\(\)\.clientId=client\.id/);
+ assert.match(clientSelection,/fields\.querySelector\("\.wizard-client-confirmation"\)\?\.remove\(\)/);
+ assert.doesNotMatch(clientSelection,/Cliente seleccionado/);
+ assert.doesNotMatch(clientSelection,/wizard-client-selected/);
+ assert.doesNotMatch(clientSelection,/wizard-client-meta/);
+ assert.doesNotMatch(clientSelection,/data-wizard-action="clear-client"/);
  assert.doesNotMatch(css,/\.wizard-client-selected/);
  assert.doesNotMatch(css,/\.wizard-client-meta/);
  assert.match(css,/\.wizard-client-confirmation\{/);
  assert.match(css,/\.brand-dialog \.secondary\.danger\{/);
  assert.match(css,/\.brand-dialog-actions:has\(#confirm-alternative:not\(\[hidden\]\)\)/);
- assert.doesNotMatch(wizard,/\/clients\?limit=100&offset=0/);
- assert.doesNotMatch(wizard,/<select id="ow-client"/);
+ assert.doesNotMatch(clientSelection,/\/clients\?limit=100&offset=0/);
+ assert.doesNotMatch(clientSelection,/<select id="ow-client"/);
  assert.match(css,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
  assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.wizard-client-results\{position:static/);
  assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
@@ -314,7 +315,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.order-wizard-modal\{width:min\(96vw,820px\)/);
  assert.doesNotMatch(css,/\.extra-order-item/);
  assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
- assert.match(wizard,/data-action="new-client-from-order"/);
+ assert.match(clientSelection,/data-action="new-client-from-order"/);
  assert.match(wizard,/function openClientFromOrder\(\)\{[\s\S]*?persist\(\);[\s\S]*?active=false;[\s\S]*?onOpenClient\(\)/);
  assert.match(js,/case "new-client-from-order":[\s\S]*?wizard=>wizard\.openClient\(\)/);
  assert.doesNotMatch(wizard,/data-wizard-action="new-client"/);

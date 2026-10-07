@@ -2,6 +2,7 @@ import {createOrderPhotoViewer} from "./order-photo-viewer.mjs";
 import {createOrderPhotoInteractions} from "./order-photo-interactions.mjs";
 import {createOrderMobileCapture} from "./order-mobile-capture.mjs";
 import {createOrderPhotoPersistence} from "./order-photo-persistence.mjs";
+import {createOrderClientSelection} from "./order-client-selection.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
@@ -59,7 +60,6 @@ export function createOrderWizard({
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
-  let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null;
   let photoInteractions=null;
   const photoViewer=createOrderPhotoViewer({
@@ -128,6 +128,19 @@ export function createOrderWizard({
     getCreated:()=>created,
     getLocalCoverFile:()=>photoInteractions.getLocalCoverFile(),
     mobileCapture
+  });
+  const clientSelection=createOrderClientSelection({
+    api,
+    fields,
+    getState:()=>state,
+    getBranches:()=>branches,
+    isActive:()=>active,
+    isCreated:()=>Boolean(created),
+    isRestored:()=>restored,
+    schedulePersist,
+    renderWizard:render,
+    syncFooter,
+    escapeHtml:esc
   });
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
@@ -232,10 +245,6 @@ export function createOrderWizard({
         '<span>'+(index+1)+'</span><b>'+name+'</b></button>'
       ).join("")+'</nav>';
   }
-  const branchOptions=()=>branches.map(branch=>
-    '<option value="'+esc(branch.id)+'" '+(branch.id===state.branchId?"selected":"")+'>'+
-    esc(branch.name)+'</option>'
-  ).join("");
   const categoryOptions=item=>
     '<option value="">Selecciona una categoría</option>'+
     categories.map(category=>
@@ -259,115 +268,6 @@ export function createOrderWizard({
       esc(member.name||member.email||"Miembro")+'</option>'
     ).join("");
 
-  function clientContact(client){
-    return [client?.phone,client?.email].map(value=>String(value||"").trim()).filter(Boolean).join(" · ");
-  }
-  function clientResultsMarkup(){
-    if(clientSearchBusy)return '<div class="wizard-client-search-state">Buscando…</div>';
-    const input=fields.querySelector("#ow-client-search");
-    const query=String(input?.value||"").trim();
-    if(query.length<2)return '<div class="wizard-client-search-state">Escribe al menos 2 caracteres.</div>';
-    if(!clientMatches.length)return '<div class="wizard-client-search-state">No se encontraron clientes.</div>';
-    return clientMatches.map((client,index)=>
-      '<button type="button" role="option" aria-selected="'+(index===clientActiveIndex?"true":"false")+'" class="wizard-client-result '+(index===clientActiveIndex?"active":"")+'" data-wizard-action="select-client" data-client-index="'+index+'">'+
-      '<strong>'+esc(client.name||"Cliente")+'</strong>'+
-      (clientContact(client)?'<small>'+esc(clientContact(client))+'</small>':"")+
-      '</button>'
-    ).join("");
-  }
-  function renderClientResults(){
-    const holder=fields.querySelector("#ow-client-results");
-    const input=fields.querySelector("#ow-client-search");
-    if(!holder||!input)return;
-    const query=String(input.value||"").trim();
-    const shouldOpen=!state.clientId&&document.activeElement===input&&(query.length>0||clientSearchBusy);
-    holder.hidden=!shouldOpen;
-    input.setAttribute("aria-expanded",shouldOpen?"true":"false");
-    holder.innerHTML=shouldOpen?clientResultsMarkup():"";
-  }
-  function selectClient(client){
-    if(!client||!UUID.test(String(client.id||"")))return;
-    clearTimeout(clientSearchTimer);
-    clientSearchSeq++;
-    clientSearchBusy=false;
-    state.clientId=client.id;
-    state.clientLabel=String(client.name||"Cliente");
-    clientMatches=[];
-    clientActiveIndex=-1;
-    schedulePersist();
-    render();
-    const input=fields.querySelector("#ow-client-search");
-    if(input)input.focus({preventScroll:true});
-  }
-  function clearClientSelection({keepQuery=false}={}){
-    state.clientId="";
-    state.clientLabel="";
-    clientActiveIndex=-1;
-    if(!keepQuery)clientMatches=[];
-    schedulePersist();
-    syncFooter();
-  }
-  async function searchClients(query){
-    const q=String(query||"").trim();
-    const sequence=++clientSearchSeq;
-    clientActiveIndex=-1;
-    if(q.length<2){
-      clientMatches=[];
-      clientSearchBusy=false;
-      renderClientResults();
-      return;
-    }
-    clientSearchBusy=true;
-    renderClientResults();
-    try{
-      const result=await api("/clients?limit=8&offset=0&q="+encodeURIComponent(q));
-      if(sequence!==clientSearchSeq||!active)return;
-      clientMatches=(result.clients||result.items||[]).slice(0,8);
-      clientActiveIndex=clientMatches.length?0:-1;
-    }catch(e){
-      if(sequence!==clientSearchSeq)return;
-      clientMatches=[];
-    }finally{
-      if(sequence===clientSearchSeq){
-        clientSearchBusy=false;
-        renderClientResults();
-      }
-    }
-  }
-  async function hydrateClient(clientId){
-    if(!UUID.test(String(clientId||"")))return null;
-    try{
-      const result=await api("/clients/"+encodeURIComponent(clientId));
-      return result.client||null;
-    }catch{
-      return null;
-    }
-  }
-
-  function renderClient(){
-    const singleBranch=branches.length===1;
-    return '<section class="order-wizard-step">'+
-      '<div class="wizard-step-copy"><span>1 · CLIENTE</span><h3>¿Para quién es el pedido?</h3>'+
-      '<p>Empieza a escribir el nombre, teléfono o email. RIMMA mostrará solo coincidencias.</p></div>'+
-      (restored?'<div class="wizard-draft-notice"><span>✓ Borrador recuperado</span>'+
-        '<button type="button" data-wizard-action="discard-draft">Empezar de nuevo</button></div>':"")+
-      '<div class="wizard-control wizard-wide wizard-client-search"><label for="ow-client-search">Cliente <span class="wizard-required" aria-hidden="true">*</span></label>'+
-      '<div class="wizard-client-searchbox"><div class="wizard-client-combobox">'+
-      '<input id="ow-client-search" type="search" inputmode="search" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="ow-client-results" aria-expanded="false" data-wizard-field="clientId" value="'+esc(state.clientLabel)+'" placeholder="Escribe nombre, teléfono o email">'+
-      (state.clientId?'<span class="wizard-client-confirmation" aria-hidden="true">✓</span>':"")+
-      '</div>'+
-      '<div id="ow-client-results" class="wizard-client-results" role="listbox" hidden></div></div>'+
-      '<p class="wizard-field-error" data-error-for="clientId"></p>'+
-      (!state.clientId?'<small class="wizard-client-hint">Escribe 2 o más caracteres para buscar.</small>':"")+
-      '</div>'+
-      '<div class="wizard-inline-actions"><button type="button" class="record-action wizard-new-client-button" data-action="new-client-from-order">+ Nuevo cliente</button></div>'+
-      (singleBranch?'<div class="wizard-readonly wizard-branch-readonly"><small>Ubicación del taller</small><strong>'+
-        esc(branches[0]?.name||"Taller")+'</strong></div>':
-        '<div class="wizard-control"><label for="ow-branch">Ubicación *</label>'+
-        '<select id="ow-branch" data-wizard-field="branchId"><option value="">Selecciona una ubicación</option>'+
-        branchOptions()+'</select><p class="wizard-field-error" data-error-for="branchId"></p></div>')+
-      '</section>';
-  }
   function renderOrderPreservingScroll(){
     const top=fields.scrollTop;
     render();
@@ -552,7 +452,7 @@ export function createOrderWizard({
     modal.classList.add("order-wizard-modal");
     fields.innerHTML=created
       ?renderCreated()
-      :stepper()+(state.step===0?renderClient():state.step===1?renderGarments():state.step===2?renderDelivery():renderReview());
+      :stepper()+(state.step===0?clientSelection.renderStep():state.step===1?renderGarments():state.step===2?renderDelivery():renderReview());
     if(created)fields.scrollTop=0;
     syncFooter();
     mobileCapture.syncPolling();
@@ -877,11 +777,7 @@ export function createOrderWizard({
       return;
     }
     persist();
-    clearTimeout(clientSearchTimer);
-    clientSearchSeq++;
-    clientMatches=[];
-    clientActiveIndex=-1;
-    clientSearchBusy=false;
+    clientSelection.reset();
     active=false;
     delete modal.dataset.wizardStep;
     modal.classList.remove("order-wizard-modal");
@@ -956,17 +852,7 @@ export function createOrderWizard({
   fields.addEventListener("input",event=>{
     if(!active||created)return;
     const target=event.target;
-    if(target.id==="ow-client-search"){
-      const value=String(target.value||"");
-      if(state.clientId&&value.trim()!==state.clientLabel){
-        clearClientSelection({keepQuery:true});
-        fields.querySelector(".wizard-client-confirmation")?.remove();
-        target.setAttribute("aria-expanded","false");
-      }
-      clearTimeout(clientSearchTimer);
-      clientSearchTimer=setTimeout(()=>void searchClients(value),220);
-      return;
-    }
+    if(clientSelection.handleInput(target))return;
     if(target.matches("select,input[type=file],input[type=date]"))return;
     if(target.dataset.wizardField==="currencyCode"){
       state.currencyCode=String(target.value||"").toUpperCase().slice(0,3);
@@ -1032,12 +918,7 @@ export function createOrderWizard({
     const button=event.target.closest("[data-wizard-action]");
     if(!button)return;
     const actionName=button.dataset.wizardAction;
-    if(actionName==="select-client"){
-      const index=Number(button.dataset.clientIndex);
-      const client=clientMatches[index];
-      if(client)selectClient(client);
-      return;
-    }
+    if(clientSelection.handleAction(actionName,button))return;
     if(actionName==="toggle-item-date"){
       const index=Number(button.dataset.index);
       const item=state.items[index];
@@ -1119,44 +1000,20 @@ export function createOrderWizard({
     void action(actionName);
   });
   fields.addEventListener("keydown",event=>{
-    if(!active||created||event.target.id!=="ow-client-search")return;
-    if(event.key==="Escape"){
-      event.preventDefault();
-      clientMatches=[];
-      clientActiveIndex=-1;
-      event.target.blur();
-      renderClientResults();
-      return;
-    }
-    if(event.key==="ArrowDown"||event.key==="ArrowUp"){
-      if(!clientMatches.length)return;
-      event.preventDefault();
-      const direction=event.key==="ArrowDown"?1:-1;
-      clientActiveIndex=(clientActiveIndex+direction+clientMatches.length)%clientMatches.length;
-      renderClientResults();
-      return;
-    }
-    if(event.key==="Enter"&&clientActiveIndex>=0&&clientMatches[clientActiveIndex]){
-      event.preventDefault();
-      selectClient(clientMatches[clientActiveIndex]);
-    }
+    if(!active||created)return;
+    clientSelection.handleKeydown(event);
   });
   fields.addEventListener("focusin",event=>{
-    if(event.target.id!=="ow-client-search"||state.clientId)return;
-    const value=String(event.target.value||"");
-    if(value.trim().length>=2){
-      clearTimeout(clientSearchTimer);
-      clientSearchTimer=setTimeout(()=>void searchClients(value),80);
-    }else{
-      renderClientResults();
-    }
+    if(!active||created)return;
+    clientSelection.handleFocusIn(event);
   });
   fields.addEventListener("focusout",event=>{
-    if(event.target.id!=="ow-client-search")return;
-    setTimeout(()=>renderClientResults(),0);
+    if(!active||created)return;
+    clientSelection.handleFocusOut(event);
   });
   fields.addEventListener("pointerdown",event=>{
-    if(event.target.closest(".wizard-client-result"))event.preventDefault();
+    if(!active)return;
+    clientSelection.handlePointerDown(event);
   });
 
   window.addEventListener("beforeunload",event=>{
@@ -1173,11 +1030,7 @@ export function createOrderWizard({
     photoViewer.preview=null;
     photoInteractions.resetLocalCover();
     photoPersistence.reset();
-    clientMatches=[];
-    clientActiveIndex=-1;
-    clientSearchBusy=false;
-    clientSearchSeq++;
-    clearTimeout(clientSearchTimer);
+    clientSelection.reset();
     dirty=false;
     restored=false;
     modal.classList.add("order-wizard-modal");
@@ -1232,7 +1085,7 @@ export function createOrderWizard({
       }
       const requestedClientId=preferredClientId||state.clientId;
       if(requestedClientId){
-        const client=await hydrateClient(requestedClientId);
+        const client=await clientSelection.hydrate(requestedClientId);
         if(client){
           state.clientId=client.id;
           state.clientLabel=String(client.name||"Cliente");
@@ -1266,14 +1119,10 @@ export function createOrderWizard({
   }
   function closed(){
     persist();
-    clearTimeout(clientSearchTimer);
+    clientSelection.reset();
     mobileCapture.closed();
     photoInteractions.clearLocalPhotoUrls();
     photoViewer.close();
-    clientSearchSeq++;
-    clientMatches=[];
-    clientActiveIndex=-1;
-    clientSearchBusy=false;
     active=false;
     busy=false;
     created=null;
