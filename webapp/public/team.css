@@ -1,3 +1,4 @@
+/* ===== TEAM ===== */
 :root{--font-ui:"DM Sans","Segoe UI",Arial,sans-serif;--font-display:"Cormorant Garamond",Georgia,serif;--font:var(--font-ui);--serif:var(--font-display)}
 .team-headline{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:4px 0 16px}
 .team-headline>div{display:grid;gap:3px}.team-headline small,.team-member-main small,.team-readonly-note{color:var(--muted,#756f68)}
