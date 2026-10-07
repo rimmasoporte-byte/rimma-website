@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -175,6 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-validation\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-reference-data\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-order-detail\.css'/);
  assert.match(server,/pathname==='\/app\/portal-garment-cards\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
@@ -347,8 +348,10 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/if\(name==="open-order"\)\{[\s\S]*?await onOpenOrder\?\.\(order\.id\)[\s\S]*?return;/);
  assert.doesNotMatch(wizard,/if\(name==="open-order"\)\{[\s\S]{0,180}?modal\.close\(\)/);
  assert.match(portalOrderInfo,/const orderNumber=String\(order\.orderNumber\|\|""\)\.padStart\(4,"0"\)/);
- assert.match(css,/#feature-dialog\[data-mode="order-info"\] \.order-info-summary strong\{[\s\S]*?font:650 17px\/1\.25 var\(--font\)/);
- assert.match(css,/\.order-info-hero h3\{[\s\S]*?font:650 20px\/1\.25 var\(--font\)/);
+ assert.match(garmentDetailCss,/#feature-dialog\[data-mode="order-info"\] \.order-info-summary strong\{[\s\S]*?font:650 17px\/1\.25 var\(--font\)/);
+ assert.match(garmentDetailCss,/\.order-info-hero h3\{[\s\S]*?font:650 20px\/1\.25 var\(--font\)/);
+ assert.match(garmentDetailCss,/\.garment-action-groups\{/);
+ assert.doesNotMatch(css,/V33 — separate garment actions from order actions/);
 
  assert.match(portalGarmentEditor,/layout\("garment-edit"/);
  assert.match(portalOrderInfo,/layout\("order-info"/);
