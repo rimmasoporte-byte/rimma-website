@@ -33,6 +33,7 @@ Key responsibilities:
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and shared foundations;
+- `portal-fiscal-invoicing.css`: fiscal invoice, preview/readiness and VERI*FACTU checklist presentation owned by `portal-fiscal-invoice.mjs`;
 - `portal-operational-widgets.css`: shared operational presentation for garment lists, appointments, location summary, notification settings and linked measurements, retained in original cascade order;
 - `portal-dashboard-kpi-actions.css`: early dashboard KPI action normalization retained in its original cascade position;
 - `portal-garment-card-actions.css`: base garment-card action/menu presentation and responsive interaction surface;
