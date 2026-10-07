@@ -26,7 +26,10 @@ test("retired portal selectors stay removed from the runtime cascade",async()=>{
     ".mini-brand",
     ".demo-tab",
     ".demo-previous",
-    ".demo-next"
+    ".demo-next",
+    ".team-branch-list",
+    ".notification-rule-list",
+    ".branch-chips"
   ];
   for(const selector of retired){
     const owners=Object.entries(styles).filter(([,css])=>css.includes(selector)).map(([name])=>name);
@@ -69,7 +72,9 @@ test("key presentation anchors keep a single stylesheet owner",async()=>{
     [".garment-card-refined","portal-garment-cards.css"],
     [".garment-work-hero","portal-garment-workspace.css"],
     [".order-info-hero","portal-garment-order-detail.css"],
-    [".feature-status-grid","portal-shell-controls.css"]
+    [".feature-status-grid","portal-shell-controls.css"],
+    [".notification-settings","portal-settings.css"],
+    [".branch-overview-grid","portal-settings.css"]
   ];
   for(const [selector,expected] of ownership){
     const owners=Object.entries(styles).filter(([,css])=>css.includes(selector)).map(([name])=>name);

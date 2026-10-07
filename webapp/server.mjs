@@ -258,6 +258,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-locale-control.css')return staticFile(res,'portal-locale-control.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-dashboard.css')return staticFile(res,'portal-dashboard.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-business-profile.css')return staticFile(res,'portal-business-profile.css','text/css; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-settings.css')return staticFile(res,'portal-settings.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-onboarding.css')return staticFile(res,'portal-onboarding.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-order-flow.css')return staticFile(res,'portal-order-flow.css','text/css; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-design-tokens.css')return staticFile(res,'portal-design-tokens.css','text/css; charset=utf-8');
@@ -282,6 +283,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-documents.mjs')return staticFile(res,'portal-documents.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-photos.mjs')return staticFile(res,'portal-photos.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-account-security.mjs')return staticFile(res,'portal-account-security.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-notification-settings.mjs')return staticFile(res,'portal-notification-settings.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-passport-sharing.mjs')return staticFile(res,'portal-passport-sharing.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-business-profile.mjs')return staticFile(res,'portal-business-profile.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-order-info.mjs')return staticFile(res,'portal-order-info.mjs','text/javascript; charset=utf-8');

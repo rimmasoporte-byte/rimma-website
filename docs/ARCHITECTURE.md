@@ -31,6 +31,7 @@ Key responsibilities:
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
+- `portal-notification-settings.mjs`: account notification preferences UI, provider-aware channel state and guarded save lifecycle;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and shared foundations;
 - `portal-shell-controls.css`: canonical form controls, focus states, button system, modal/feature/confirmation dialog geometry and sidebar mark;
@@ -39,7 +40,7 @@ Key responsibilities:
 - `portal-passport-sharing.css`: passport communication-channel and share-state presentation owned by `portal-passport-sharing.mjs`;
 - `portal-order-documents.css`: operational order-document picker/history/payment-linked receipt presentation owned by `portal-documents.mjs`;
 - `portal-fiscal-invoicing.css`: fiscal invoice, preview/readiness and VERI*FACTU checklist presentation owned by `portal-fiscal-invoice.mjs`;
-- `portal-operational-widgets.css`: shared operational presentation for garment lists, appointments, location summary, notification settings and linked measurements, retained in original cascade order;
+- `portal-operational-widgets.css`: shared operational presentation for garment lists, appointments, branch/team utility rows and linked measurements, retained in original cascade order;
 - `portal-dashboard-kpi-actions.css`: early dashboard KPI action normalization retained in its original cascade position;
 - `portal-garment-card-actions.css`: base garment-card action/menu presentation and responsive interaction surface;
 - `portal-garment-workspace.css`: garment workspace/read-only sheet and work editor presentation used by `portal-garment-overview.mjs` and `portal-garment-works.mjs`;
@@ -48,6 +49,7 @@ Key responsibilities:
 - `portal-locale-control.css`: single topbar locale-control implementation and its responsive behavior;
 - `portal-dashboard.css`: final Inicio/dashboard hero, KPI, operational-card and responsive presentation layer;
 - `portal-business-profile.css`: workshop identity and territory-aware fiscal-settings presentation;
+- `portal-settings.css`: account/settings layout, workshop summary and responsive notification matrix;
 - `portal-onboarding.css`: quick-guide/onboarding dialog and highlight styling;
 - `team.css`: shared team-management styling for the authenticated portal and invite page;
 - `portal-order-flow.css`: professional order wizard/review and related operational feature styling;
