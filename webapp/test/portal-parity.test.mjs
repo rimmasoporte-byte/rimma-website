@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),
+  source("public/site.js"),source("public/app.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -277,11 +277,11 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.mobile-capture-dialog-qr\{[\s\S]*?width:258px[\s\S]*?height:258px[\s\S]*?overflow:hidden/);
  assert.match(css,/\.mobile-capture-dialog-qr img,[\s\S]*?\.mobile-capture-dialog-qr canvas\{[\s\S]*?width:240px!important[\s\S]*?height:240px!important/);
 
- assert.match(css,/\.wizard-photo-gallery\{/);
- assert.match(css,/#order-photo-viewer\{[\s\S]*?width:100vw[\s\S]*?height:100dvh[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-photo-viewport\{[\s\S]*?min-height:0[\s\S]*?overflow:hidden/);
- assert.match(css,/\.wizard-photo-stage img\{[\s\S]*?max-width:calc\(100% - 36px\)[\s\S]*?max-height:calc\(100% - 36px\)[\s\S]*?object-fit:contain/);
- assert.match(css,/\.wizard-photo-viewer-action\.danger/);
+ assert.match(viewerCss,/\.wizard-photo-gallery\{/);
+ assert.match(viewerCss,/#order-photo-viewer\{[\s\S]*?width:100vw[\s\S]*?height:100dvh[\s\S]*?overflow:hidden/);
+ assert.match(viewerCss,/\.wizard-photo-viewport\{[\s\S]*?min-height:0[\s\S]*?overflow:hidden/);
+ assert.match(viewerCss,/\.wizard-photo-stage img\{[\s\S]*?max-width:calc\(100% - 36px\)[\s\S]*?max-height:calc\(100% - 36px\)[\s\S]*?object-fit:contain/);
+ assert.match(viewerCss,/\.wizard-photo-viewer-action\.danger/);
  assert.ok(server.includes("draft-photo-captures\\/[a-f0-9-]{36}\\/photos"));
  assert.match(server,/img-src 'self' data: blob: https:/);
 
@@ -446,7 +446,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v\d+/);
-  assert.match(html,/app\.css\?v=20261005-v\d+/);
+  assert.match(html,/app\.css\?v=20261007-v\d+/);
+  assert.match(html,/order-photo-viewer\.css\?v=20261007-v\d+/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
   assert.doesNotMatch(css,/@import|url\(["']?http:/);

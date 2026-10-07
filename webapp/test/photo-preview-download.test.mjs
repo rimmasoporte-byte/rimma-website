@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,viewer,interactions,css,index,server]=await Promise.all([
+const [wizard,viewer,interactions,appCss,viewerCss,index,server]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-viewer.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-interactions.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/app.css',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-photo-viewer.css',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/index.html',import.meta.url),'utf8'),
   fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
 ]);
+const css=appCss+'\n'+viewerCss;
 
 test('photo viewer remains a separate native top-layer dialog',()=>{
   assert.match(index,/<dialog id="order-photo-viewer" aria-label="Visor de fotografía"><\/dialog>/);

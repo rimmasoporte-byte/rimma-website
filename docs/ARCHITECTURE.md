@@ -32,7 +32,8 @@ Key responsibilities:
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
-- `app.css`: portal styling and shared design tokens.
+- `app.css`: canonical portal base styling and shared design tokens;
+- `order-photo-viewer.css`: isolated final cascade layer for the native order photo viewer.
 
 The browser is not a trust boundary. It may request actions, but authorization, billing state, and protected data access must be enforced server-side.
 
@@ -106,7 +107,8 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
+1. continue extracting only self-contained tail feature layers from `app.css`, preserving explicit stylesheet order;
+2. consolidate tokens/layout only after the feature extractions make override dependencies smaller and regression-testable.
 
 Each extraction should preserve behavior and land with regression tests.
 
@@ -146,4 +148,5 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `portal-record-lists.mjs` owns pure client/order list and garment-card markup, including record action buttons. API loading, passport/payment/photo hydration, pagination state, navigation and mutations stay in `site.js` or their dedicated feature modules.
 
 `portal-request-ownership.mjs` gives repeatable portal reads one current owner per scope. Starting a newer request aborts the previous request and stale/aborted work is prevented from mutating the UI. The primary interactive loaders for Inicio, Pedidos, Citas, Clientes and Informes use this contract.
-The BFF explicitly serves every browser module under `/app/`.
+Portal CSS composition uses explicit ordered `<link>` elements rather than CSS `@import`. The photo-viewer layer is loaded after `app.css`, preserving its former position as the final cascade block.
+The BFF explicitly serves every browser module and stylesheet under `/app/`.
