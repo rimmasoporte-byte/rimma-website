@@ -3,6 +3,22 @@
 #view-cuenta #notifications-panel,#view-cuenta #notifications-panel + .paper-panel{grid-column:1/-1}
 #view-cuenta .paper-panel{min-width:0;align-self:start}
 #view-cuenta .feature-bottom{margin-top:22px}
+#view-cuenta .account-grid{column-gap:18px;row-gap:18px}
+#view-cuenta .paper-panel{padding:clamp(20px,2vw,28px);overflow-wrap:anywhere}
+#view-cuenta .paper-panel h2{margin:0 0 16px;line-height:1.2}
+#view-cuenta .paper-panel p{line-height:1.6;margin-top:0}
+#view-cuenta .paper-panel .feature-bottom{margin-top:18px}
+#view-cuenta #notifications-panel .notification-settings{max-width:760px}
+#view-cuenta #notifications-panel>p{max-width:680px}
+#view-cuenta #notifications-panel .notification-settings-head,#view-cuenta #notifications-panel .notification-event{grid-template-columns:minmax(0,1fr) 90px 100px;column-gap:16px}
+#view-cuenta #notifications-panel .notification-event-name strong{font-size:13px}
+#view-cuenta #notifications-panel .notification-event-name small{font-size:11px}
+#view-cuenta #notifications-panel + .paper-panel .account-link{max-width:680px}
+#view-cuenta #account-export-panel p,#view-cuenta #account-deletion-panel p{max-width:56ch}
+@media(max-width:760px){#view-cuenta #notifications-panel .notification-settings-head{display:none}#view-cuenta #notifications-panel .notification-event{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){#view-cuenta #notifications-panel .notification-event{grid-template-columns:minmax(0,1fr)}}
+@container (max-width:400px){#view-cuenta #notifications-panel .notification-settings-head{display:none}#view-cuenta #notifications-panel .notification-event{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:300px){#view-cuenta #notifications-panel .notification-event{grid-template-columns:minmax(0,1fr)}}
 .branch-overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:10px 0 18px}
 .branch-overview{border:1px solid #e4dbcf;border-radius:16px;background:#fbf9f6;padding:12px;display:grid;gap:10px}
 .branch-overview>div:first-child{display:grid}
