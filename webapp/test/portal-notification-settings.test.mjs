@@ -58,3 +58,8 @@ test("notification reload ignores stale results and does not replace an in-fligh
   assert.match(domain,/if\(busyEvents.size\)return/);
   assert.match(domain,/mutationRevision\+\+/);
 });
+
+test('settings navigation module has an explicit production static route',async()=>{
+ const server=await readWeb('server.mjs');
+ assert.ok(server.includes("pathname==='/app/portal-settings-navigation.mjs'"));
+});
