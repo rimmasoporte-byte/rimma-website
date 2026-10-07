@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,operationalWidgetsCss,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-operational-widgets.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -175,6 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-validation\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-reference-data\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/pathname==='\/app\/portal-operational-widgets\.css'/);
  assert.match(server,/pathname==='\/app\/portal-dashboard-kpi-actions\.css'/);
  assert.match(server,/pathname==='\/app\/portal-garment-card-actions\.css'/);
  assert.match(server,/pathname==='\/app\/portal-garment-order-detail\.css'/);
@@ -444,7 +445,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
  assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(css,/body:has\(#modal\[open\]/);
-  assert.match(dashboardKpiActionsCss,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?width:max-content[\s\S]*?height:auto[\s\S]*?border:0[\s\S]*?white-space:nowrap/);
+  assert.match(operationalWidgetsCss,/\.appointments-timeline\{display:grid;gap:12px\}/);
+ assert.match(operationalWidgetsCss,/\.branch-overview-grid\{/);
+ assert.match(operationalWidgetsCss,/\.notification-event-list\{/);
+ assert.match(operationalWidgetsCss,/\.measurement-linked\{/);
+ assert.doesNotMatch(css,/Shared operational widgets retained in original cascade order/);
+ assert.match(dashboardKpiActionsCss,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump\{[\s\S]*?width:max-content[\s\S]*?height:auto[\s\S]*?border:0[\s\S]*?white-space:nowrap/);
   assert.doesNotMatch(css,/V30 — dashboard KPI actions are text cues/);
   assert.match(garmentActionsCss,/\.garment-card-top\{[\s\S]*?align-items:flex-start/);
   assert.match(garmentActionsCss,/\.garment-card-top>\.status\{[\s\S]*?align-self:flex-start[\s\S]*?height:auto/);
