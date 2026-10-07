@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="./assets-v3/site.css">
   <link rel="stylesheet" href="./assets-v3/v3.css">
   <link rel="stylesheet" href="./assets-v3/marketing.css">
+  <script src="./assets-v3/product-offer.js?v=20261007" defer></script>
   <script src="./assets-v3/spain-locales.js?v=20261007-marketing" defer></script>
   <script src="./assets-v3/site.js" defer></script>
   <script src="/assets-v3/analytics.js?v=20261003-intl" defer></script>
@@ -78,8 +79,8 @@
             <a class="v3-button v3-button-text" href="./demo/"><span class="v3-play">▶</span> Ver cómo funciona</a>
           </div>
           <div class="mk-offer" aria-label="Condiciones principales">
-            <span><svg><use href="#i-check"/></svg> 5 días gratis sin tarjeta</span>
-            <span><svg><use href="#i-check"/></svg> 4,99 €/mes en España</span>
+            <span><svg><use href="#i-check"/></svg> <span data-offer-copy="trialNoCard">5 días gratis sin tarjeta</span></span>
+            <span><svg><use href="#i-check"/></svg> <span data-offer-copy="priceSpain">4,99 €/mes en España</span></span>
             <span><svg><use href="#i-check"/></svg> Web + Android</span>
           </div>
         </div>
@@ -179,14 +180,13 @@
         </div>
         <div class="mk-price-card">
           <span class="conversion-plan-kicker">RIMMA · PLAN MENSUAL</span>
-          <div class="mk-price"><strong>4,99 €</strong><span>/ mes</span></div>
+          <div class="mk-price"><strong data-offer="price">4,99 €</strong><span>/ mes</span></div>
           <p class="mk-price-country">Precio mostrado para España.</p>
           <ul>
-            <li><svg><use href="#i-check"/></svg> 5 días de prueba sin tarjeta</li>
+            <li><svg><use href="#i-check"/></svg> <span data-offer-copy="trialList">5 días de prueba sin tarjeta</span></li>
             <li><svg><use href="#i-check"/></svg> Pedidos, prendas, fotos, medidas y cobros</li>
             <li><svg><use href="#i-check"/></svg> Documentos y mensajes preparados para WhatsApp</li>
-            <li><svg><use href="#i-check"/></svg> Hasta 3 usuarios en el taller</li>
-            <li><svg><use href="#i-check"/></svg> Sin permanencia</li>
+            <li><svg><use href="#i-check"/></svg> <span data-offer-copy="seatsList">Hasta 3 usuarios en el taller</span></li>
           </ul>
           <a class="v3-button v3-button-dark mk-price-cta" href="https://app.rimmaapp.com/app/register.html">Probar 5 días gratis <svg><use href="#i-arrow"/></svg></a>
           <a class="mk-buy-link" href="https://app.rimmaapp.com/app/?view=suscripcion">Suscribirme ahora →</a>
@@ -208,7 +208,7 @@
           <details><summary>¿La prueba necesita tarjeta?<span>＋</span></summary><p>No. Puedes probar RIMMA durante 5 días sin introducir una tarjeta.</p></details>
           <details><summary>¿Qué ocurre al terminar los 5 días?<span>＋</span></summary><p>La prueba no inicia un cobro por sí sola. Para continuar necesitas contratar una suscripción desde el canal de compra disponible.</p></details>
           <details><summary>¿El precio de 4,99 € incluye IVA?<span>＋</span></summary><p>RIMMA publica 4,99 €/mes como precio del plan en España. El importe fiscal definitivo se muestra en el canal de compra antes de confirmar el pago.</p></details>
-          <details><summary>¿Puedo cancelar la suscripción?<span>＋</span></summary><p>Sí. El plan se presenta sin permanencia. La renovación debe cancelarse en el mismo canal con el que se contrató; eliminar la cuenta no sustituye esa cancelación.</p></details>
+          <details><summary>¿Puedo cancelar la suscripción?<span>＋</span></summary><p>Si contrataste en Google Play, la renovación se gestiona desde Suscripciones de Google Play. Para una compra web, revisa las condiciones del canal de compra o contacta con soporte.</p></details>
           <details><summary>¿Puedo sacar mis datos de RIMMA?<span>＋</span></summary><p>Sí. La cuenta dispone de una exportación de datos y el flujo de eliminación permite descargar un archivo antes de borrar el espacio de trabajo.</p></details>
           <details><summary>¿Cómo funciona WhatsApp?<span>＋</span></summary><p>RIMMA prepara el texto según el momento del pedido. Tú lo revisas y abres WhatsApp para enviarlo; RIMMA no promete envío automático.</p></details>
           <details><summary>¿Dónde pido ayuda?<span>＋</span></summary><p>Puedes escribir a soporte@rimmaapp.com o entrar en el centro de ayuda desde esta web.</p></details>

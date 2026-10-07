@@ -22,7 +22,7 @@ test('The production home is indexable, canonical and has the original RIMMA log
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
-    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js','assets-v3/spain-locales.js',
+    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/marketing.css','assets-v3/site.js','assets-v3/product-offer.js','assets-v3/spain-locales.js',
     'assets-v3/logo.webp','assets-v3/icon.png','assets-v3/logo-original.png',
     'assets-v3/fonts/manrope-400.woff2','assets-v3/fonts/manrope-700.woff2',
     'assets-v3/fonts/playfair-500.woff2','assets-v3/fonts/licenses/MANROPE-LICENSE.txt',
@@ -97,6 +97,25 @@ test('Public pricing keeps trial primary while allowing immediate subscription',
   assert.match(h,/importe fiscal definitivo/);
   assert.doesNotMatch(h,/IVA incluido|IVA no incluido/i);
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
+});
+
+test('product offer is the public source for price, trial and seat limits',()=>{
+  const h=read('index.html');
+  const offer=read('assets-v3/product-offer.js');
+  assert.match(h,/product-offer\.js/);
+  assert.match(offer,/monthlyPrice:"4,99 €"/);
+  assert.match(offer,/trialDays:5/);
+  assert.match(offer,/seats:3/);
+  assert.match(h,/data-offer-copy="trialNoCard"/);
+  assert.match(h,/data-offer="price"/);
+  assert.match(h,/data-offer-copy="seatsList"/);
+});
+
+test('public pricing does not overstate cancellation terms',()=>{
+  const h=read('index.html');
+  assert.doesNotMatch(h,/Sin permanencia/);
+  assert.match(h,/Suscripciones de Google Play/);
+  assert.match(h,/condiciones del canal de compra/);
 });
 
 test('trial is the primary conversion path while demo remains secondary',()=>{
