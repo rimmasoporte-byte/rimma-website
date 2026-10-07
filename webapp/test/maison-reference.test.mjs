@@ -38,16 +38,16 @@ test('golden reference artwork stays local with responsive and accessible rules'
  assert.doesNotMatch(css,/url\(\s*["']?http:/i);
 });
 test('live KPI counts and client/order data are not replaced by mock numbers',async()=>{
- const js=await file('site.js');
+ const [js,recordLists]=await Promise.all([file('site.js'),file('portal-record-lists.mjs')]);
  assert.match(js,/dashboard\?\.summary\?\.dueToday/);
  assert.match(js,/dashboard\?\.summary\?\.readyForPickup/);
  assert.match(js,/topbar-alert-dot/);
  assert.match(js,/orders\.value\.orders\|\|\[\]/);
- assert.match(js,/function garmentCardOrderActions\(/);
- assert.match(js,/actions\?garmentCardOrderActions\(o,itemId,orderId\)/);
- assert.match(js,/class="garment-more"/);
- assert.match(js,/data-action="edit-/);
- assert.match(js,/data-action="delete-/);
+ assert.match(recordLists,/function garmentCardOrderActions\(/);
+ assert.match(recordLists,/actions\?garmentCardOrderActions\(order,itemId,orderId\)/);
+ assert.match(recordLists,/class="garment-more"/);
+ assert.match(recordLists,/data-action="edit-/);
+ assert.match(recordLists,/data-action="delete-/);
 });
 test('secure BFF explicitly serves only the canonical application stylesheet',async()=>{
  const server=await fs.readFile(new URL('../server.mjs',import.meta.url),'utf8');
