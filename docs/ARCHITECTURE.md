@@ -21,6 +21,7 @@ Key responsibilities:
 - `order-client-selection.mjs`: order client search, combobox interaction, client hydration and Step 1 client/branch presentation;
 - `order-garments.mjs`: Step 2 garment/work rendering, catalog selection, pricing/assignment updates, validation and add/remove lifecycle coordination;
 - `order-delivery.mjs`: Step 3 general/per-garment delivery dates, physical storage location editing and delivery validation;
+- `order-review.mjs`: Step 4 review/created presentation, work attribution, photo counts and order subtotal/total calculation;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -78,6 +79,7 @@ Use the narrowest owner that can correctly perform an action:
 - order client search/selection and Step 1 client presentation -> `order-client-selection.mjs`;
 - order garment/work editing and Step 2 presentation -> `order-garments.mjs`;
 - order delivery/date editing and Step 3 presentation -> `order-delivery.mjs`;
+- order review/created presentation and monetary summaries -> `order-review.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -117,7 +119,9 @@ Order photo behavior is intentionally split by responsibility instead of living 
 
 `order-garments.mjs` owns Step 2 garment/work markup, category/service selection, price and assignee updates, validation, local photo-field coordination, and add/remove cleanup. Photo preview/capture/persistence remain in their dedicated photo modules; the wizard remains the single delegated DOM event owner.
 
-`order-delivery.mjs` owns Step 3 delivery markup, the general due date, per-garment date overrides, physical storage-location editing and delivery-date validation. Review rendering, payload construction, idempotency and final order creation remain orchestration concerns.
+`order-delivery.mjs` owns Step 3 delivery markup, the general due date, per-garment date overrides, physical storage-location editing and delivery-date validation.
 
-`order-wizard.mjs` composes these domains and keeps cross-step orchestration, review state, payload construction and final order submission.
+`order-review.mjs` owns Step 4 review and post-create presentation plus deterministic garment/order subtotal calculations. It does not call APIs or own submission state.
+
+`order-wizard.mjs` composes these domains and keeps cross-step orchestration, payload construction, idempotency and final order submission.
 The BFF explicitly serves every browser module under `/app/`.

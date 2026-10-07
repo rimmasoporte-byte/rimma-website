@@ -150,7 +150,7 @@ test("wizard delegates Step 3 while review and submission remain in the orchestr
   assert.match(wizard,/delivery\.validate\(\{fail\}\)/);
   assert.doesNotMatch(wizard,/function deliveryRow|function renderDelivery|function updateDeliveryItem|actionName==="toggle-item-date"/);
 
-  assert.match(wizard,/function renderReview\(/);
+  assert.match(wizard,/review\.renderReview\(\)/);
   assert.match(wizard,/function payload\(/);
   assert.match(wizard,/async function createOrder\(/);
   assert.match(wizard,/function deriveOrderDue\(/);
