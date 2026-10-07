@@ -50,6 +50,8 @@ export function createNotificationSettings({api,success,globalError,getMe}){
   const target=()=>document.querySelector("#notifications-summary");
   const refreshButton=()=>document.querySelector("#manage-notifications");
   const busyEvents=new Set();
+  let loadRevision=0;
+  let mutationRevision=0;
 
   function rowStatus(row,message,isError=false){
     const status=row?.querySelector(".notification-inline-status");
@@ -70,22 +72,28 @@ export function createNotificationSettings({api,success,globalError,getMe}){
   async function load(){
     const host=target();
     if(!host||getMe?.()?.workspace?.role!=="owner")return;
+    if(busyEvents.size)return;
+    const revision=++loadRevision;
+    const mutationAtStart=mutationRevision;
     const button=refreshButton();
     host.innerHTML='<p class="small">Cargando reglas…</p>';
     if(button){button.disabled=true;button.textContent="Actualizando…";}
     try{
       const data=await api("/notification-settings");
+      if(revision!==loadRevision||mutationAtStart!==mutationRevision)return;
       host.innerHTML=renderNotificationSettings(data.notificationSettings||{});
     }catch(error){
+      if(revision!==loadRevision||mutationAtStart!==mutationRevision)return;
       host.innerHTML='<p class="small">No se pudieron cargar los avisos. Inténtalo de nuevo.</p>';
       globalError(error.message||"No se pudieron cargar los avisos.");
     }finally{
-      if(button?.isConnected){button.disabled=false;button.textContent="Actualizar avisos";}
+      if(revision===loadRevision&&button?.isConnected){button.disabled=false;button.textContent="Actualizar avisos";}
     }
   }
 
   async function persist({row,eventKey,channel,enabled,templateName,commit,rollback}){
     if(!row||!eventKey||busyEvents.has(eventKey)){rollback?.();return;}
+    mutationRevision++;
     busyEvents.add(eventKey);setRowBusy(row,true);rowStatus(row,"Guardando…");
     try{
       await api("/notification-settings",{
