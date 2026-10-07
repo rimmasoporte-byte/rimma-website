@@ -18,19 +18,14 @@
  width:100%;
  height:100%
 }
-.garment-actions{
- align-items:center
-}
-.garment-actions>.record-action{
- flex:0 0 auto
-}
+
+
 .garment-primary-action{
  background:#20352a;
  border-color:#20352a;
  color:#fffdf7
 }
-.garment-primary-action:hover,
-.garment-primary-action:focus-visible{
+.garment-primary-action:hover,.garment-primary-action:focus-visible{
  background:#2a4637;
  border-color:#2a4637;
  color:#fffdf7
@@ -79,12 +74,8 @@
  justify-content:flex-start
 }
 @media(max-width:760px){
- .garment-actions{
-  align-items:stretch
- }
- .garment-actions>.record-action,
- .garment-more,
- .garment-more>summary{
+
+ .garment-more,.garment-more>summary{
   width:100%
  }
  .garment-more>summary{

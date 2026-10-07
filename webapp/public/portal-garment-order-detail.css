@@ -1,35 +1,6 @@
 /* V33 — separate garment actions from order actions. */
-.garment-action-groups{
- display:grid;
- gap:10px;
- margin-top:12px;
- padding-top:11px;
- border-top:1px solid #eee5d9
-}
-.garment-action-group{
- display:grid;
- grid-template-columns:62px minmax(0,1fr);
- gap:10px;
- align-items:start
-}
-.garment-action-label{
- padding-top:9px;
- font:800 9px/1.2 var(--font);
- letter-spacing:1.25px;
- color:#9a8058
-}
-.garment-action-group .garment-actions{
- margin:0
-}
-.garment-action-group-order{
- padding-top:9px;
- border-top:1px dashed #ece1d3
-}
-.garment-order-info{
- border-color:#b8c8bd;
- background:#f7faf7;
- color:#294335
-}
+
+
 .garment-more>summary[aria-label="Más acciones del pedido"]{
  min-width:38px;
  justify-content:center;
@@ -88,9 +59,7 @@
  font:650 17px/1.25 var(--font);
  font-variant-numeric:tabular-nums
 }
-#feature-dialog[data-mode="order-info"] .order-info-item,
-#feature-dialog[data-mode="order-info"] .order-info-work-lines,
-#feature-dialog[data-mode="order-info"] .order-info-notes{
+#feature-dialog[data-mode="order-info"] .order-info-item,#feature-dialog[data-mode="order-info"] .order-info-work-lines,#feature-dialog[data-mode="order-info"] .order-info-notes{
  font-family:var(--font)
 }
 .order-info-notes{
@@ -126,20 +95,8 @@
 .order-info-work-lines small{font:500 10px/1.35 var(--font);color:#81796f}
 .order-info-work-lines em{font:600 11px var(--font);font-style:normal;white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:760px){
- .garment-action-group{
-  grid-template-columns:1fr;
-  gap:5px
- }
- .garment-action-label{padding-top:0}
- .garment-action-group .garment-actions{
-  display:grid;
-  grid-template-columns:1fr
- }
- .garment-action-group .garment-actions>.record-action,
- .garment-action-group .garment-more,
- .garment-action-group .garment-more>summary{
-  width:100%
- }
+
+
  .garment-edit-head,.order-info-hero{
   display:grid
  }

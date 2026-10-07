@@ -22,10 +22,12 @@ test('canonical RIMMA visual sheet replaces the historical cascade without extra
 test('luxury skin includes responsive layout, contrast and offline visual assets',async()=>{
  const css=await read('app.css');
  const shell=await read('portal-shell-controls.css');
+ const garmentCards=await read('portal-garment-cards.css');
  assert.ok(css.includes('data:image/webp;base64,'));
  assert.ok((css.match(/data:image\/webp;base64,/g)||[]).length>=2);
  assert.match(css,/--font-ui:"DM Sans"/);
- assert.match(css,/\.customer-avatar/);
+ assert.match(garmentCards,/\.garment-card-refined/);
+ assert.doesNotMatch(css,/\.customer-avatar/);
  assert.doesNotMatch(css,/\/\* ===== BUTTON SYSTEM ===== \*\//);
  assert.match(shell,/\.record-action:disabled/);
  assert.match(css,/@media\(max-width:630px\)/);
