@@ -33,6 +33,7 @@ Key responsibilities:
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and shared foundations;
+- `portal-dashboard-kpi-actions.css`: early dashboard KPI action normalization retained in its original cascade position;
 - `portal-garment-card-actions.css`: base garment-card action/menu presentation and responsive interaction surface;
 - `portal-garment-workspace.css`: garment workspace/read-only sheet and work editor presentation used by `portal-garment-overview.mjs` and `portal-garment-works.mjs`;
 - `portal-garment-order-detail.css`: shared garment/action-group and read-only order-detail presentation used across garment editing and `portal-order-info.mjs`;
