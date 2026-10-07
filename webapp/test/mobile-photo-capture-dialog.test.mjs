@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,garments,capture,persistence,interactions,css,index]=await Promise.all([
+const [wizard,garments,capture,persistence,interactions,captureCss,index]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-garments.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-mobile-capture.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-persistence.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-interactions.mjs',import.meta.url),'utf8'),
-  fs.readFile(new URL('../public/app.css',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-mobile-capture.css',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/index.html',import.meta.url),'utf8')
 ]);
 
@@ -21,8 +21,8 @@ test('mobile capture QR is a dedicated top-layer dialog, never embedded in the o
   assert.doesNotMatch(capture,/function mobileCapturePanel/);
   assert.doesNotMatch(capture,/data-mobile-qr-key=/);
   assert.doesNotMatch(capture,/refresh-mobile-photos|hide-mobile-capture/);
-  assert.doesNotMatch(css,/\.wizard-mobile-capture\{/);
-  assert.match(css,/#order-mobile-capture-dialog\{/);
+  assert.doesNotMatch(captureCss,/\.wizard-mobile-capture\{/);
+  assert.match(captureCss,/#order-mobile-capture-dialog\{/);
 });
 
 test('QR dialog waits for a server-confirmed new photo before automatic close',()=>{

@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -269,13 +269,13 @@ test("website only proxies explicitly authenticated mobile-compatible operations
 
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
- assert.match(css,/#order-mobile-capture-dialog\{/);
- assert.match(css,/\.mobile-capture-dialog-qr\{/);
+ assert.match(captureCss,/#order-mobile-capture-dialog\{/);
+ assert.match(captureCss,/\.mobile-capture-dialog-qr\{/);
  assert.match(css,/Canonical order photo controls/);
  assert.match(css,/\.wizard-photo-control\{[\s\S]*?box-sizing:border-box[\s\S]*?width:100%[\s\S]*?max-width:100%[\s\S]*?overflow-x:clip/);
  assert.match(css,/\.wizard-photo-control \*\{box-sizing:border-box\}/);
- assert.match(css,/\.mobile-capture-dialog-qr\{[\s\S]*?width:258px[\s\S]*?height:258px[\s\S]*?overflow:hidden/);
- assert.match(css,/\.mobile-capture-dialog-qr img,[\s\S]*?\.mobile-capture-dialog-qr canvas\{[\s\S]*?width:240px!important[\s\S]*?height:240px!important/);
+ assert.match(captureCss,/\.mobile-capture-dialog-qr\{[\s\S]*?width:258px[\s\S]*?height:258px[\s\S]*?overflow:hidden/);
+ assert.match(captureCss,/\.mobile-capture-dialog-qr img,[\s\S]*?\.mobile-capture-dialog-qr canvas\{[\s\S]*?width:240px!important[\s\S]*?height:240px!important/);
 
  assert.match(viewerCss,/\.wizard-photo-gallery\{/);
  assert.match(viewerCss,/#order-photo-viewer\{[\s\S]*?width:100vw[\s\S]*?height:100dvh[\s\S]*?overflow:hidden/);
@@ -447,6 +447,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v\d+/);
   assert.match(html,/app\.css\?v=20261007-v\d+/);
+  assert.match(html,/order-mobile-capture\.css\?v=20261007-v\d+/);
   assert.match(html,/order-photo-viewer\.css\?v=20261007-v\d+/);
   assert.doesNotMatch(html,/portal-parity\.css|maison-reference\.css|sidebar-photo\.css/);
   assert.match(css,/scrollbar-width:none/);
