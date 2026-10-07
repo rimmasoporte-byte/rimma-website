@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,capture,css,index]=await Promise.all([
+const [wizard,capture,persistence,css,index]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-mobile-capture.mjs',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-photo-persistence.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/app.css',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/index.html',import.meta.url),'utf8')
 ]);
@@ -67,7 +68,7 @@ test('wizard delegates capture lifecycle instead of owning timers and sessions',
   assert.match(wizard,/mobileCapture\.runOpen\(index,workIndex\)/);
   assert.match(wizard,/mobileCapture\.refresh\(work,\{rerender:false\}\)/);
   assert.match(wizard,/mobileCapture\.discardAll\(\)/);
-  assert.match(wizard,/mobileCapture\.markClaimed\(sourceWork\)/);
+  assert.match(persistence,/mobileCapture\.markClaimed\(sourceWork\)/);
   assert.match(wizard,/mobileCapture\.closed\(\)/);
   assert.doesNotMatch(wizard,/capturePollTimer|capturePollBusy|mobileCaptureSessions|mobileCaptureDialogState|mobileCaptureCloseTimer/);
 });

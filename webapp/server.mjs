@@ -272,6 +272,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/order-wizard.mjs')return staticFile(res,'order-wizard.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/order-photo-viewer.mjs')return staticFile(res,'order-photo-viewer.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/order-mobile-capture.mjs')return staticFile(res,'order-mobile-capture.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/order-photo-persistence.mjs')return staticFile(res,'order-photo-persistence.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/confirm-dialog.mjs')return staticFile(res,'confirm-dialog.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/account-deletion.mjs')return staticFile(res,'account-deletion.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/onboarding.mjs')return staticFile(res,'onboarding.mjs','text/javascript; charset=utf-8');
