@@ -136,13 +136,14 @@ test('discard deletes draft capture while markClaimed only forgets local session
 
 test('wizard delegates capture timers, session state and dialog ownership to the domain',async()=>{
   const fs=await import('node:fs/promises');
-  const [wizard,capture,server]=await Promise.all([
+  const [wizard,garments,capture,server]=await Promise.all([
     fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
+    fs.readFile(new URL('../public/order-garments.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../public/order-mobile-capture.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
   ]);
   assert.match(wizard,/createOrderMobileCapture/);
-  assert.match(wizard,/mobileCapture\.runOpen\(index,workIndex\)/);
+  assert.match(garments,/mobileCapture\.runOpen/);
   assert.match(wizard,/mobileCapture\.discardAll\(\)/);
   assert.doesNotMatch(wizard,/capturePollTimer|capturePollBusy|mobileCaptureSessions|mobileCaptureDialogState|mobileCaptureCloseTimer/);
   assert.match(capture,/function syncPolling\(/);

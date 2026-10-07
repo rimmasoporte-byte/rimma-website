@@ -1,4 +1,5 @@
 import {spawn,spawnSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -29,6 +30,18 @@ async function waitForHttp(url,timeoutMs=15000){
 }
 
 function chromeBinary(){
+ const configured=String(process.env.CHROME_BIN||'').trim();
+ if(configured&&existsSync(configured))return configured;
+ if(process.platform==='win32'){
+  const candidates=[
+   process.env.ProgramFiles&&join(process.env.ProgramFiles,'Google','Chrome','Application','chrome.exe'),
+   process.env['ProgramFiles(x86)']&&join(process.env['ProgramFiles(x86)'],'Google','Chrome','Application','chrome.exe'),
+   process.env.LOCALAPPDATA&&join(process.env.LOCALAPPDATA,'Google','Chrome','Application','chrome.exe'),
+   process.env.ProgramFiles&&join(process.env.ProgramFiles,'Microsoft','Edge','Application','msedge.exe')
+  ].filter(Boolean);
+  const installed=candidates.find(candidate=>existsSync(candidate));
+  if(installed)return installed;
+ }
  const probe=spawnSync('sh',['-lc','command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser'],{encoding:'utf8'});
  const value=String(probe.stdout||'').trim().split(/\r?\n/)[0];
  if(!value)fail('Chrome/Chromium is required for browser E2E tests.');
@@ -171,7 +184,7 @@ async function main(){
 
    for(const width of [390,1280]){
     await setViewport(width,width===390?844:900);
-    await evaluate(`localStorage.removeItem('rimma.order.draft.v63')`);
+    await evaluate(`sessionStorage.removeItem('rimma.order.draft.v63')`);
     await click('#view-inicio [data-action="new-order"]');
     await waitFor(`document.querySelector('.wizard-branch-readonly')?.textContent.includes('Atelier de prueba')`,'loaded wizard client step');
     await evaluate(`(()=>{const input=document.querySelector('#ow-client-search');input.focus();input.value='María';input.dispatchEvent(new Event('input',{bubbles:true}))})()`);
@@ -180,6 +193,27 @@ async function main(){
     await waitFor(`document.querySelector('#modal-submit')?.disabled===false`,'confirmed client selection');
     await click('#modal-submit');
     await waitFor(`document.querySelector('#ow-photo-0-0')`,'wizard photo input');
+
+    await evaluate(`(()=>{const select=document.querySelector('[data-wizard-item="0"][data-item-field="categoryId"]');select.value=select.options[1].value;select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+    await waitFor(`document.querySelector('.wizard-garment strong')?.textContent.includes('Arreglos y confección')`,'garment category selection');
+    await evaluate(`(()=>{const select=document.querySelector('[data-wizard-item="0"][data-work-index="0"][data-work-field="serviceIndex"]');select.value='1';select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+    await waitFor(`document.querySelector('[data-wizard-item="0"][data-work-index="0"][data-work-field="work"]')?.value.startsWith('ServicioConUnNombreMuyLargoSinEspacios')`,'service autofill');
+    await assertBrowser(`document.querySelector('[data-wizard-item="0"][data-work-index="0"][data-work-field="price"]')?.value==='90000000000.00'`,'Service price autofill changed during Step 2 extraction.');
+
+    await click('[data-wizard-action="add-work"][data-index="0"]');
+    await waitFor(`document.querySelectorAll('.wizard-work-row').length===2`,'second work row');
+    await evaluate(`(()=>{const select=document.querySelector('[data-wizard-item="0"][data-work-index="1"][data-work-field="serviceIndex"]');select.value='manual';select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+    await evaluate(`(()=>{const work=document.querySelector('[data-wizard-item="0"][data-work-index="1"][data-work-field="work"]');work.value='Ajuste manual';work.dispatchEvent(new Event('input',{bubbles:true}));const price=document.querySelector('[data-wizard-item="0"][data-work-index="1"][data-work-field="price"]');price.value='12.50';price.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+    await assertBrowser(`document.querySelector('[data-wizard-item="0"][data-work-index="1"][data-work-field="work"]')?.value==='Ajuste manual'&&document.querySelector('[data-wizard-item="0"][data-work-index="1"][data-work-field="price"]')?.value==='12.50'`,'Manual work editing failed.');
+    await click('[data-wizard-action="remove-work"][data-index="0"][data-work-index="1"]');
+    await waitFor(`document.querySelectorAll('.wizard-work-row').length===1`,'work removal');
+
+    await click('[data-wizard-action="add-item"]');
+    await waitFor(`document.querySelectorAll('.wizard-garment').length===2`,'second garment');
+    await assertBrowser(`!!document.querySelector('[data-wizard-action="remove-item"][data-index="1"]')`,'Second garment cannot be removed.');
+    await click('[data-wizard-action="remove-item"][data-index="1"]');
+    await waitFor(`document.querySelectorAll('.wizard-garment').length===1`,'garment removal');
+
     await evaluate(`(async()=>{const canvas=document.createElement('canvas');canvas.width=400;canvas.height=300;canvas.getContext('2d').fillRect(0,0,400,300);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const transfer=new DataTransfer();transfer.items.add(new File([blob],'viewer-fixture.png',{type:'image/png'}));const input=document.querySelector('#ow-photo-0-0');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))})()`);
     await waitFor(`document.querySelector('[data-wizard-action="preview-local-photo"]')`,'local photo thumbnail');
     await click('[data-wizard-action="preview-local-photo"]');
@@ -205,6 +239,10 @@ async function main(){
     await waitFor(`document.querySelector('#confirm-dialog')?.open`,'confirmed photo deletion');
     await click('#confirm-ok');
     await waitFor(`!document.querySelector('#order-photo-viewer')?.open&&!document.querySelector('.wizard-photo-thumb')`,'deleted photo cleanup');
+    await click('#modal-submit');
+    await waitFor(`document.querySelector('#modal')?.dataset.wizardStep==='2'&&!!document.querySelector('#ow-due')`,'Step 2 validation and delivery transition');
+    await click('#modal-back');
+    await waitFor(`document.querySelector('#modal')?.dataset.wizardStep==='1'&&!!document.querySelector('#ow-photo-0-0')`,'return to garments step');
     await click('#modal-close');
     await waitFor(`document.querySelector('#confirm-dialog')?.open`,'dirty wizard close confirmation');
     await click('#confirm-alternative');
