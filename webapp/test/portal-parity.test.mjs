@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,orderWizardCss,operationalWidgetsCss,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,shellControlsCss,orderWizardCss,operationalWidgetsCss,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/portal-order-wizard.css"),source("public/portal-operational-widgets.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-shell-controls.css"),source("public/portal-order-wizard.css"),source("public/portal-operational-widgets.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -175,6 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-validation\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-reference-data\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/pathname==='\/app\/portal-shell-controls\.css'/);
  assert.match(server,/pathname==='\/app\/portal-order-wizard\.css'/);
  assert.match(server,/pathname==='\/app\/portal-operational-widgets\.css'/);
  assert.match(server,/pathname==='\/app\/portal-dashboard-kpi-actions\.css'/);
@@ -205,8 +206,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.doesNotMatch(css+orderWizardCss,/\.wizard-client-selected/);
  assert.doesNotMatch(css+orderWizardCss,/\.wizard-client-meta/);
  assert.match(orderWizardCss,/\.wizard-client-confirmation\{/);
- assert.match(css,/\.brand-dialog \.secondary\.danger\{/);
- assert.match(css,/\.brand-dialog-actions:has\(#confirm-alternative:not\(\[hidden\]\)\)/);
+ assert.match(shellControlsCss,/\.brand-dialog \.secondary\.danger\{/);
+ assert.match(shellControlsCss,/\.brand-dialog-actions:has\(#confirm-alternative:not\(\[hidden\]\)\)/);
  assert.doesNotMatch(clientSelection,/\/clients\?limit=100&offset=0/);
  assert.doesNotMatch(clientSelection,/<select id="ow-client"/);
  assert.match(orderWizardCss,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
@@ -238,7 +239,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/error\.code=result\.code\|\|null/);
  assert.match(js,/error\.code==="CLIENT_DUPLICATE"/);
  assert.match(js,/client-duplicate-warning/);
- assert.match(css,/\.client-duplicate-warning\{/);
+ assert.match(shellControlsCss,/\.client-duplicate-warning\{/);
  assert.match(js,/if\(activeModal==="order"\|\|\$\("#modal"\)\.classList\.contains\("order-wizard-modal"\)\)/);
  assert.match(js,/if\(resumeOrder\)\{[\s\S]*?activeModal="order";[\s\S]*?openNewOrder\(preferredClientId\)/);
  assert.match(js,/const newClientPhonePrefix=\(\)=>currentCountry\(\)==="ES"\?"\+34 ":""/);
@@ -442,10 +443,11 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalPayments,/Registrar cobro pendiente/);
  assert.match(portalPayments,/paymentRetry/);
  assert.match(server,/idempotency-key/);
- assert.match(css,/#modal-form\s*\{[\s\S]*?overflow:hidden/);
- assert.match(css,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
- assert.match(css,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
+ assert.match(shellControlsCss,/#modal-form\s*\{[\s\S]*?overflow:clip/);
+ assert.match(shellControlsCss,/#modal-fields\s*\{[\s\S]*?overflow-x:hidden;overflow-y:auto/);
+ assert.match(shellControlsCss,/#feature-body\s*\{[\s\S]*?overflow-y:auto/);
  assert.match(css,/body:has\(#modal\[open\]/);
+ assert.doesNotMatch(css,/\/\* ===== BUTTON SYSTEM ===== \*\//);
   assert.match(operationalWidgetsCss,/\.appointments-timeline\{display:grid;gap:12px\}/);
  assert.match(operationalWidgetsCss,/\.branch-overview-grid\{/);
  assert.match(operationalWidgetsCss,/\.notification-event-list\{/);
@@ -666,11 +668,11 @@ test("payment cancellation opens a reason form before any mutation",async()=>{
 
 test("V64 focus rings stay inside controls and cannot be cropped by dialogs or native selects",async()=>{
  const base=await source("public/site.css");
- const css=await source("public/app.css");
+ const shell=await source("public/portal-shell-controls.css");
  assert.match(base,/\*:focus-visible\{outline:2px solid #B2955F!important;outline-offset:-3px!important\}/);
- assert.match(css,/input:focus:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),[\s\S]*?outline-offset:-3px!important;[\s\S]*?box-shadow:inset 0 0 0 1px/);
- assert.match(css,/select:focus:not\(\[multiple\]\)/);
- assert.match(css,/textarea:focus:not\(\[readonly\]\)/);
- assert.match(css,/input\[type="checkbox"\]:focus-visible,[\s\S]*?outline-offset:-2px!important/);
- assert.match(css,/button:focus-visible:not\(:disabled\),[\s\S]*?outline-offset:-3px!important/);
+ assert.match(shell,/input:focus:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),[\s\S]*?outline-offset:-3px!important;[\s\S]*?box-shadow:inset 0 0 0 1px/);
+ assert.match(shell,/select:focus:not\(\[multiple\]\)/);
+ assert.match(shell,/textarea:focus:not\(\[readonly\]\)/);
+ assert.match(shell,/input\[type="checkbox"\]:focus-visible,[\s\S]*?outline-offset:-2px!important/);
+ assert.match(shell,/button:focus-visible:not\(:disabled\),[\s\S]*?outline-offset:-3px!important/);
 });
