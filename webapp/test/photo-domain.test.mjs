@@ -126,6 +126,7 @@ test('portal photos domain preserves desktop upload payload and shared preparati
 test('portal delegates photo workflow to the photos domain',()=>{
  const features=read('public/portal-features.mjs');
  const photos=read('public/portal-photos.mjs');
+ const css=read('public/portal-photo-workspace.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createPhotoUI/);
@@ -138,5 +139,9 @@ test('portal delegates photo workflow to the photos domain',()=>{
  assert.match(photos,/photo-preparation\.mjs/);
  assert.match(photos,/\/photo-capture/);
  assert.match(photos,/window\.QRCode/);
+ assert.match(css,/^\/\* ===== WORK PHOTO WORKSPACE ===== \*\//);
+ assert.match(css,/\.work-photo-card\{/);
+ assert.match(css,/\.mobile-photo-capture\{/);
  assert.match(server,/pathname==='\/app\/portal-photos\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-photo-workspace\.css'/);
 });
