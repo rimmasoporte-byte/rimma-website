@@ -17,6 +17,7 @@ const site=sources["site.js"];
 const wizard=sources["order-wizard.mjs"];
 const viewer=sources["order-photo-viewer.mjs"];
 const mobileCapture=sources["order-mobile-capture.mjs"];
+const photoInteractions=sources["order-photo-interactions.mjs"];
 const features=sources["portal-features.mjs"];
 const serviceFeatures=sources["portal-services.mjs"];
 const measurementFeatures=sources["portal-measurements.mjs"];
@@ -114,7 +115,7 @@ test("team action buttons have one team-module handler each",()=>{
 });
 
 test("every order-wizard action emitted by the UI has an owner",()=>{
-  const emitted=values(wizard,"data-wizard-action");
+  const emitted=[...new Set([...values(wizard,"data-wizard-action"),...values(photoInteractions,"data-wizard-action")])].sort();
   const handled=[...new Set([
     ...[...wizard.matchAll(/actionName==="([a-z0-9-]+)"/g)].map(match=>match[1]),
     ...[...wizard.matchAll(/name==="([a-z0-9-]+)"/g)].map(match=>match[1])
@@ -147,10 +148,10 @@ test("destructive record and photo actions remain confirmation-gated",()=>{
   assert.ok(deleteStart>=0&&logoutStart>deleteStart);
   assert.match(site.slice(deleteStart,logoutStart),/confirmAction\(/);
 
-  const photoStart=wizard.indexOf("async function deletePhoto");
-  const photoEnd=wizard.indexOf("function render()",photoStart);
+  const photoStart=photoInteractions.indexOf("async function deletePhoto");
+  const photoEnd=photoInteractions.indexOf("function replaceLocalFiles",photoStart);
   assert.ok(photoStart>=0&&photoEnd>photoStart);
-  assert.match(wizard.slice(photoStart,photoEnd),/confirmAction\([\s\S]*?danger:true/);
+  assert.match(photoInteractions.slice(photoStart,photoEnd),/confirmAction\([\s\S]*?danger:true/);
 });
 
 test("the portal has one canonical ordinary-button system instead of stacked base definitions",()=>{

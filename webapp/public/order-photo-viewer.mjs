@@ -1,5 +1,5 @@
 // Presentation and interaction owner for order-local photo previews.
-// Uploads, capture polling, cover mutations and deletion remain in the wizard.
+// Capture, persistence, cover mutations and deletion are delegated to dedicated order photo domains.
 const UUID=/^[a-f0-9-]{36}$/i;
 const PHOTO_ZOOMS=Object.freeze([50,75,100,125,150,200,300,400]);
 const PHOTO_ZOOM_DEFAULT=2;

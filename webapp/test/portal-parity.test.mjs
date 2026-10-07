@@ -131,10 +131,10 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence]=await Promise.all([
+ const [server,html,js,css,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
   source("public/site.js"),source("public/app.css"),
-  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs")]);
+  source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
   assert.match(server,new RegExp(route));
@@ -164,6 +164,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-wizard\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-mobile-capture\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-photo-persistence\.mjs'/);
+ assert.match(server,/pathname==='\/app\/order-photo-interactions\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
@@ -239,18 +240,18 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(wizard,/data-wizard-action="mobile-photo"/);
  assert.match(mobileCapture,/data-mobile-capture-qr/);
  assert.match(photoPersistence,/claimAllMobile/);
- assert.match(wizard,/wizard-photo-gallery/);
- assert.match(wizard,/data-wizard-action="preview-mobile-photo"/);
+ assert.match(photoInteractions,/wizard-photo-gallery/);
+ assert.match(photoInteractions,/data-wizard-action="preview-mobile-photo"/);
  assert.match(viewer,/data-photo-action="set-cover"/);
  assert.match(viewer,/data-photo-action="delete"/);
  assert.match(viewer,/data-photo-action="zoom-in"/);
  assert.match(viewer,/Descargar/);
- assert.match(wizard,/Eliminar fotografía/);
+ assert.match(photoInteractions,/Eliminar fotografía/);
  assert.match(viewer,/Usar como portada/);
  assert.match(viewer,/remoteDownload/);
  assert.match(wizard,/replaceWorkPhotos/);
  assert.match(photoPersistence,/file\.size>150\*1024/);
- assert.match(wizard,/localCoverFile/);
+ assert.match(photoInteractions,/localCoverFile/);
 
  assert.match(server,/draft-photo-captures/);
  assert.match(css,/\.wizard-mobile-photo-button\{/);
