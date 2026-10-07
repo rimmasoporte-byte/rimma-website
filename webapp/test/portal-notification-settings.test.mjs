@@ -45,7 +45,7 @@ test("portal delegates notification settings and serves the dedicated assets",as
   assert.doesNotMatch(site,/api\("\/notification-settings"\)/);
   assert.match(server,/\/app\/portal-notification-settings\.mjs/);
   assert.match(server,/\/app\/portal-settings\.css/);
-  assert.match(css,/#view-cuenta \.account-grid\{align-items:start\}/);
+  assert.match(css,/#view-cuenta \.account-grid\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
   assert.match(css,/\.notification-event\{display:grid/);
   assert.match(css,/#notifications-panel \.notification-inline-status\{/);
   assert.doesNotMatch(css,/!important/);
