@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -268,12 +268,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(photoInteractions,/localCoverFile/);
 
  assert.match(server,/draft-photo-captures/);
- assert.match(css,/\.wizard-mobile-photo-button\{/);
+ assert.match(orderFlowCss,/\.wizard-mobile-photo-button\{/);
  assert.match(captureCss,/#order-mobile-capture-dialog\{/);
  assert.match(captureCss,/\.mobile-capture-dialog-qr\{/);
- assert.match(css,/Canonical order photo controls/);
- assert.match(css,/\.wizard-photo-control\{[\s\S]*?box-sizing:border-box[\s\S]*?width:100%[\s\S]*?max-width:100%[\s\S]*?overflow-x:clip/);
- assert.match(css,/\.wizard-photo-control \*\{box-sizing:border-box\}/);
+ assert.match(orderFlowCss,/Canonical order photo controls/);
+ assert.match(orderFlowCss,/\.wizard-photo-control\{[\s\S]*?box-sizing:border-box[\s\S]*?width:100%[\s\S]*?max-width:100%[\s\S]*?overflow-x:clip/);
+ assert.match(orderFlowCss,/\.wizard-photo-control \*\{box-sizing:border-box\}/);
  assert.match(captureCss,/\.mobile-capture-dialog-qr\{[\s\S]*?width:258px[\s\S]*?height:258px[\s\S]*?overflow:hidden/);
  assert.match(captureCss,/\.mobile-capture-dialog-qr img,[\s\S]*?\.mobile-capture-dialog-qr canvas\{[\s\S]*?width:240px!important[\s\S]*?height:240px!important/);
 
@@ -286,8 +286,8 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/img-src 'self' data: blob: https:/);
 
 
- assert.match(css,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
- assert.match(css,/\.wizard-file-button\{/);
+ assert.match(orderFlowCss,/\.wizard-native-file\{[\s\S]*?position:absolute!important[\s\S]*?opacity:0!important/);
+ assert.match(orderFlowCss,/\.wizard-file-button\{/);
  assert.doesNotMatch(wizard,/Выбрать файл|Выберите файл|Файл не выбран/);
 
  assert.match(review,/data-wizard-action="payment"/);
