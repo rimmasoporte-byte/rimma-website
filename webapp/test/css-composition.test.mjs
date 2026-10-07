@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-order-documents.css"),
     read("portal-fiscal-invoicing.css"),
     read("portal-operational-widgets.css"),
     read("portal-dashboard-kpi-actions.css"),
@@ -29,6 +30,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-order-documents.css",
     "portal-fiscal-invoicing.css",
     "portal-operational-widgets.css",
     "portal-dashboard-kpi-actions.css",
@@ -47,14 +49,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+orderDocuments+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-order-documents.css"),
     read("portal-fiscal-invoicing.css"),
     read("portal-operational-widgets.css"),
     read("portal-dashboard-kpi-actions.css"),
@@ -73,6 +76,12 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/Spain atelier operational documents/);
+  assert.match(orderDocuments,/^\/\* Spain atelier operational documents \*\//);
+  assert.match(orderDocuments,/\.atelier-doc-grid/);
+  assert.match(orderDocuments,/\.atelier-doc-history/);
+  assert.doesNotMatch(orderDocuments,/Spain fiscal invoicing V24/);
 
   assert.doesNotMatch(app,/Spain fiscal invoicing V24/);
   assert.match(fiscalInvoicing,/^\/\* Spain fiscal invoicing V24 \*\//);
@@ -172,8 +181,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-order-documents.css"),
     read("portal-fiscal-invoicing.css"),
     read("portal-operational-widgets.css"),
     read("portal-dashboard-kpi-actions.css"),
@@ -192,7 +202,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* Spain atelier operational documents */") <
+    composed.indexOf("/* Spain fiscal invoicing V24 */"));
   assert.ok(composed.indexOf("/* Spain fiscal invoicing V24 */") <
     composed.indexOf("/* Shared operational widgets retained in original cascade order. */"));
   assert.ok(composed.indexOf("/* Shared operational widgets retained in original cascade order. */") <
