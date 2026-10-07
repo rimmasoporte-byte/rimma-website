@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
@@ -23,6 +24,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-garment-order-detail.css",
     "portal-garment-cards.css",
     "portal-locale-control.css",
     "portal-dashboard.css",
@@ -35,14 +37,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
@@ -55,6 +58,13 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/V33 — separate garment actions from order actions/);
+  assert.doesNotMatch(app,/\.order-info-hero/);
+  assert.match(garmentDetail,/^\/\* V33 — separate garment actions from order actions\. \*\//);
+  assert.match(garmentDetail,/\.garment-action-groups/);
+  assert.match(garmentDetail,/\.order-info-hero/);
+  assert.doesNotMatch(garmentDetail,/V34 — simple, professional garment-card actions/);
 
   assert.doesNotMatch(app,/V34 — simple, professional garment-card actions/);
   assert.doesNotMatch(app,/\.garment-card-refined/);
@@ -114,8 +124,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
@@ -128,7 +139,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* V33 — separate garment actions from order actions. */") <
+    composed.indexOf("/* V34 — simple, professional garment-card actions for fast atelier work. */"));
   assert.ok(composed.indexOf("/* V34 — simple, professional garment-card actions for fast atelier work. */") <
     composed.indexOf("/* Global language control — single implementation, compact on phones. */"));
   assert.ok(composed.indexOf("/* Global language control — single implementation, compact on phones. */") <

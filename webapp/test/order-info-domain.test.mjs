@@ -79,6 +79,8 @@ test('invalid order id fails before API access',async()=>{
 test('portal delegates order information to the read-only domain',()=>{
  const features=read('public/portal-features.mjs');
  const orderInfo=read('public/portal-order-info.mjs');
+ const detailCss=read('public/portal-garment-order-detail.css');
+ const appCss=read('public/app.css');
  const server=read('../webapp/server.mjs');
  assert.match(features,/createOrderInfo/);
  assert.match(features,/orderInfoUI\.openOrderInfo\(orderId\)/);
@@ -88,5 +90,10 @@ test('portal delegates order information to the read-only domain',()=>{
  assert.match(orderInfo,/async function openOrderInfo\(/);
  assert.match(orderInfo,/async function openOrderPassport\(/);
  assert.doesNotMatch(orderInfo,/method:"(?:POST|PATCH|DELETE|PUT)"/);
+ assert.match(detailCss,/^\/\* V33 — separate garment actions from order actions\. \*\//);
+ assert.match(detailCss,/\.order-info-hero/);
+ assert.match(detailCss,/#feature-dialog\[data-mode="order-info"\]/);
+ assert.doesNotMatch(appCss,/V33 — separate garment actions from order actions/);
  assert.match(server,/pathname==='\/app\/portal-order-info\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-order-detail\.css'/);
 });
