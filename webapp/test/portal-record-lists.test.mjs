@@ -93,9 +93,10 @@ test("empty client lists preserve the canonical filtered-empty state",()=>{
 });
 
 test("site delegates record list presentation while keeping data loading and hydration ownership",async()=>{
-  const [site,module,css,appCss,server]=await Promise.all([
+  const [site,module,actionCss,css,appCss,server]=await Promise.all([
     fs.readFile(new URL("../public/site.js",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/portal-record-lists.mjs",import.meta.url),"utf8"),
+    fs.readFile(new URL("../public/portal-garment-card-actions.css",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/portal-garment-cards.css",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/app.css",import.meta.url),"utf8"),
     fs.readFile(new URL("../server.mjs",import.meta.url),"utf8")
@@ -116,11 +117,16 @@ test("site delegates record list presentation while keeping data loading and hyd
   assert.match(module,/function orderTable\(/);
   assert.match(module,/function clientRow\(/);
   assert.match(module,/function clientTable\(/);
+  assert.match(actionCss,/^\/\* V31 — professional garment cards on the atelier work surface\. \*\//);
+  assert.match(actionCss,/\.garment-primary-action/);
+  assert.match(actionCss,/\.garment-more-menu/);
+  assert.doesNotMatch(appCss,/V31 — professional garment cards on the atelier work surface/);
   assert.match(css,/^\/\* V34 — simple, professional garment-card actions for fast atelier work\. \*\//);
   assert.match(css,/\.garment-card-refined/);
   assert.doesNotMatch(css,/\.order-info-/);
   assert.doesNotMatch(appCss,/V34 — simple, professional garment-card actions/);
   assert.doesNotMatch(appCss,/\.garment-card-refined/);
   assert.match(server,/pathname==='\/app\/portal-record-lists\.mjs'/);
+  assert.match(server,/pathname==='\/app\/portal-garment-card-actions\.css'/);
   assert.match(server,/pathname==='\/app\/portal-garment-cards\.css'/);
 });
