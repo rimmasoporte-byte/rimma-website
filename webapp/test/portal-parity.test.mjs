@@ -559,7 +559,7 @@ test("dashboard widths and compact hero remain coherent across desktop and mobil
 });
 
 test("mobile topbar language control uses one compact consolidated implementation",async()=>{
- const css=await source("public/app.css");
+ const css=await source("public/portal-locale-control.css");
  assert.match(css,/Global language control — single implementation/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?\.topbar-private\{display:none\}[\s\S]*?\.topbar-locale\{[\s\S]*?width:66px/);
  assert.match(css,/@media\(max-width:390px\)\{[\s\S]*?\.topbar-locale\{[\s\S]*?flex:0 0 62px[\s\S]*?width:62px[\s\S]*?\.topbar-locale \.app-locale-select\{[\s\S]*?padding:6px 20px 6px 7px/);
