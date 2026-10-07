@@ -136,9 +136,10 @@ test("custom date markup reflects its own date and can return to general inherit
 });
 
 test("wizard delegates Step 3 while review and submission remain in the orchestrator",async()=>{
-  const [wizard,delivery,server]=await Promise.all([
+  const [wizard,delivery,validation,server]=await Promise.all([
     fs.readFile(new URL("../public/order-wizard.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/order-delivery.mjs",import.meta.url),"utf8"),
+    fs.readFile(new URL("../public/order-validation.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../server.mjs",import.meta.url),"utf8")
   ]);
 
@@ -147,7 +148,7 @@ test("wizard delegates Step 3 while review and submission remain in the orchestr
   assert.match(wizard,/delivery\.handleInput\(target\)/);
   assert.match(wizard,/delivery\.handleChange\(target\)/);
   assert.match(wizard,/delivery\.handleAction\(actionName,button\)/);
-  assert.match(wizard,/delivery\.validate\(\{fail\}\)/);
+  assert.match(validation,/delivery\.validate\(\{fail\}\)/);
   assert.doesNotMatch(wizard,/function deliveryRow|function renderDelivery|function updateDeliveryItem|actionName==="toggle-item-date"/);
 
   assert.match(wizard,/review\.renderReview\(\)/);

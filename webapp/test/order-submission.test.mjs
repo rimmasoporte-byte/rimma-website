@@ -225,7 +225,8 @@ test("wizard delegates submission while retaining UI validation and error orches
   assert.match(wizard,/createOrderSubmission/);
   assert.match(wizard,/submission\.create\(\)/);
   assert.match(wizard,/submission\.retryPhotos\(\)/);
-  assert.match(wizard,/function validateStep\(/);
+  assert.match(wizard,/validation\.validate\(3\)/);
+  assert.doesNotMatch(wizard,/function validateStep/);
   assert.match(wizard,/function humanError\(/);
   assert.match(wizard,/function busyUi\(/);
   assert.doesNotMatch(wizard,/function payload|function deriveOrderDue|Idempotency-Key|photoPersistence\.prepareAll|photoPersistence\.claimAllMobile|photoPersistence\.uploadAll/);

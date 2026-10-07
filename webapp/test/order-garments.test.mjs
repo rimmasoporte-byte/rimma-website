@@ -207,9 +207,10 @@ test("restored garment state is normalized against current catalog and team",()=
 });
 
 test("wizard delegates Step 2 while BFF explicitly serves the extracted domain",async()=>{
-  const [wizard,garments,server]=await Promise.all([
+  const [wizard,garments,validation,server]=await Promise.all([
     fs.readFile(new URL("../public/order-wizard.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/order-garments.mjs",import.meta.url),"utf8"),
+    fs.readFile(new URL("../public/order-validation.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../server.mjs",import.meta.url),"utf8")
   ]);
   assert.match(wizard,/createOrderGarments/);
@@ -217,7 +218,7 @@ test("wizard delegates Step 2 while BFF explicitly serves the extracted domain",
   assert.match(wizard,/garments\.handleInput\(target\)/);
   assert.match(wizard,/garments\.handleChange\(target\)/);
   assert.match(wizard,/garments\.handleAction\(actionName,button\)/);
-  assert.match(wizard,/garments\.validate\(/);
+  assert.match(validation,/garments\.validate\(/);
   assert.match(wizard,/garments\.normalizeState\(\)/);
   assert.doesNotMatch(wizard,/function workRow|function itemCard|function renderGarments|function updateWork|function replaceWorkPhotos/);
   assert.match(garments,/photoInteractions\.releaseWorkLocalPhotos/);

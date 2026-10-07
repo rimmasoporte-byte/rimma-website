@@ -8,6 +8,7 @@ import {createOrderDelivery} from "./order-delivery.mjs";
 import {createOrderReview} from "./order-review.mjs";
 import {createOrderDraft} from "./order-draft.mjs";
 import {createOrderSubmission} from "./order-submission.mjs";
+import {createOrderValidation} from "./order-validation.mjs";
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
@@ -198,6 +199,16 @@ export function createOrderWizard({
     mobileCapture,
     photoPersistence
   });
+  const validation=createOrderValidation({
+    fields,
+    getState:()=>state,
+    setError,
+    getErrorText:()=>error.textContent,
+    isUuid:value=>UUID.test(String(value||"")),
+    garments,
+    delivery,
+    review
+  });
   function setError(message=""){
     error.textContent=message;
     error.hidden=!message;
@@ -263,51 +274,6 @@ export function createOrderWizard({
     syncFooter();
     mobileCapture.syncPolling();
   }
-  function clearValidation(){
-    fields.querySelectorAll('[aria-invalid="true"]').forEach(element=>element.removeAttribute("aria-invalid"));
-    fields.querySelectorAll(".wizard-field-error").forEach(element=>{element.textContent=""});
-  }
-  function invalid(key,message){
-    const input=fields.querySelector('[data-wizard-field="'+CSS.escape(key)+'"]');
-    const target=fields.querySelector('[data-error-for="'+CSS.escape(key)+'"]');
-    if(input)input.setAttribute("aria-invalid","true");
-    if(target)target.textContent=message;
-    return input;
-  }
-  function validateStep(step=state.step){
-    clearValidation();
-    setError("");
-    let first=null;
-    const fail=(key,message)=>{
-      const element=invalid(key,message);
-      if(!first&&element)first=element;
-    };
-    if(step===0){
-      if(!UUID.test(state.clientId))fail("clientId","Selecciona un cliente.");
-      if(!UUID.test(state.branchId))fail("branchId","Selecciona la ubicación del taller.");
-    }
-    if(step===1){
-      garments.validate({fail,setGlobalError:setError});
-    }
-    if(step===2){
-      delivery.validate({fail});
-    }
-    if(step===3){
-      if(!/^[A-Z]{3}$/.test(state.currencyCode))setError("La moneda del taller no es válida.");
-      if(state.notes.length>10000)setError("Las notas son demasiado largas.");
-      try{
-        const total=review.totalMinor();
-        if(!Number.isSafeInteger(total))setError("El total del pedido es demasiado grande.");
-      }catch(e){setError(e.message)}
-    }
-    if(first){
-      first.focus({preventScroll:true});
-      first.scrollIntoView({behavior:"smooth",block:"center"});
-      return false;
-    }
-    return !error.textContent;
-  }
-
   function humanError(e){
     if(!navigator.onLine){
       return "No hay conexión. El borrador sigue guardado; vuelve a intentarlo cuando recuperes internet.";
@@ -327,7 +293,7 @@ export function createOrderWizard({
     return e?.message||"No se pudo guardar el pedido. El borrador sigue disponible.";
   }
   async function createOrder(){
-    if(busy||!validateStep(3))return;
+    if(busy||!validation.validate(3))return;
     busyUi(true,"Guardando pedido…");
     setError("");
     try{
@@ -351,7 +317,7 @@ export function createOrderWizard({
     }
     if(busy)return;
     if(state.step<3){
-      if(!validateStep(state.step))return;
+      if(!validation.validate(state.step))return;
       state.step++;
       schedulePersist();
       render();
