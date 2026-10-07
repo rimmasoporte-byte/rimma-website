@@ -200,7 +200,7 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.doesNotMatch(app,/\.branch-overview-grid/);
   assert.doesNotMatch(app,/\.notification-event-list/);
   assert.match(settings,/^\/\* ===== SETTINGS \/ ACCOUNT ===== \*\//);
-  assert.match(settings,/#view-cuenta \.account-grid\{align-items:start\}/);
+  assert.match(settings,/#view-cuenta \.account-grid\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
   assert.match(settings,/\.branch-overview-grid\{/);
   assert.match(settings,/\.notification-settings-head\{/);
 
@@ -313,4 +313,4 @@ test("composed portal CSS keeps extracted layers in their former source order",a
 
 import testSettings from 'node:test';
 import assertSettings from 'node:assert/strict';
-testSettings('settings heavy sections take a full row and avoid empty paired grid cells',async()=>{const css=await (await import('node:fs/promises')).readFile(new URL('../public/portal-settings.css',import.meta.url),'utf8');assertSettings.match(css,/#view-cuenta #notifications-panel,#view-cuenta #notifications-panel \+ \.paper-panel\{grid-column:1\/-1\}/);});
+testSettings('settings independent content-height columns preserve full card widths',async()=>{const css=await (await import('node:fs/promises')).readFile(new URL('../public/portal-settings.css',import.meta.url),'utf8');assertSettings.match(css,/\.settings-stack>\.paper-panel\{align-self:stretch\}/);assertSettings.match(css,/\.settings-two-columns.*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);});
