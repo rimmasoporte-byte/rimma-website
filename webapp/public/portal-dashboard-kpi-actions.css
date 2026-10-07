@@ -1,0 +1,39 @@
+/* V30 — dashboard KPI actions are text cues, not legacy circular arrow controls. */
+#view-inicio #today-cards .atelier-kpi{
+ min-width:0;overflow:hidden
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump{
+ position:static;
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-start;
+ width:max-content;
+ max-width:100%;
+ height:auto;
+ margin-top:auto;
+ padding:8px 0 0;
+ border:0;
+ border-radius:0;
+ background:transparent;
+ color:#9a713f;
+ font:700 11px/1.2 var(--font);
+ letter-spacing:.02em;
+ white-space:nowrap;
+ transform:none
+}
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump{
+ border:0;
+ background:transparent;
+ color:#e5c27f
+}
+#view-inicio #today-cards .atelier-kpi>.metric-jump:hover,
+#view-inicio #today-cards .atelier-kpi>.metric-jump:focus-visible{
+ border:0;
+ background:transparent;
+ color:#6f4f2c;
+ transform:none
+}
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:hover,
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:focus-visible{
+ color:#f1d69e
+}

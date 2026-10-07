@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-dashboard-kpi-actions.css"),
     read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
@@ -26,6 +27,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-dashboard-kpi-actions.css",
     "portal-garment-card-actions.css",
     "portal-garment-workspace.css",
     "portal-garment-order-detail.css",
@@ -41,14 +43,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-dashboard-kpi-actions.css"),
     read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
@@ -64,6 +67,11 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/V30 — dashboard KPI actions are text cues/);
+  assert.match(dashboardKpiActions,/^\/\* V30 — dashboard KPI actions are text cues, not legacy circular arrow controls\. \*\//);
+  assert.match(dashboardKpiActions,/#view-inicio #today-cards \.atelier-kpi>\.metric-jump/);
+  assert.doesNotMatch(dashboardKpiActions,/V31 — professional garment cards on the atelier work surface/);
 
   assert.doesNotMatch(app,/V31 — professional garment cards on the atelier work surface/);
   assert.doesNotMatch(app,/\.garment-more-menu/);
@@ -144,8 +152,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-dashboard-kpi-actions.css"),
     read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
@@ -161,7 +170,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* V30 — dashboard KPI actions are text cues, not legacy circular arrow controls. */") <
+    composed.indexOf("/* V31 — professional garment cards on the atelier work surface. */"));
   assert.ok(composed.indexOf("/* V31 — professional garment cards on the atelier work surface. */") <
     composed.indexOf("/* V32 — garment work sheet. The digital passport is a nested client-facing tool. */"));
   assert.ok(composed.indexOf("/* V32 — garment work sheet. The digital passport is a nested client-facing tool. */") <
