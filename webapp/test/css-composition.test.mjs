@@ -310,3 +310,7 @@ test("composed portal CSS keeps extracted layers in their former source order",a
   assert.ok(composed.indexOf("/* ===== ORDER MOBILE CAPTURE DIALOG ===== */") <
     composed.indexOf("/* ===== ORDER PHOTO VIEWER ===== */"));
 });
+
+import testSettings from 'node:test';
+import assertSettings from 'node:assert/strict';
+testSettings('settings heavy sections take a full row and avoid empty paired grid cells',async()=>{const css=await (await import('node:fs/promises')).readFile(new URL('../public/portal-settings.css',import.meta.url),'utf8');assertSettings.match(css,/#view-cuenta #notifications-panel,#view-cuenta #notifications-panel \+ \.paper-panel\{grid-column:1\/-1\}/);});
