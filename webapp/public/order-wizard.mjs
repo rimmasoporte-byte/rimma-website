@@ -4,6 +4,7 @@ import {createOrderMobileCapture} from "./order-mobile-capture.mjs";
 import {createOrderPhotoPersistence} from "./order-photo-persistence.mjs";
 import {createOrderClientSelection} from "./order-client-selection.mjs";
 import {createOrderGarments} from "./order-garments.mjs";
+import {createOrderDelivery} from "./order-delivery.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
 const DRAFT_TTL=12*60*60*1000;
 const UUID=/^[a-f0-9-]{36}$/i;
@@ -22,7 +23,6 @@ const requestKey=()=>{
   return hex.slice(0,4).join("")+"-"+hex.slice(4,6).join("")+"-"+hex.slice(6,8).join("")+"-"+hex.slice(8,10).join("")+"-"+hex.slice(10).join("");
 };
 const IDEMPOTENCY=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
-const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
 const toMinor=value=>{
   const parsed=Number(value);
   if(!Number.isFinite(parsed)||parsed<0)throw Error("El precio debe ser un número válido.");
@@ -163,6 +163,13 @@ export function createOrderWizard({
     mobileCapture,
     escapeHtml:esc
   });
+  const delivery=createOrderDelivery({
+    getState:()=>state,
+    formatDate,
+    schedulePersist,
+    renderWizard:render,
+    escapeHtml:esc
+  });
   const meaningful=()=>Boolean(
     state.clientId||state.notes.trim()||
     state.items.some(item=>
@@ -272,33 +279,6 @@ export function createOrderWizard({
     requestAnimationFrame(()=>{fields.scrollTop=top});
   }
 
-  function deliveryRow(item,index){
-    const inherited=!item.useCustomDueDate;
-    return '<article class="wizard-delivery-row"><div class="wizard-delivery-title"><span>PRENDA '+(index+1)+'</span><strong>'+
-      esc(item.garmentType||"Prenda")+'</strong></div>'+
-      '<div class="wizard-inherited-date"><small>Entrega</small><strong>'+
-      esc(formatDate(inherited?state.dueDate:item.dueDate))+
-      (inherited?' <span>· Fecha general</span>':' <span>· Fecha propia</span>')+
-      '</strong><button type="button" class="record-action" data-wizard-action="toggle-item-date" data-index="'+index+'">'+
-      (inherited?"Cambiar fecha":"Usar fecha general")+'</button></div>'+
-      (item.useCustomDueDate?'<div class="wizard-control"><label>Fecha de esta prenda</label>'+
-      '<input type="date" min="'+today()+'" data-wizard-item="'+index+'" data-item-field="dueDate" data-wizard-field="item-'+index+'-dueDate" value="'+esc(item.dueDate||state.dueDate)+'">'+
-      '<p class="wizard-field-error" data-error-for="item-'+index+'-dueDate"></p></div>':"")+
-      '<div class="wizard-control"><label>Ubicación física</label>'+
-      '<input maxlength="120" data-wizard-item="'+index+'" data-item-field="storageLocation" value="'+
-      esc(item.storageLocation)+'" placeholder="Ej. Estante B-12"></div></article>';
-  }
-
-  function renderDelivery(){
-    return '<section class="order-wizard-step">'+
-      '<div class="wizard-step-copy"><span>3 · ENTREGA</span><h3>Entrega y ubicación</h3>'+
-      '<p>La fecha general se aplica a todas las prendas. Cambia solo la que necesite una fecha diferente.</p></div>'+
-      '<div class="wizard-control wizard-date-main"><label for="ow-due">Fecha general de entrega *</label>'+
-      '<input id="ow-due" type="date" min="'+today()+'" data-wizard-field="dueDate" value="'+esc(state.dueDate)+'">'+
-      '<p class="wizard-field-error" data-error-for="dueDate"></p></div>'+
-      '<div class="wizard-delivery-list">'+state.items.map(deliveryRow).join("")+'</div></section>';
-  }
-
   const itemMinor=item=>(item.works||[]).reduce((sum,work)=>sum+toMinor(work.price),0);
   const totalMinor=()=>state.items.reduce((sum,item)=>sum+itemMinor(item),0);
   function renderReview(){
@@ -376,7 +356,7 @@ export function createOrderWizard({
     modal.classList.add("order-wizard-modal");
     fields.innerHTML=created
       ?renderCreated()
-      :stepper()+(state.step===0?clientSelection.renderStep():state.step===1?garments.renderStep():state.step===2?renderDelivery():renderReview());
+      :stepper()+(state.step===0?clientSelection.renderStep():state.step===1?garments.renderStep():state.step===2?delivery.renderStep():renderReview());
     if(created)fields.scrollTop=0;
     syncFooter();
     mobileCapture.syncPolling();
@@ -408,13 +388,7 @@ export function createOrderWizard({
       garments.validate({fail,setGlobalError:setError});
     }
     if(step===2){
-      if(!state.dueDate)fail("dueDate","Indica la fecha de entrega.");
-      else if(state.dueDate<today())fail("dueDate","La fecha de entrega no puede estar en el pasado.");
-      state.items.forEach((item,index)=>{
-        if(item.useCustomDueDate&&(!item.dueDate||item.dueDate<today())){
-          fail("item-"+index+"-dueDate","Indica una fecha válida para esta prenda.");
-        }
-      });
+      delivery.validate({fail});
     }
     if(step===3){
       if(!/^[A-Z]{3}$/.test(state.currencyCode))setError("La moneda del taller no es válida.");
@@ -538,13 +512,6 @@ export function createOrderWizard({
     }
     await createOrder();
   }
-  function updateDeliveryItem(index,field,value){
-    const item=state.items[index];
-    if(!item)return;
-    item[field]=value;
-    schedulePersist();
-  }
-
   async function discardDraft(){
     if(meaningful()){
       const approved=await confirmAction({
@@ -641,9 +608,6 @@ export function createOrderWizard({
       await discardDraft();
       return;
     }
-    if(name==="toggle-item-date"){
-      return;
-    }
     if(name==="retry-photos"){
       await retryPhotos();
       return;
@@ -678,14 +642,13 @@ export function createOrderWizard({
     if(clientSelection.handleInput(target))return;
     if(target.matches("select,input[type=file],input[type=date]"))return;
     if(garments.handleInput(target))return;
+    if(delivery.handleInput(target))return;
     if(target.dataset.wizardField==="currencyCode"){
       state.currencyCode=String(target.value||"").toUpperCase().slice(0,3);
       schedulePersist();
     }else if(target.dataset.wizardField==="notes"){
       state.notes=target.value;
       schedulePersist();
-    }else if(target.dataset.wizardItem!==undefined){
-      updateDeliveryItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value);
     }
   });
   fields.addEventListener("change",event=>{
@@ -693,15 +656,11 @@ export function createOrderWizard({
     const target=event.target;
     if(!target.matches("select,input[type=file],input[type=date]"))return;
     if(garments.handleChange(target))return;
-    if(target.dataset.wizardItem!==undefined){
-      updateDeliveryItem(Number(target.dataset.wizardItem),target.dataset.itemField,target.value);
-    }else if(target.dataset.wizardField==="branchId"){
+    if(delivery.handleChange(target))return;
+    if(target.dataset.wizardField==="branchId"){
       state.branchId=target.value;
       schedulePersist();
       syncFooter();
-    }else if(target.dataset.wizardField==="dueDate"){
-      state.dueDate=target.value;
-      schedulePersist();
     }
   });
   fields.addEventListener("click",event=>{
@@ -721,18 +680,7 @@ export function createOrderWizard({
     const actionName=button.dataset.wizardAction;
     if(clientSelection.handleAction(actionName,button))return;
     if(garments.handleAction(actionName,button))return;
-    if(actionName==="toggle-item-date"){
-      const index=Number(button.dataset.index);
-      const item=state.items[index];
-      if(item){
-        item.useCustomDueDate=!item.useCustomDueDate;
-        if(item.useCustomDueDate&&!item.dueDate)item.dueDate=state.dueDate;
-        if(!item.useCustomDueDate)item.dueDate="";
-        schedulePersist();
-        render();
-      }
-      return;
-    }
+    if(delivery.handleAction(actionName,button))return;
     void action(actionName);
   });
   fields.addEventListener("keydown",event=>{
