@@ -25,6 +25,7 @@ Key responsibilities:
 - `order-draft.mjs`: order draft serialization, session-storage persistence, debounce, TTL validation and safe restoration;
 - `order-submission.mjs`: order-create payload construction, idempotent POST transaction, draft finalization and post-create photo claim/upload sequence;
 - `order-validation.mjs`: cross-step validation coordination, field-error presentation and deterministic focus/scroll to the first invalid control;
+- `order-reference-data.mjs`: order reference-data loading and normalization for branches, catalog services, members and default assignee;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -86,6 +87,7 @@ Use the narrowest owner that can correctly perform an action:
 - order draft persistence and restoration -> `order-draft.mjs`;
 - order-create payload and submission transaction -> `order-submission.mjs`;
 - cross-step validation error/focus presentation -> `order-validation.mjs`;
+- order reference-data loading/normalization -> `order-reference-data.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -100,10 +102,9 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. evaluate order bootstrap/reference-data loading as the final coherent extraction from `order-wizard.mjs`;
-2. move client/order list rendering out of `site.js`;
-3. harden async request ownership and stale-response cancellation;
-4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
+1. move client/order list rendering out of `site.js`;
+2. harden async request ownership and stale-response cancellation;
+3. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
 
 Each extraction should preserve behavior and land with regression tests.
 
@@ -135,6 +136,8 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `order-submission.mjs` owns the normalized order-create payload, the stable idempotency header and the confirmed-order transaction sequence: prepare photos, POST the order, publish created state, clear the draft, then claim mobile photos and upload desktop photos. UI busy/error/render decisions stay in the wizard.
 
 `order-validation.mjs` coordinates cross-step validation and owns validation presentation: clearing prior field state, marking invalid controls, displaying field messages and focusing/scrolling the first invalid field. Garment and delivery business rules remain in their step domains.
+
+`order-reference-data.mjs` owns the parallel loading and normalization of price-list categories/services, active workshop locations and workspace members, including deterministic default-assignee selection. Modal lifecycle, draft restoration, preferred-client hydration and rendering remain in the wizard.
 
 `order-wizard.mjs` composes these domains and keeps cross-step UI orchestration, lifecycle decisions and post-create navigation.
 The BFF explicitly serves every browser module under `/app/`.

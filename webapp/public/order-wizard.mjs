@@ -9,6 +9,7 @@ import {createOrderReview} from "./order-review.mjs";
 import {createOrderDraft} from "./order-draft.mjs";
 import {createOrderSubmission} from "./order-submission.mjs";
 import {createOrderValidation} from "./order-validation.mjs";
+import {createOrderReferenceData} from "./order-reference-data.mjs";
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
@@ -61,7 +62,6 @@ export function createOrderWizard({
   const error=document.querySelector("#modal-error");
   let state=blankState(locale?.currency||"EUR");
   let active=false,busy=false,dirty=false,restored=false,created=null;
-  let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let photoInteractions=null;
   const photoViewer=createOrderPhotoViewer({
     dialog:document.querySelector("#order-photo-viewer"),
@@ -138,11 +138,16 @@ export function createOrderWizard({
     getLocalCoverFile:()=>photoInteractions.getLocalCoverFile(),
     mobileCapture
   });
+  const referenceData=createOrderReferenceData({
+    api,
+    getCurrentUserId:()=>getMe?.()?.user?.id||"",
+    getFallbackCurrency:()=>locale?.currency||"EUR"
+  });
   const clientSelection=createOrderClientSelection({
     api,
     fields,
     getState:()=>state,
-    getBranches:()=>branches,
+    getBranches:referenceData.branches,
     isActive:()=>active,
     isCreated:()=>Boolean(created),
     isRestored:()=>restored,
@@ -153,10 +158,10 @@ export function createOrderWizard({
   });
   const garments=createOrderGarments({
     getState:()=>state,
-    getCategories:()=>categories,
-    getServices:()=>services,
-    getMembers:()=>members,
-    getDefaultAssignedUserId:()=>defaultAssignedUserId,
+    getCategories:referenceData.categories,
+    getServices:referenceData.services,
+    getMembers:referenceData.members,
+    getDefaultAssignedUserId:referenceData.defaultAssignedUserId,
     makeItem,
     makeWork,
     toMinor,
@@ -181,7 +186,7 @@ export function createOrderWizard({
   const review=createOrderReview({
     getState:()=>state,
     getCreated:()=>created,
-    getMembers:()=>members,
+    getMembers:referenceData.members,
     getPhotoFailures:()=>photoPersistence.failureMessages(),
     toMinor,
     formatDate,
@@ -543,32 +548,8 @@ export function createOrderWizard({
     cancel.hidden=false;
     if(!modal.open)modal.showModal();
     try{
-      const [catalogData,branchData,memberData]=await Promise.all([
-        api("/price-list"),
-        api("/branches"),
-        api("/workspace/members")
-      ]);
+      await referenceData.load();
       if(!active)return;
-      categories=(catalogData.priceList?.categories||[]).filter(category=>category.status!=="inactive"&&category.status!=="deleted");
-      branches=(branchData.branches||[]).filter(branch=>branch.status==="active");
-      members=Array.isArray(memberData.members)?memberData.members:[];
-      const currentUserId=getMe?.()?.user?.id||"";
-      defaultAssignedUserId=members.some(member=>member.id===currentUserId)
-        ?currentUserId
-        :(members.length===1?members[0].id:"");
-      services=categories.flatMap(category=>
-        (category.services||[])
-          .filter(service=>service.status!=="inactive"&&service.status!=="deleted")
-          .map(service=>({
-            id:service.id,
-            categoryId:category.id,
-            name:service.name,
-            label:category.name+" · "+service.name,
-            priceMinor:service.priceMinor,
-            pricingMode:service.pricingMode,
-            currencyCode:service.currencyCode||locale?.currency||"EUR"
-          }))
-      );
       const restoredDraft=draft.read();
       if(restoredDraft){
         state=restoredDraft;
@@ -577,6 +558,7 @@ export function createOrderWizard({
       }else{
         state=blankState(locale?.currency||"EUR");
       }
+      const branches=referenceData.branches();
       if(!branches.some(branch=>branch.id===state.branchId)){
         state.branchId=branches[0]?.id||"";
       }
