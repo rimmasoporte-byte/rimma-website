@@ -20,6 +20,7 @@ jobs:
       - name: Verify website JavaScript syntax
         run: |
           node --check assets-v3/site.js
+          node --check assets-v3/product-offer.js
           node --check assets-v3/spain-locales.js
           node --check assets-v3/legal-i18n.js
           node --check demo/locale.js

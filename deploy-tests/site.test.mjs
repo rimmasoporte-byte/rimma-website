@@ -18,11 +18,11 @@ test('The production home is indexable, canonical and has the original RIMMA log
   assert.match(h,/\.\/assets-v3\/logo\.webp/);
   assert.match(h,/\.\/demo\//);
   assert.match(h,/4,99 €/);
-  assert.doesNotMatch(h,/En otros países|moneda local|impuestos aplicables/);
+  assert.doesNotMatch(h,/En otros países|moneda local/);
 });
 test('All new content and font resources exist without replacing legacy assets',()=>{
   for(const p of [
-    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/site.js','assets-v3/spain-locales.js',
+    'assets/site.css','assets/site.js','assets-v3/site.css','assets-v3/v3.css','assets-v3/marketing.css','assets-v3/site.js','assets-v3/product-offer.js','assets-v3/spain-locales.js',
     'assets-v3/logo.webp','assets-v3/icon.png','assets-v3/logo-original.png',
     'assets-v3/fonts/manrope-400.woff2','assets-v3/fonts/manrope-700.woff2',
     'assets-v3/fonts/playfair-500.woff2','assets-v3/fonts/licenses/MANROPE-LICENSE.txt',
@@ -87,14 +87,36 @@ test('Legal pages provide clear return actions at the top and bottom',()=>{
   assert.match(js,/Volver al registro/);
   assert.match(js,/app\.rimmaapp\.com\/app\/register\.html/);
 });
-test('Public pricing keeps trial primary while allowing immediate subscription',()=>{
+test('Public pricing keeps trial as the only purchase CTA',()=>{
   const h=read('index.html');
   assert.match(h,/Probar 5 días gratis/);
-  assert.match(h,/Suscribirme ahora/);
-  assert.match(h,/app\.rimmaapp\.com\/app\/\?view=suscripcion/);
-  assert.match(h,/También puedes suscribirte durante la prueba/);
-  assert.match(h,/No necesitas esperar a que termine la prueba/);
+  assert.match(h,/5 días de prueba sin tarjeta/);
+  assert.match(h,/4,99 €/);
+  assert.doesNotMatch(h,/Suscribirme ahora/);
+  assert.doesNotMatch(h,/app\.rimmaapp\.com\/app\/\?view=suscripcion/);
+  assert.match(h,/importe final y los impuestos aplicables/);
+  assert.doesNotMatch(h,/IVA incluido|IVA no incluido/i);
   assert.doesNotMatch(h,/pay\.rev\.cat\/sandbox|checkout\.stripe\.com/i);
+});
+
+test('product offer is the public source for price, trial and seat limits',()=>{
+  const h=read('index.html');
+  const offer=read('assets-v3/product-offer.js');
+  assert.match(h,/product-offer\.js/);
+  assert.match(offer,/monthlyPrice:"4,99 €"/);
+  assert.match(offer,/trialDays:5/);
+  assert.match(offer,/seats:3/);
+  assert.match(h,/data-offer-copy="trialNoCard"/);
+  assert.match(h,/data-offer="price"/);
+  assert.match(h,/data-offer-copy="seatsList"/);
+  assert.match(h,/data-offer-copy="seatsHeading"/);
+});
+
+test('public pricing does not overstate cancellation or native-app terms',()=>{
+  const h=read('index.html');
+  assert.doesNotMatch(h,/Sin permanencia|Google Play|Android/);
+  assert.match(h,/condiciones de cobro y renovación/);
+  assert.match(h,/canal de compra/);
 });
 
 test('trial is the primary conversion path while demo remains secondary',()=>{
@@ -118,6 +140,13 @@ test('demo sidebar uses the exact local production artwork and logo',()=>{
  assert.doesNotMatch(h,/data:image\/webp;base64,/);
  assert.doesNotMatch(h,/app\.rimmaapp\.com\/app\/(?:rimma-luxury-full|rimma-logo|atelier-mannequin)\.webp/);
  assert.doesNotMatch(h,/class="sidebar-brand"[^>]*>RIMMA/);
+});
+
+test('demo keeps its primary fixture fictitious and multi-garment',()=>{
+  const shim=read('demo/demo-shim.js');
+  assert.match(shim,/orderNumber:1048/);
+  assert.match(shim,/items:\[\{name:P\.items\[0\]\},\{name:P\.items\[1\]\}\]/);
+  assert.match(shim,/dueDate:"2026-10-12"/);
 });
 
 test('demo reports use the same renderer as the real portal',()=>{
@@ -197,28 +226,49 @@ test('no public HTML page contains a literal \\n marker',()=>{
   assert.deepEqual(offenders,[]);
 });
 
-test('homepage presents team and document capabilities as B2B product proof',()=>{
+test('active Spain locale has no retired native-app marketing',()=>{
+  const locale=read('assets-v3/spain-locales.js');
+  assert.doesNotMatch(locale,/Android|Google Play/);
+});
+
+test('homepage does not advertise an unavailable native app',()=>{
   const h=read('index.html');
+  assert.doesNotMatch(h,/Web + Android|Ordenador y Android|En Android|Google Play|Suscribirme ahora/);
+  assert.match(h,/Funciona desde el navegador/);
+  assert.match(h,/ordenador, tablet y móvil/);
+});
+
+test('homepage presents atelier-specific B2B product proof',()=>{
+  const h=read('index.html');
+  assert.match(h,/Varias prendas por pedido/);
+  assert.match(h,/Trabajos y precios por prenda/);
+  assert.match(h,/Fotos y medidas/);
+  assert.match(h,/Anticipos y saldo/);
+  assert.match(h,/Documentos y WhatsApp/);
   assert.match(h,/Hasta 3 usuarios/);
-  assert.match(h,/Documentos y facturación/);
-  for(const doc of ['Presupuesto','Resguardo de depósito','Recibo de pago','Justificante de entrega','Orden de trabajo','Factura fiscal'])
-    assert.match(h,new RegExp(doc),doc);
-  assert.match(h,/conversion-pillar-grid-business/);
-  assert.match(read('assets-v3/v3.css'),/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(h,/RIMMA no promete envío automático/);
+  assert.match(h,/Una gestión alrededor de la prenda/);
+  assert.match(h,/mk-order-real/);
+  assert.match(read('assets-v3/marketing.css'),/\.mk-feature-grid/);
   assert.doesNotMatch(h,/documentos oficiales para Hacienda|cumple con VERI\*FACTU|VERI\*FACTU/i);
 });
 
-test('production landing is a focused five-section conversion page',()=>{
+test('production landing is a product-first SaaS conversion page',()=>{
   const h=read('index.html');
   assert.match(h,/SOFTWARE PARA TALLERES DE COSTURA Y ARREGLOS/);
   assert.match(h,/Cada prenda, bajo control/);
-  assert.match(h,/LO ESENCIAL, SIN RUIDO/);
   assert.match(h,/DE LA RECEPCIÓN A LA ENTREGA/);
+  assert.match(h,/HECHA PARA EL TRABAJO REAL/);
+  assert.match(h,/DEL PEDIDO AL DÍA DEL TALLER/);
   assert.match(h,/PRECIO CLARO/);
-  assert.match(h,/PREGUNTAS FRECUENTES/);
+  assert.match(h,/ANTES DE EMPEZAR/);
+  assert.match(h,/rimma-order-demo\.png/);
   assert.match(h,/rimma-dashboard-real\.png/);
+  assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-order-demo.png')));
   assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-dashboard-real.png')));
-  assert.equal((h.match(/<section\b/g)||[]).length,5);
-  assert.doesNotMatch(h,/TODO EL VIAJE DE LA PRENDA|HECHA PARA EL TRABAJO REAL|SIMPLE A PROPÓSITO|class="closing"/);
+  assert.ok(fs.existsSync(path.join(root,'assets-v3/marketing.css')));
+  assert.doesNotMatch(h,/class="mk-order-card"/,'hand-built marketing order mockup must not return');
+  assert.match(h,/Interfaz real de RIMMA mostrada con datos de demostración/);
+  assert.equal((h.match(/<section\b/g)||[]).length,7);
   assert.doesNotMatch(h,/precio mostrado es orientativo|lanzamiento y la configuración de Google Play todavía se están preparando|Solicitar invitación de prueba/i);
 });

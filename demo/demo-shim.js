@@ -29,9 +29,9 @@ const customers=[
  {id:"cccccccc-cccc-4ccc-cccc-cccccccccccc",name:P.clients[2][0],phone:P.clients[2][1],email:P.clients[2][2]}
 ];
 const orders=[
- {id:"dddddddd-dddd-4ddd-dddd-dddddddddddd",orderNumber:1,client:{name:customers[0].name},items:[{name:P.items[0]}],dueDate:"2026-09-25",totalMinor:P.amounts[0],currencyCode:CURRENCY,status:"in_progress"},
- {id:"eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee",orderNumber:2,client:{name:customers[1].name},items:[{name:P.items[1]}],dueDate:"2026-09-26",totalMinor:P.amounts[1],currencyCode:CURRENCY,status:"ready"},
- {id:"ffffffff-ffff-4fff-ffff-ffffffffffff",orderNumber:3,client:{name:customers[2].name},items:[{name:P.items[2]}],dueDate:"2026-09-27",totalMinor:P.amounts[2],currencyCode:CURRENCY,status:"accepted"}
+ {id:"dddddddd-dddd-4ddd-dddd-dddddddddddd",orderNumber:1048,client:{name:customers[0].name},items:[{name:P.items[0]},{name:P.items[1]}],dueDate:"2026-10-12",totalMinor:P.amounts[0]+P.amounts[1],currencyCode:CURRENCY,status:"in_progress"},
+ {id:"eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee",orderNumber:1049,client:{name:customers[1].name},items:[{name:P.items[1]}],dueDate:"2026-10-09",totalMinor:P.amounts[1],currencyCode:CURRENCY,status:"ready"},
+ {id:"ffffffff-ffff-4fff-ffff-ffffffffffff",orderNumber:1050,client:{name:customers[2].name},items:[{name:P.items[2]}],dueDate:"2026-10-14",totalMinor:P.amounts[2],currencyCode:CURRENCY,status:"accepted"}
 ];
 const catalog={categories:[
  {id:"abbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb",name:P.categories[0],services:[

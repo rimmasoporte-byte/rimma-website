@@ -21,8 +21,7 @@ The source design is maintained in the `feat/premium-web-v3` branch under
 `new-site/`. The deployment branch uses `assets-v3/` rather than `assets/`
 to preserve backwards compatibility for old Google Play policy pages.
 
-Pricing shown on the site is an indicative 5 EUR/month pending the final
-Google Play publication and regional pricing confirmation.
+Public Spain pricing currently displays 4.99 EUR/month with a 5-day trial that does not require a card. Final tax treatment and charge terms are shown by the active purchase channel before the customer confirms the subscription.
 
 ## Verify before deployment
 
