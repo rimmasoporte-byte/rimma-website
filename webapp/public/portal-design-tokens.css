@@ -1,0 +1,8 @@
+/* Final design tokens are declared once after the migrated legacy sections. */
+:root{
+  --font-ui:"DM Sans","Segoe UI",Arial,sans-serif;
+  --font-display:"Cormorant Garamond",Georgia,serif;
+  --font:var(--font-ui);
+  --serif:var(--font-display);
+  --sans:var(--font-ui);
+}
