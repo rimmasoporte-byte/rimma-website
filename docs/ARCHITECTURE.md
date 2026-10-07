@@ -13,7 +13,11 @@ This document gives a future engineer a high-level map of the production web app
 Key responsibilities:
 
 - `site.js`: application shell, navigation, cross-module transitions, shared API orchestration;
-- `order-wizard.mjs`: order creation workflow and order-local UI state;
+- `order-wizard.mjs`: order creation orchestration, step state, validation and submission;
+- `order-photo-viewer.mjs`: native order photo viewer presentation and zoom/pan controls;
+- `order-mobile-capture.mjs`: QR capture sessions, polling and capture cleanup;
+- `order-photo-persistence.mjs`: photo preparation, upload, retry and mobile-claim persistence;
+- `order-photo-interactions.mjs`: order photo gallery, preview routing, cover/delete mutations and local object-URL lifecycle;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -66,7 +70,8 @@ The browser does not receive backend refresh tokens.
 Use the narrowest owner that can correctly perform an action:
 
 - application navigation or cross-module transition -> `site.js`;
-- order-wizard behavior -> `order-wizard.mjs`;
+- order creation orchestration -> `order-wizard.mjs`;
+- order photo presentation/capture/persistence/interactions -> the dedicated `order-photo-*` / `order-mobile-capture.mjs` module;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -81,18 +86,27 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. split `portal-features.mjs` by domain;
-2. split order photo/capture behavior from `order-wizard.mjs`;
-3. move client/order list rendering out of `site.js`;
+1. continue splitting remaining order-wizard client / garment / delivery concerns by coherent workflow boundary;
+2. move client/order list rendering out of `site.js`;
+3. harden async request ownership and stale-response cancellation;
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
 
 Each extraction should preserve behavior and land with regression tests.
 
-### Order photo viewer extraction
+### Order photo domains
 
-`webapp/public/order-photo-viewer.mjs` owns the separate native photo dialog,
-preview metadata, zoom/pan transforms, keyboard/pointer controls and safe download
-markup. The wizard supplies cover/delete callbacks and keeps capture polling,
-upload/claim/retry, local object URL ownership and persistence. Capture refreshes
-replace viewer metadata through its `preview` accessor; wizard cleanup closes the
-viewer. The BFF explicitly serves the module under `/app/order-photo-viewer.mjs`.
+Order photo behavior is intentionally split by responsibility instead of living in
+`order-wizard.mjs`:
+
+- `order-photo-viewer.mjs` owns the native photo dialog, preview metadata,
+  zoom/pan transforms, keyboard/pointer controls and safe download markup;
+- `order-mobile-capture.mjs` owns secure draft capture sessions, QR rendering,
+  polling cadence, server-confirmed photo detection and capture cleanup;
+- `order-photo-persistence.mjs` owns preparation, size enforcement, desktop
+  uploads, upload retry state and claiming mobile-captured photos into an order;
+- `order-photo-interactions.mjs` owns gallery markup, local object URLs, preview
+  routing, local/mobile cover arbitration, destructive photo deletion and local
+  file replacement.
+
+`order-wizard.mjs` composes these domains and keeps order-step orchestration only.
+The BFF explicitly serves every browser module under `/app/`.

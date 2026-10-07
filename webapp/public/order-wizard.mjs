@@ -1,4 +1,5 @@
-import {createOrderPhotoViewer,safePhotoUrl} from "./order-photo-viewer.mjs";
+import {createOrderPhotoViewer} from "./order-photo-viewer.mjs";
+import {createOrderPhotoInteractions} from "./order-photo-interactions.mjs";
 import {createOrderMobileCapture} from "./order-mobile-capture.mjs";
 import {createOrderPhotoPersistence} from "./order-photo-persistence.mjs";
 const DRAFT_KEY="rimma.order.draft.v63";
@@ -60,40 +61,15 @@ export function createOrderWizard({
   let branches=[],categories=[],services=[],members=[],defaultAssignedUserId="";
   let clientMatches=[],clientSearchSeq=0,clientSearchTimer=null,clientSearchBusy=false,clientActiveIndex=-1;
   let saveClock=null;
-  const localPhotoUrls=new Map();
-  let localCoverFile=null;
+  let photoInteractions=null;
   const photoViewer=createOrderPhotoViewer({
     dialog:document.querySelector("#order-photo-viewer"),
-    getLocalCoverFile:()=>localCoverFile,
-    onSetLocalCover:setLocalPhotoCover,
-    onSetMobileCover:setMobilePhotoCover,
-    onDelete:deletePhoto,
+    getLocalCoverFile:()=>photoInteractions?.getLocalCoverFile()||null,
+    onSetLocalCover:()=>photoInteractions?.setLocalCover(),
+    onSetMobileCover:()=>photoInteractions?.setMobileCover(),
+    onDelete:()=>photoInteractions?.deletePhoto(),
     onError:e=>setError(humanError(e))
   });
-
-  const localPhotoUrl=file=>{
-    if(!file||typeof URL.createObjectURL!=="function")return "";
-    const existing=localPhotoUrls.get(file);
-    if(existing)return existing;
-    const url=URL.createObjectURL(file);
-    localPhotoUrls.set(file,url);
-    return url;
-  };
-  const releaseLocalPhotoUrl=file=>{
-    const url=localPhotoUrls.get(file);
-    if(!url)return;
-    try{URL.revokeObjectURL(url)}catch{}
-    localPhotoUrls.delete(file);
-  };
-  const releaseWorkLocalPhotos=work=>{
-    for(const file of Array.isArray(work?.photoFiles)?work.photoFiles:[])releaseLocalPhotoUrl(file);
-  };
-  const clearLocalPhotoUrls=()=>{
-    for(const url of localPhotoUrls.values()){
-      try{URL.revokeObjectURL(url)}catch{}
-    }
-    localPhotoUrls.clear();
-  };
 
   const money=minor=>{
     try{
@@ -136,11 +112,21 @@ export function createOrderWizard({
     escapeHtml:esc,
     onError:e=>setError(humanError(e))
   });
+  photoInteractions=createOrderPhotoInteractions({
+    api,
+    confirmAction,
+    getState:()=>state,
+    photoViewer,
+    mobileCapture,
+    schedulePersist,
+    renderOrderPreservingScroll,
+    escapeHtml:esc
+  });
   const photoPersistence=createOrderPhotoPersistence({
     api,
     getState:()=>state,
     getCreated:()=>created,
-    getLocalCoverFile:()=>localCoverFile,
+    getLocalCoverFile:()=>photoInteractions.getLocalCoverFile(),
     mobileCapture
   });
   const meaningful=()=>Boolean(
@@ -382,36 +368,6 @@ export function createOrderWizard({
         branchOptions()+'</select><p class="wizard-field-error" data-error-for="branchId"></p></div>')+
       '</section>';
   }
-  function photoGallery(work,itemIndex,workIndex){
-    const files=Array.isArray(work.photoFiles)?work.photoFiles:[];
-    const photos=Array.isArray(work.mobilePhotos)?work.mobilePhotos:[];
-    const localMarkup=files.map((file,fileIndex)=>{
-      const url=localPhotoUrl(file);
-      if(!url)return "";
-      const isCover=file===localCoverFile;
-      return '<button type="button" class="wizard-photo-thumb'+(isCover?' is-cover':'')+'" '+
-        'data-wizard-action="preview-local-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-file-index="'+fileIndex+'" '+
-        'aria-label="Abrir fotografía">'+
-        '<img src="'+esc(url)+'" alt="">'+
-        '<span class="wizard-photo-status">Pendiente</span>'+
-        (isCover?'<span class="wizard-photo-cover">Portada</span>':"")+
-        '</button>';
-    }).join("");
-    const mobileMarkup=photos.map(photo=>{
-      const url=safePhotoUrl(photo.viewUrl);
-      if(!url)return "";
-      return '<button type="button" class="wizard-photo-thumb'+(photo.isCover?' is-cover':'')+'" '+
-        'data-wizard-action="preview-mobile-photo" data-index="'+itemIndex+'" data-work-index="'+workIndex+'" data-photo-id="'+esc(photo.id)+'" '+
-        'aria-label="Abrir fotografía">'+
-        '<img src="'+esc(url)+'" alt="">'+
-        '<span class="wizard-photo-status">Pendiente</span>'+
-        (photo.isCover?'<span class="wizard-photo-cover">Portada</span>':"")+
-        '</button>';
-    }).join("");
-    const markup=localMarkup+mobileMarkup;
-    return markup?'<div class="wizard-photo-gallery" aria-label="Fotografías del trabajo">'+markup+'</div>':"";
-  }
-
   function renderOrderPreservingScroll(){
     const top=fields.scrollTop;
     render();
@@ -455,7 +411,7 @@ export function createOrderWizard({
         '<strong>'+totalCount+' foto'+(totalCount===1?"":"s")+'</strong>'+
         (mobileCount?'<span>'+mobileCount+' desde móvil</span>':"")+
         '</div>':"")+
-      photoGallery(work,itemIndex,workIndex)+
+      photoInteractions.gallery(work,itemIndex,workIndex)+
       '</div>'+
       '</div></section>';
   }
@@ -585,136 +541,6 @@ export function createOrderWizard({
       '<details class="wizard-more-actions"><summary>Más acciones</summary>'+
       '<button type="button" class="secondary" data-wizard-action="documents">Documentos del pedido</button>'+
       '</details></div></section>';
-  }
-
-  function workAt(itemIndex,workIndex){
-    const item=state.items[Number(itemIndex)];
-    const work=item?.works?.[Number(workIndex)];
-    return {item,work};
-  }
-
-  async function openMobilePhotoPreview(itemIndex,workIndex,photoId){
-    const {work}=workAt(itemIndex,workIndex);
-    if(!work||!UUID.test(String(work.mobileCaptureId||"")))return;
-    await mobileCapture.refresh(work,{rerender:false});
-    const photo=(work.mobilePhotos||[]).find(row=>row.id===photoId);
-    if(!photo)throw Error("La fotografía ya no está disponible.");
-    photoViewer.open({
-      source:"mobile",
-      itemIndex:Number(itemIndex),
-      workIndex:Number(workIndex),
-      workKey:work.key,
-      workName:work.work||"Trabajo",
-      captureId:work.mobileCaptureId,
-      photo
-    });
-  }
-
-  function openLocalPhotoPreview(itemIndex,workIndex,fileIndex){
-    const {work}=workAt(itemIndex,workIndex);
-    const file=work?.photoFiles?.[Number(fileIndex)];
-    if(!work||!file)return;
-    const viewUrl=localPhotoUrl(file);
-    if(!viewUrl)throw Error("No se pudo preparar la vista previa de esta fotografía.");
-    photoViewer.open({
-      source:"local",
-      itemIndex:Number(itemIndex),
-      workIndex:Number(workIndex),
-      workKey:work.key,
-      workName:work.work||"Trabajo",
-      photo:{
-        fileName:file.name||"Fotografía",
-        sizeBytes:Number(file.size||0),
-        viewUrl,
-        localIndex:Number(fileIndex),
-        fileRef:file,
-        isCover:file===localCoverFile
-      }
-    });
-  }
-
-  function setLocalPhotoCover(){
-    const preview=photoViewer.preview;
-    const file=preview?.photo?.fileRef;
-    if(!preview||preview.source!=="local"||!file)return;
-    localCoverFile=file;
-    state.items.forEach(item=>(item.works||[]).forEach(work=>
-      (work.mobilePhotos||[]).forEach(photo=>{photo.isCover=false})
-    ));
-    photoViewer.preview={...preview,photo:{...preview.photo,isCover:true}};
-    schedulePersist();
-    renderOrderPreservingScroll();
-    photoViewer.render();
-  }
-
-  async function setMobilePhotoCover(){
-    const preview=photoViewer.preview;
-    if(!preview||preview.source!=="mobile"||!UUID.test(String(preview.captureId||""))||!UUID.test(String(preview.photo?.id||"")))return;
-    const result=await api(
-      "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
-      "/photos/"+encodeURIComponent(preview.photo.id)+"/cover",
-      {method:"PATCH",body:JSON.stringify({})}
-    );
-    localCoverFile=null;
-    state.items.forEach(item=>(item.works||[]).forEach(work=>
-      (work.mobilePhotos||[]).forEach(photo=>{photo.isCover=false})
-    ));
-    const {work}=workAt(preview.itemIndex,preview.workIndex);
-    if(work){
-      const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
-      work.mobilePhotos=photos;
-      work.mobilePhotoCount=photos.length;
-      const fresh=photos.find(photo=>photo.id===preview.photo.id);
-      photoViewer.preview=fresh?{...preview,photo:fresh}:null;
-      schedulePersist();
-    }
-    renderOrderPreservingScroll();
-    photoViewer.render();
-  }
-
-  async function deletePhoto(){
-    const preview=photoViewer.preview;
-    if(!preview)return;
-    const local=preview.source==="local";
-    if(!local&&(
-      !UUID.test(String(preview.captureId||""))||
-      !UUID.test(String(preview.photo?.id||""))
-    ))return;
-    const approved=await confirmAction({
-      title:"Eliminar fotografía",
-      message:"Se eliminará esta fotografía del pedido en preparación. Si la necesitas de nuevo, tendrás que volver a añadirla.",
-      cancelLabel:"Conservar",
-      confirmLabel:"Eliminar fotografía",
-      danger:true
-    });
-    if(!approved)return;
-
-    if(local){
-      const {work}=workAt(preview.itemIndex,preview.workIndex);
-      const index=Number(preview.photo?.localIndex);
-      const file=work?.photoFiles?.[index];
-      if(!work||!file)return;
-      if(file===localCoverFile)localCoverFile=null;
-      releaseLocalPhotoUrl(file);
-      work.photoFiles.splice(index,1);
-      work.photoNames=work.photoFiles.map(row=>row.name);
-    }else{
-      const result=await api(
-        "/draft-photo-captures/"+encodeURIComponent(preview.captureId)+
-        "/photos/"+encodeURIComponent(preview.photo.id),
-        {method:"DELETE"}
-      );
-      const {work}=workAt(preview.itemIndex,preview.workIndex);
-      if(work){
-        const photos=Array.isArray(result.capture?.photos)?result.capture.photos:[];
-        work.mobilePhotos=photos;
-        work.mobilePhotoCount=photos.length;
-      }
-    }
-
-    photoViewer.close();
-    schedulePersist();
-    renderOrderPreservingScroll();
   }
 
   function render(){
@@ -935,20 +761,11 @@ export function createOrderWizard({
     const item=state.items[itemIndex];
     const work=item?.works?.[workIndex];
     if(!work)return;
-    const previous=Array.isArray(work.photoFiles)?work.photoFiles:[];
     const originals=[...(target?.files||[])].slice(0,12);
     try{
       const files=await photoPersistence.prepareSelectedFiles(originals);
-      for(const file of previous){
-        if(!files.includes(file))releaseLocalPhotoUrl(file);
-      }
-      if(localCoverFile&&!files.includes(localCoverFile))localCoverFile=null;
-      work.photoFiles=files;
-      work.photoNames=files.map(file=>file.name);
+      photoInteractions.replaceLocalFiles(work,files);
       photoPersistence.clearPrepared();
-      if(photoViewer.preview?.source==="local"&&photoViewer.preview.workKey===work.key){
-        photoViewer.close();
-      }
       schedulePersist();
       render();
     }catch(e){
@@ -1007,8 +824,8 @@ export function createOrderWizard({
       if(!approved)return;
     }
     await mobileCapture.discardAll();
-    clearLocalPhotoUrls();
-    localCoverFile=null;
+    photoInteractions.clearLocalPhotoUrls();
+    photoInteractions.resetLocalCover();
     clearDraft();
     restored=false;
     dirty=false;
@@ -1040,8 +857,8 @@ export function createOrderWizard({
       await mobileCapture.discardAll();
       clearDraft();
       dirty=false;
-      clearLocalPhotoUrls();
-      localCoverFile=null;
+      photoInteractions.clearLocalPhotoUrls();
+      photoInteractions.resetLocalCover();
       photoPersistence.reset();
       state=blankState(locale?.currency||"EUR");
       modal.close();
@@ -1235,7 +1052,7 @@ export function createOrderWizard({
     }
     if(actionName==="preview-local-photo"){
       try{
-        openLocalPhotoPreview(
+        photoInteractions.openLocalPreview(
           Number(button.dataset.index),
           Number(button.dataset.workIndex),
           Number(button.dataset.fileIndex)
@@ -1247,7 +1064,7 @@ export function createOrderWizard({
       const index=Number(button.dataset.index);
       const workIndex=Number(button.dataset.workIndex);
       const photoId=String(button.dataset.photoId||"");
-      void openMobilePhotoPreview(index,workIndex,photoId).catch(e=>setError(humanError(e)));
+      void photoInteractions.openMobilePreview(index,workIndex,photoId).catch(e=>setError(humanError(e)));
       return;
     }
     if(actionName==="mobile-photo"){
@@ -1276,7 +1093,7 @@ export function createOrderWizard({
       if(item&&item.works.length>1&&Number.isInteger(workIndex)){
         const removed=item.works[workIndex];
         if(removed){
-          releaseWorkLocalPhotos(removed);
+          photoInteractions.releaseWorkLocalPhotos(removed);
           void mobileCapture.discard(removed);
         }
         item.works.splice(workIndex,1);
@@ -1290,7 +1107,7 @@ export function createOrderWizard({
       if(Number.isInteger(index)&&state.items.length>1){
         const removed=state.items[index];
         for(const work of removed?.works||[]){
-          releaseWorkLocalPhotos(work);
+          photoInteractions.releaseWorkLocalPhotos(work);
           void mobileCapture.discard(work);
         }
         state.items.splice(index,1);
@@ -1354,7 +1171,7 @@ export function createOrderWizard({
     active=true;
     created=null;
     photoViewer.preview=null;
-    localCoverFile=null;
+    photoInteractions.resetLocalCover();
     photoPersistence.reset();
     clientMatches=[];
     clientActiveIndex=-1;
@@ -1451,7 +1268,7 @@ export function createOrderWizard({
     persist();
     clearTimeout(clientSearchTimer);
     mobileCapture.closed();
-    clearLocalPhotoUrls();
+    photoInteractions.clearLocalPhotoUrls();
     photoViewer.close();
     clientSearchSeq++;
     clientMatches=[];

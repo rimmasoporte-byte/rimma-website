@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,viewer,css,index,server]=await Promise.all([
+const [wizard,viewer,interactions,css,index,server]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-viewer.mjs',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-photo-interactions.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/app.css',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/index.html',import.meta.url),'utf8'),
   fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
@@ -50,8 +51,9 @@ test('viewer controls have one event owner',()=>{
 });
 
 test('delete and download security paths remain intact',()=>{
-  assert.match(wizard,/async function deletePhoto\(\)/);
-  assert.match(wizard,/method:"DELETE"/);
+  assert.match(interactions,/async function deletePhoto\(\)/);
+  assert.match(interactions,/method:"DELETE"/);
+  assert.match(interactions,/confirmAction\([\s\S]*?danger:true/);
   assert.match(server,/const bodylessDelete=method==='DELETE'&&!hasJsonBody/);
   assert.match(server,/trustedSignedPhotoUrl/);
   assert.match(server,/content-disposition/);
