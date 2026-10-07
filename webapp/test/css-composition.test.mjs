@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
@@ -25,6 +26,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-garment-card-actions.css",
     "portal-garment-workspace.css",
     "portal-garment-order-detail.css",
     "portal-garment-cards.css",
@@ -39,14 +41,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
@@ -61,6 +64,13 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/V31 — professional garment cards on the atelier work surface/);
+  assert.doesNotMatch(app,/\.garment-more-menu/);
+  assert.match(garmentActions,/^\/\* V31 — professional garment cards on the atelier work surface\. \*\//);
+  assert.match(garmentActions,/\.garment-primary-action/);
+  assert.match(garmentActions,/\.garment-more-menu/);
+  assert.doesNotMatch(garmentActions,/V32 — garment work sheet/);
 
   assert.doesNotMatch(app,/V32 — garment work sheet/);
   assert.doesNotMatch(app,/\.garment-work-hero/);
@@ -134,8 +144,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-garment-card-actions.css"),
     read("portal-garment-workspace.css"),
     read("portal-garment-order-detail.css"),
     read("portal-garment-cards.css"),
@@ -150,7 +161,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* V31 — professional garment cards on the atelier work surface. */") <
+    composed.indexOf("/* V32 — garment work sheet. The digital passport is a nested client-facing tool. */"));
   assert.ok(composed.indexOf("/* V32 — garment work sheet. The digital passport is a nested client-facing tool. */") <
     composed.indexOf("/* V33 — separate garment actions from order actions. */"));
   assert.ok(composed.indexOf("/* V33 — separate garment actions from order actions. */") <
