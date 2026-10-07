@@ -113,6 +113,8 @@ test('passport sharing revokes the active client link',async()=>{
 test('portal delegates share markup and actions to the passport sharing domain',()=>{
  const features=read('public/portal-features.mjs');
  const sharing=read('public/portal-passport-sharing.mjs');
+ const sharingCss=read('public/portal-passport-sharing.css');
+ const appCss=read('public/app.css');
  const passportEditor=read('public/portal-passport-editor.mjs');
  const server=read('../webapp/server.mjs');
 
@@ -127,5 +129,10 @@ test('portal delegates share markup and actions to the passport sharing domain',
  assert.match(sharing,/portal-passport-share\.mjs/);
  assert.match(sharing,/\/passport\/share\/email/);
  assert.match(sharing,/https:\/\/wa\.me\//);
+ assert.match(sharingCss,/^\/\* Passport sharing UX: prioritize communication channels, keep technical link actions secondary\. \*\//);
+ assert.match(sharingCss,/\.passport-channel-grid/);
+ assert.match(sharingCss,/\.passport-secondary-actions/);
+ assert.doesNotMatch(appCss,/Passport sharing UX: prioritize communication channels/);
  assert.match(server,/pathname==='\/app\/portal-passport-sharing\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-passport-sharing\.css'/);
 });
