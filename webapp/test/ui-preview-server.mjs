@@ -74,7 +74,16 @@ http.createServer(async(req,res)=>{
     if(p === "/dashboard/today")return send(res,200,{dashboard:{summary:{dueToday:3,readyForPickup:12}}});
     if(p === "/dashboard/week")return send(res,200,{dashboard:{summary:{items:27}}});
     if(p === "/clients")return send(res,200,{clients:data.clients});
-    if(p === "/branches")return send(res,200,{branches:[{id:id(4),name:"Atelier de prueba",status:"active"}]});
+    if(p === "/branches")return send(res,200,{branches:[{id:id(4),name:"Atelier de prueba",city:"Barcelona",status:"active"}]});
+    if(p === "/branches/"+id(4)+"/summary")return send(res,200,{summary:{activeOrders:7,readyOrders:2,overdueOrders:1,confirmedRevenueMinor:21500}});
+    if(p === "/team")return send(res,200,{team:{owner:true,seats:{used:1,limit:3,available:2},members:[{userId:id(1),displayName:"María",email:"qa@example.invalid",role:"owner",status:"active"}],invitations:[]}});
+    if(p === "/notification-settings")return send(res,200,{notificationSettings:{providers:{emailConfigured:true,whatsappConfigured:false},rules:[
+      {eventKey:"order_received",channel:"email",enabled:true},
+      {eventKey:"in_progress",channel:"email",enabled:true},
+      {eventKey:"ready_for_pickup",channel:"email",enabled:true},
+      {eventKey:"pickup_reminder",channel:"email",enabled:false},
+      {eventKey:"payment_due",channel:"email",enabled:true}
+    ]}});
     if(p === "/workspace/members")return send(res,200,{members:[]});
     if(p === "/orders")return send(res,200,{orders:data.orders});
     if(p.endsWith("/measurements"))return send(res,200,{measurements:data.measurements.filter(m=>m.status!=="deleted")});

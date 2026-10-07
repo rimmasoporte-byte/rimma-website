@@ -135,7 +135,7 @@ async function createClientProtected(form){
  throw new Error("Los datos coinciden con un cliente existente. Revisa la ficha antes de continuar.");
 }
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
-const views={inicio:"Inicio",pedidos:"Pedidos",citas:"Citas",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Mi cuenta"};
+const views={inicio:"Inicio",pedidos:"Pedidos",citas:"Citas",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Configuración"};
 const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
@@ -155,6 +155,9 @@ const featureUI=import("/app/portal-features.mjs?v=20261005-v8").then(module=>mo
 }));
 const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.createTeamUI({
  api,success,globalError,confirmAction,getMe:()=>me
+}));
+const notificationSettingsUI=import("/app/portal-notification-settings.mjs?v=20261007-v1").then(module=>module.createNotificationSettings({
+ api,success,globalError,getMe:()=>me
 }));
 let orderWizardInstance=null;
 let orderWizardLoad=null;
@@ -574,7 +577,7 @@ async function loadAppointments(){
  }finally{lease.finish();}
 }
 async function loadAtelierAccountSettings(){
- const branches=$("#branches-summary"),rules=$("#notifications-summary");
+ const branches=$("#branches-summary");
  try{
   const data=await api("/branches"),rows=data.branches||[],branch=rows[0]||null;
   let summary=null;
@@ -585,25 +588,10 @@ async function loadAtelierAccountSettings(){
    branches.innerHTML=branch
     ? '<div class="branch-overview-grid"><article class="branch-overview"><div><strong>'+esc(branch.name)+'</strong><small>Ubicación principal'+(branch.city?' · '+esc(branch.city):'')+'</small></div>'+
       (summary?'<div class="branch-stats"><span>Activos <b>'+n(summary.activeOrders)+'</b></span><span>Listos <b>'+n(summary.readyOrders)+'</b></span><span>Atrasados <b>'+n(summary.overdueOrders)+'</b></span><span>Cobrado <b>'+esc(money(summary.confirmedRevenueMinor,L.currency||"EUR"))+'</b></span></div>':'')+
-      '</article></div><p class="small">Esta cuenta admite una sola ubicación.</p>'
+      '</article></div>'
     : '<p class="small">No se pudo identificar la ubicación principal.</p>';
   }
  }catch(e){if(branches)branches.textContent="No se pudo cargar la ubicación.";}
- if(me?.workspace?.role!=="owner")return;
- try{
-  const data=await api("/notification-settings"),settings=data.notificationSettings||{},rows=settings.rules||[];
-  const names={order_received:"Pedido recibido",in_progress:"En proceso",ready_for_pickup:"Listo para recoger",pickup_reminder:"Recordatorio de recogida",payment_due:"Pago pendiente"};
-  const events=["order_received","in_progress","ready_for_pickup","pickup_reminder","payment_due"];
-  const byKey=new Map(rows.map(x=>[x.eventKey+":"+x.channel,x]));
-  if(rules)rules.innerHTML='<div class="notification-event-list">'+events.map(eventKey=>{
-    const email=byKey.get(eventKey+":email")||{enabled:false},wa=byKey.get(eventKey+":whatsapp")||{enabled:false,templateName:""};
-    const waDisabled=!settings.providers?.whatsappConfigured;
-    return '<article class="notification-event"><div class="notification-event-name"><strong>'+esc(names[eventKey])+'</strong><small>RIMMA avisa cuando cambia el trabajo</small></div>'+
-      '<label class="notification-channel"><span>Correo</span><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="email" '+(email.enabled?"checked":"")+' '+(!settings.providers?.emailConfigured?'disabled':'')+'></label>'+
-      '<label class="notification-channel whatsapp-channel"><span>WhatsApp</span><input type="text" data-whatsapp-template="'+esc(eventKey)+'" value="'+esc(wa.templateName||"")+'" placeholder="plantilla_aprobada" '+(waDisabled?'disabled':'')+'><input type="checkbox" data-action="toggle-notification" data-event="'+esc(eventKey)+'" data-channel="whatsapp" '+(wa.enabled?"checked":"")+' '+(waDisabled?'disabled':'')+'></label>'+
-     '</article>';
-  }).join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Correo no configurado.")+' '+(settings.providers?.whatsappConfigured?"WhatsApp Cloud conectado; indica una plantilla aprobada para cada aviso.":"WhatsApp automático queda bloqueado hasta conectar WhatsApp Cloud.")+'</p>';
- }catch(e){if(rules)rules.textContent="No se pudieron cargar los avisos.";}
 }
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
@@ -736,6 +724,7 @@ async function loadAccount(){
  $("#account-info").innerHTML='<p>Cargando cuenta…</p>';
  applyRoleUi();
  void loadAtelierAccountSettings();
+ void notificationSettingsUI.then(ui=>ui.load()).catch(error=>globalError(error.message||"No se pudieron cargar los avisos."));
  void teamUI.then(ui=>ui.load()).catch(error=>globalError(error.message||"No se pudo cargar el equipo."));
  try{
   const a=(await api("/me")).me||me||{};
@@ -1048,24 +1037,11 @@ document.addEventListener("click",event=>{
    break;
   case "new-order":void openNewOrder();break;
   case "new-appointment":openModal("appointment");break;
-    case "refresh-notifications":void loadAtelierAccountSettings();break;
   case "garment-open":void featureUI.then(ui=>ui.openGarment(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo abrir la prenda."));break;
   case "garment-edit":void featureUI.then(ui=>ui.openGarmentEdit(b.dataset.order,b.dataset.item)).catch(e=>globalError(e.message||"No se pudo editar la prenda."));break;
   case "garment-label":void printGarmentLabel(b.dataset.order,b.dataset.item);break;
   case "order-info":void featureUI.then(ui=>ui.openOrderInfo(b.dataset.id)).catch(e=>globalError(e.message||"No se pudo abrir el pedido."));break;
   case "order-payments":void featureUI.then(ui=>ui.openPayments(b.dataset.id)).catch(e=>globalError(e.message||"No se pudieron abrir los pagos."));break;
-  case "toggle-notification":{
-   const checkbox=b;
-   const enabled=Boolean(checkbox.checked),channel=b.dataset.channel||"email",eventKey=b.dataset.event;
-   const templateName=channel==="whatsapp"?(document.querySelector('[data-whatsapp-template="'+CSS.escape(eventKey||"")+'"]')?.value||"").trim():null;
-   if(channel==="whatsapp"&&enabled&&!templateName){checkbox.checked=false;globalError("Indica primero el nombre de la plantilla de WhatsApp aprobada.");break;}
-   checkbox.disabled=true;
-   void api("/notification-settings",{method:"PATCH",body:JSON.stringify({eventKey,channel,enabled,delayMinutes:0,templateName,locale:"es"})})
-    .then(()=>success(enabled?"Aviso automático activado.":"Aviso automático desactivado."))
-    .catch(e=>{checkbox.checked=!enabled;globalError(e.message||"No se pudo cambiar el aviso.");})
-    .finally(()=>{checkbox.disabled=false;});
-   break;
-  }
   case "edit-client":openModal("edit-client",{id:b.dataset.id});break;
   case "edit-order":openModal("edit-order",{id:b.dataset.id});break;
   case "download-order":void downloadOrder(b.dataset.id);break;

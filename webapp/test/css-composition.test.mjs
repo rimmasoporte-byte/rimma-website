@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,settings,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
     read("portal-shell-controls.css"),
@@ -23,6 +23,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
     read("portal-business-profile.css"),
+    read("portal-settings.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -49,6 +50,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "portal-locale-control.css",
     "portal-dashboard.css",
     "portal-business-profile.css",
+    "portal-settings.css",
     "portal-onboarding.css",
     "team.css",
     "portal-order-flow.css",
@@ -57,13 +59,13 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+shellControls+orderWizard+garmentPassport+passportSharing+orderDocuments+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+shellControls+orderWizard+garmentPassport+passportSharing+orderDocuments+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+settings+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,settings,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
     read("portal-shell-controls.css"),
     read("portal-order-wizard.css"),
@@ -80,6 +82,7 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
     read("portal-business-profile.css"),
+    read("portal-settings.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -139,8 +142,8 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.match(operationalWidgets,/^\/\* Shared operational widgets retained in original cascade order\. \*\//);
   assert.match(operationalWidgets,/\.appointments-timeline/);
   assert.match(operationalWidgets,/\.measurement-linked/);
-  assert.match(operationalWidgets,/\.branch-overview-grid/);
-  assert.match(operationalWidgets,/\.notification-event-list/);
+  assert.doesNotMatch(operationalWidgets,/\.branch-overview-grid/);
+  assert.doesNotMatch(operationalWidgets,/\.notification-event-list/);
   assert.doesNotMatch(operationalWidgets,/V30 — dashboard KPI actions are text cues/);
 
   assert.doesNotMatch(app,/V30 — dashboard KPI actions are text cues/);
@@ -193,6 +196,13 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.match(businessProfile,/#feature-dialog\[data-mode="business-profile"\]\{/);
   assert.match(businessProfile,/\.tax-territory-blocked\{/);
 
+  assert.doesNotMatch(app,/\.branch-overview-grid/);
+  assert.doesNotMatch(app,/\.notification-event-list/);
+  assert.match(settings,/^\/\* ===== SETTINGS \/ ACCOUNT ===== \*\//);
+  assert.match(settings,/#view-cuenta \.account-grid\{align-items:start\}/);
+  assert.match(settings,/\.branch-overview-grid\{/);
+  assert.match(settings,/\.notification-settings-head\{/);
+
   assert.doesNotMatch(app,/\/\* ===== ONBOARDING ===== \*\//);
   assert.match(onboarding,/^\/\* ===== ONBOARDING ===== \*\//);
   assert.match(onboarding,/\.quick-guide-button\{/);
@@ -227,7 +237,7 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,settings,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
     read("portal-shell-controls.css"),
     read("portal-order-wizard.css"),
@@ -244,6 +254,7 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("portal-locale-control.css"),
     read("portal-dashboard.css"),
     read("portal-business-profile.css"),
+    read("portal-settings.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -252,7 +263,7 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,settings,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
   assert.ok(composed.indexOf("/* Canonical portal shell controls, dialogs and shared interaction states. */") <
     composed.indexOf("/* Order creation wizard: one canonical implementation, no legacy order-form patches. */"));
   assert.ok(composed.indexOf("/* Order creation wizard: one canonical implementation, no legacy order-form patches. */") <
@@ -282,6 +293,8 @@ test("composed portal CSS keeps extracted layers in their former source order",a
   assert.ok(composed.indexOf("/* V60 — four core KPIs: no duplicated appointments/team metrics. */") <
     composed.indexOf("/* V61 — structured workshop/fiscal settings with territory safety. */"));
   assert.ok(composed.indexOf("/* V61 — structured workshop/fiscal settings with territory safety. */") <
+    composed.indexOf("/* ===== SETTINGS / ACCOUNT ===== */"));
+  assert.ok(composed.indexOf("/* ===== SETTINGS / ACCOUNT ===== */") <
     composed.indexOf("/* ===== ONBOARDING ===== */"));
   assert.ok(composed.indexOf("/* ===== ONBOARDING ===== */") <
     composed.indexOf("/* ===== TEAM ===== */"));
