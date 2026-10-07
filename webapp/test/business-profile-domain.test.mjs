@@ -185,6 +185,8 @@ test('portal delegates business profile while fiscal invoice issuance remains se
  const features=read('public/portal-features.mjs');
  const profile=read('public/portal-business-profile.mjs');
  const fiscal=read('public/portal-fiscal-invoice.mjs');
+ const appCss=read('public/app.css');
+ const css=read('public/portal-business-profile.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createBusinessProfile/);
@@ -201,4 +203,8 @@ test('portal delegates business profile while fiscal invoice issuance remains se
  assert.match(fiscal,/async function openFiscalInvoice\(/);
  assert.match(fiscal,/async function issueFiscalInvoice\(/);
  assert.match(server,/pathname==='\/app\/portal-business-profile\.mjs'/);
+ assert.doesNotMatch(appCss,/structured workshop\/fiscal settings with territory safety/);
+ assert.match(css,/^\/\* V61 — structured workshop\/fiscal settings with territory safety\. \*\//);
+ assert.match(css,/#feature-dialog\[data-mode="business-profile"\]/);
+ assert.match(server,/pathname==='\/app\/portal-business-profile\.css'/);
 });

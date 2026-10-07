@@ -460,7 +460,7 @@ test("V61 fiscal settings are territory-aware and fail closed outside the implem
  const js=await source("public/site.js");
  const fiscal=await source("public/portal-fiscal-invoice.mjs");
  const profile=await source("public/portal-business-profile.mjs");
- const css=await source("public/app.css");
+ const css=await source("public/portal-business-profile.css");
  assert.match(html,/Datos del taller y facturación/);
  assert.match(html,/Configurar datos/);
  assert.match(js,/portal-features\.mjs\?v=20261005-v8/);

@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -19,6 +20,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-business-profile.css",
     "portal-onboarding.css",
     "team.css",
     "portal-order-flow.css",
@@ -27,13 +29,14 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  assert.doesNotMatch(app+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/@import/);
-  assert.doesNotMatch(app+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/url\(["']?http:/);
+  assert.doesNotMatch(app+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/@import/);
+  assert.doesNotMatch(app+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -42,6 +45,11 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/structured workshop\/fiscal settings with territory safety/);
+  assert.match(businessProfile,/^\/\* V61 — structured workshop\/fiscal settings with territory safety\. \*\//);
+  assert.match(businessProfile,/#feature-dialog\[data-mode="business-profile"\]\{/);
+  assert.match(businessProfile,/\.tax-territory-blocked\{/);
 
   assert.doesNotMatch(app,/\/\* ===== ONBOARDING ===== \*\//);
   assert.match(onboarding,/^\/\* ===== ONBOARDING ===== \*\//);
@@ -81,8 +89,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-business-profile.css"),
     read("portal-onboarding.css"),
     read("team.css"),
     read("portal-order-flow.css"),
@@ -91,7 +100,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* V61 — structured workshop/fiscal settings with territory safety. */") <
+    composed.indexOf("/* ===== ONBOARDING ===== */"));
   assert.ok(composed.indexOf("/* ===== ONBOARDING ===== */") <
     composed.indexOf("/* ===== TEAM ===== */"));
   assert.ok(composed.indexOf("/* ===== TEAM ===== */") <
