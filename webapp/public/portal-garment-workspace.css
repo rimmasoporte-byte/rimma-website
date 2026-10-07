@@ -1,0 +1,76 @@
+/* V32 — garment work sheet. The digital passport is a nested client-facing tool. */
+.garment-work-hero{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+ margin:0 0 14px;padding:18px;border:1px solid #e6dccd;border-radius:14px;background:#fbf8f2
+}
+.garment-work-hero h3{margin:5px 0 9px;font:600 30px/1.05 var(--serif);color:#24362b}
+.garment-work-due{display:grid;gap:3px;text-align:right;white-space:nowrap}
+.garment-work-due small{font:700 9px/1.3 var(--font);letter-spacing:1.2px;color:#91774f}
+.garment-work-due strong{font:650 14px/1.3 var(--font);color:#293b30}
+.garment-work-money{margin-bottom:14px}
+.garment-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.garment-work-card{
+ display:grid;gap:4px;min-width:0;padding:13px 14px;border:1px solid #e8dfd2;border-radius:11px;background:#fffdfa
+}
+.garment-work-card small,.garment-work-details small{
+ font:700 9px/1.3 var(--font);letter-spacing:1px;text-transform:uppercase;color:#967950
+}
+.garment-work-card strong{font:650 13px/1.35 var(--font);color:#293b30;overflow-wrap:anywhere}
+.garment-work-card span{font:400 11px/1.45 var(--font);color:#766d63;overflow-wrap:anywhere}
+.garment-work-section{margin-top:12px}
+.garment-work-details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.garment-work-details>span{display:grid;gap:4px;padding:10px 11px;border:1px solid #eee5d8;border-radius:9px;background:#fff}
+.garment-work-details strong{font:650 12px/1.35 var(--font);color:#2e4034;overflow-wrap:anywhere}
+.garment-work-lines{display:grid;gap:6px;margin-top:10px}
+.garment-work-line{
+ display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:9px;align-items:center;
+ padding:9px 10px;border:1px solid #eee5d8;border-radius:8px;background:#fff
+}
+.garment-work-line>span{
+ display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+ background:#f2ece2;color:#80663e;font:700 9px var(--font)
+}
+.garment-work-line>div{display:grid;gap:2px;min-width:0}
+.garment-work-line>div>strong{font:650 12px/1.35 var(--font);color:#293b30;overflow-wrap:anywhere}
+.garment-work-line>div>small{font:500 10px/1.35 var(--font);color:#7a7166;overflow-wrap:anywhere}
+.garment-work-line>b{font:700 12px var(--font);color:#293b30;white-space:nowrap;font-variant-numeric:tabular-nums}
+.garment-work-edit-list{display:grid;gap:10px;margin:14px 0 10px}
+.garment-work-edit-row{
+ padding:12px;border:1px solid #e5dccd;border-radius:10px;background:#fffdfa
+}
+.garment-work-edit-head{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px
+}
+.garment-work-edit-head>span{
+ color:#8d6c3e;font:700 9px/1.2 var(--font);letter-spacing:.15em;text-transform:uppercase
+}
+.garment-work-edit-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 135px minmax(150px,.8fr);gap:10px}
+.garment-work-edit-grid label{display:grid;gap:5px;color:#5d574f;font:650 11px/1.3 var(--font)}
+.garment-work-edit-grid input,.garment-work-edit-grid select{
+ min-width:0;min-height:43px;padding:9px 10px;border:1px solid #d9d1c3;border-radius:7px;background:#fff;
+ color:#26362c;font:500 13px/1.35 var(--font)
+}
+.garment-work-edit-grid input:focus,.garment-work-edit-grid select:focus{
+ outline:0;border-color:#ae8a52;box-shadow:0 0 0 3px rgba(174,138,82,.13)
+}
+.garment-work-edit-total{font:650 24px/1 var(--serif);color:#293b30;white-space:nowrap}
+.garment-work-add{width:100%;min-height:42px;border-style:dashed}
+.garment-work-actions{display:flex;flex-wrap:wrap;gap:8px}
+.garment-work-actions .feature-button{min-height:38px}
+.garment-work-actions [data-feature="garment-passport"]{
+ background:#20352a;border-color:#20352a;color:#fffdf7
+}
+.garment-work-actions [data-feature="garment-passport"]:hover,
+.garment-work-actions [data-feature="garment-passport"]:focus-visible{
+ background:#2a4637;border-color:#2a4637;color:#fffdf7
+}
+@media(max-width:680px){
+ .garment-work-hero{display:grid}
+ .garment-work-due{text-align:left}
+ .garment-work-grid{grid-template-columns:1fr}
+ .garment-work-details{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .garment-work-edit-grid{grid-template-columns:1fr}
+ .garment-work-edit-total{font-size:21px}
+ .garment-work-actions{display:grid}
+ .garment-work-actions .feature-button{width:100%}
+}

@@ -89,6 +89,8 @@ test('garment overview rejects invalid scope before API access',async()=>{
 test('garment overview remains GET-only and portal delegates to it',()=>{
  const features=read('public/portal-features.mjs');
  const garment=read('public/portal-garment-overview.mjs');
+ const workspaceCss=read('public/portal-garment-workspace.css');
+ const appCss=read('public/app.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createGarmentOverview/);
@@ -98,5 +100,10 @@ test('garment overview remains GET-only and portal delegates to it',()=>{
  assert.match(garment,/async function openGarment\(/);
  assert.match(garment,/Ficha de la prenda/);
  assert.doesNotMatch(garment,/method:"(?:POST|PATCH|PUT|DELETE)"/);
+ assert.match(workspaceCss,/^\/\* V32 — garment work sheet\. The digital passport is a nested client-facing tool\. \*\//);
+ assert.match(workspaceCss,/\.garment-work-hero/);
+ assert.match(workspaceCss,/\.garment-work-lines/);
+ assert.doesNotMatch(appCss,/V32 — garment work sheet/);
  assert.match(server,/pathname==='\/app\/portal-garment-overview\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-workspace\.css'/);
 });

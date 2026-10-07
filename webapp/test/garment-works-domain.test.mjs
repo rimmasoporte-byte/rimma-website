@@ -203,6 +203,8 @@ test('garment works prevents removing the only remaining line',async()=>{
 test('portal delegates garment works mutations to the dedicated domain',()=>{
  const features=read('public/portal-features.mjs');
  const works=read('public/portal-garment-works.mjs');
+ const workspaceCss=read('public/portal-garment-workspace.css');
+ const appCss=read('public/app.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createGarmentWorks/);
@@ -217,5 +219,9 @@ test('portal delegates garment works mutations to the dedicated domain',()=>{
  assert.match(works,/\/items\/"\+encodeURIComponent\(itemId\)\+"\/works"/);
  assert.match(works,/method:"PATCH"/);
  assert.match(works,/expectedVersion:Number\(context\.passport\.version\)/);
+ assert.match(workspaceCss,/\.garment-work-edit-grid/);
+ assert.match(workspaceCss,/\.garment-work-actions/);
+ assert.doesNotMatch(appCss,/V32 — garment work sheet/);
  assert.match(server,/pathname==='\/app\/portal-garment-works\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-workspace\.css'/);
 });
