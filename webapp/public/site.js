@@ -144,7 +144,7 @@ let returnToOrderAfterClient=false,pendingOrderClientId="";
 let clientDuplicateClock=null,clientDuplicateSeq=0,clientDuplicateMatches=[];
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
-const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261005-v1").then(module=>module.confirmAction(options));
+const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261005-v1").then(module=>module.confirmAction(options)),requestOwnership=import("/app/portal-request-ownership.mjs?v=20261007-v1").then(module=>module.createLatestRequestOwner());
 const recordListUI=import("/app/portal-record-lists.mjs?v=20261007-v1").then(module=>module.createPortalRecordLists({
  escapeHtml:esc,money,date,statusLabels:status
 }));
@@ -430,26 +430,39 @@ function compactActionRows(rows,kind){
 }
 async function loadToday(){
  $("#recent-orders").innerHTML='<p class="empty">Cargando prendas…</p>';
- const [today,orders,week]=await Promise.allSettled([api("/dashboard/today"),api("/orders?limit=5&offset=0"),api("/dashboard/week")]);
- if(today.status==="fulfilled"){
-  const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
-  $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
-  $("#unpaid-count").textContent=n(s.unpaidBalance);
-  const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):lt("Sin cobros pendientes");
-  $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
-  const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
-  $("#today-attention").innerHTML=compactActionRows(attention,attention.length&&d.overdue?.length?"overdue":"due");
-  $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">'+esc(lt("No hay citas hoy."))+'</p>';
-  $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div class="worker-copy"><strong>'+esc(w.name)+'</strong><small><span>'+esc(w.branch?.name||lt("Taller"))+'</span><span>'+n(w.activeItems)+' '+esc(lt("prendas activas"))+'</span></small></div><div class="worker-load-meterline"><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div></div>').join("")+'</div>':'<p class="empty">'+esc(lt("Añade responsables a las prendas para ver la carga."))+'</p>';
- }
- if(week.status==="fulfilled"){
-  const w=week.value.dashboard||week.value.week||{};
-  const weekly=Number(w.summary?.dueThisWeek??w.summary?.total??w.dueThisWeek??0);
-  $("#week-count").textContent=n(weekly);
- }else $("#week-count").textContent="—";
- if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=(await recordListUI).orderTable(rows,true);void hydrateGarmentCards(rows);}
- else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
- if(today.status==="rejected")globalError(today.reason.message);
+ const lease=(await requestOwnership).begin("today");
+ try{
+  const [today,orders,week]=await Promise.allSettled([
+   api("/dashboard/today",{signal:lease.signal}),
+   api("/orders?limit=5&offset=0",{signal:lease.signal}),
+   api("/dashboard/week",{signal:lease.signal})
+  ]);
+  if(!lease.isCurrent())return;
+  const lists=await recordListUI;if(!lease.isCurrent())return;
+  if(today.status==="fulfilled"){
+   const dashboard=today.value.dashboard||{},d=dashboard,s=dashboard?.summary||{};
+   $("#due-count").textContent=n(dashboard?.summary?.dueToday);$("#overdue-count").textContent=n(s.overdue);$("#ready-count").textContent=n(dashboard?.summary?.readyForPickup);
+   $("#unpaid-count").textContent=n(s.unpaidBalance);
+   const moneyBucket=(d.unpaidByCurrency||[])[0];$("#unpaid-money").textContent=moneyBucket?money(moneyBucket.remainingMinor,moneyBucket.currencyCode):lt("Sin cobros pendientes");
+   $("#topbar-alert-dot").hidden=!(Number(s.overdue)>0||Number(s.readyForPickup)>0);
+   const attention=[...(d.overdue||[]),...(d.dueToday||[]),...(d.readyForPickup||[])];
+   $("#today-attention").innerHTML=compactActionRows(attention,attention.length&&d.overdue?.length?"overdue":"due");
+   $("#today-appointments").innerHTML=(d.appointmentsToday||[]).length?'<div class="today-appointment-list">'+d.appointmentsToday.slice(0,8).map(a=>'<div class="today-appointment"><strong>'+esc(new Date(a.startsAt).toLocaleTimeString(L.locale||"es-ES",{hour:"2-digit",minute:"2-digit"}))+'</strong><span>'+esc(a.client?.name||a.kind)+'</span><small>'+esc(a.item?.name||a.branch?.name||"")+'</small></div>').join("")+'</div>':'<p class="empty">'+esc(lt("No hay citas hoy."))+'</p>';
+   $("#worker-load").innerHTML=(d.workerLoad||[]).length?'<div class="worker-load-list">'+d.workerLoad.map(w=>'<div class="worker-load-row '+(w.overloaded?'is-overloaded':'')+'"><div class="worker-copy"><strong>'+esc(w.name)+'</strong><small><span>'+esc(w.branch?.name||lt("Taller"))+'</span><span>'+n(w.activeItems)+' '+esc(lt("prendas activas"))+'</span></small></div><div class="worker-load-meterline"><div class="worker-meter"><span style="width:'+Math.min(100,Number(w.utilizationPct||0))+'%"></span></div><b>'+n(w.workload)+'/'+n(w.capacity)+'</b></div></div>').join("")+'</div>':'<p class="empty">'+esc(lt("Añade responsables a las prendas para ver la carga."))+'</p>';
+  }
+  if(week.status==="fulfilled"){
+   const w=week.value.dashboard||week.value.week||{};
+   const weekly=Number(w.summary?.dueThisWeek??w.summary?.total??w.dueThisWeek??0);
+   $("#week-count").textContent=n(weekly);
+  }else $("#week-count").textContent="—";
+  if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=lists.orderTable(rows,true);void hydrateGarmentCards(rows);}
+  else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
+  if(today.status==="rejected")globalError(today.reason.message);
+ }catch(e){
+  if(lease.ignore(e))return;
+  $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
+  globalError(e.message);
+ }finally{lease.finish();}
 }
 async function ensureOrderBranchFilter(){
  if(ordersBranchesLoaded)return;
@@ -462,14 +475,20 @@ async function ensureOrderBranchFilter(){
  }catch{}
 }
 async function loadOrders(){
- $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';
- void ensureOrderBranchFilter();
+ $("#orders-list").innerHTML='<p class="empty">Cargando pedidos…</p>';void ensureOrderBranchFilter();
+ const lease=(await requestOwnership).begin("orders");
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);if(ordersBranch)q.set("branchId",ordersBranch);
-  const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
-  $("#orders-list").innerHTML=(await recordListUI).orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
+  const result=await api("/orders?"+q,{signal:lease.signal});
+  if(!lease.isCurrent())return;
+  const lists=await recordListUI;if(!lease.isCurrent())return;
+  const rows=result.orders||[];lastOrders=rows;
+  $("#orders-list").innerHTML=lists.orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
- }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
+ }catch(e){
+  if(lease.ignore(e))return;
+  $("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);
+ }finally{lease.finish();}
 }
 async function printGarmentLabel(orderId,itemId){
  if(!/^[a-f0-9-]{36}$/i.test(orderId||"")||!/^[a-f0-9-]{36}$/i.test(itemId||"")){
@@ -542,12 +561,17 @@ function appointmentCard(a){
 async function loadAppointments(){
  const target=$("#appointments-list");if(!target)return;
  target.innerHTML='<p class="empty">Cargando citas…</p>';
+ const lease=(await requestOwnership).begin("appointments");
  try{
   const days=Number($("#appointments-range")?.value||14),from=new Date(),to=new Date(Date.now()+days*86400000);
-  const data=await api("/appointments?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString())+"&limit=200");
+  const data=await api("/appointments?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString())+"&limit=200",{signal:lease.signal});
+  if(!lease.isCurrent())return;
   const rows=data.appointments||[];
   target.innerHTML=rows.length?'<div class="appointments-timeline">'+rows.map(appointmentCard).join("")+'</div>':'<p class="empty">No hay citas en este periodo.</p>';
- }catch(e){target.innerHTML='<p class="empty">No se pudieron cargar las citas.</p>';globalError(e.message);}
+ }catch(e){
+  if(lease.ignore(e))return;
+  target.innerHTML='<p class="empty">No se pudieron cargar las citas.</p>';globalError(e.message);
+ }finally{lease.finish();}
 }
 async function loadAtelierAccountSettings(){
  const branches=$("#branches-summary"),rules=$("#notifications-summary");
@@ -583,41 +607,53 @@ async function loadAtelierAccountSettings(){
 }
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
+ const lease=(await requestOwnership).begin("clients");
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(clientsPage*PAGE)});if(clientsSearch.trim())q.set("q",clientsSearch.trim());
-  const result=await api("/clients?"+q);const rows=result.clients||[];lastClients=rows;
-  $("#clients-list").innerHTML=(await recordListUI).clientTable(rows);
+  const result=await api("/clients?"+q,{signal:lease.signal});
+  if(!lease.isCurrent())return;
+  const lists=await recordListUI;if(!lease.isCurrent())return;
+  const rows=result.clients||[];lastClients=rows;
+  $("#clients-list").innerHTML=lists.clientTable(rows);
   $("#clients-page").textContent="Página "+(clientsPage+1);$("#clients-prev").disabled=clientsPage===0;$("#clients-next").disabled=rows.length<PAGE;
- }catch(e){$("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);}
+ }catch(e){
+  if(lease.ignore(e))return;
+  $("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);
+ }finally{lease.finish();}
 }
 async function loadServices(){
  $("#services-list").innerHTML='<p class="empty">Cargando catálogo…</p>';
  try{await (await featureUI).loadServices();}
  catch(e){$("#services-list").innerHTML='<div class="paper-panel"><p>No se pudo cargar el catálogo.</p></div>';globalError(e.message);}
 }
-let reportRequestSequence=0;
 async function loadReport(){
- const sequence=++reportRequestSequence;
  const period=$("#report-period").value;
  $("#report-data").innerHTML='<div class="report-panel"><p class="empty">Cargando datos reales…</p></div>';
+ const lease=(await requestOwnership).begin("report");
  try{
-  const view=await import("/app/report-view.mjs");
-  const result=(await api("/reports/summary?period="+encodeURIComponent(period))).report||{};
-  if(sequence!==reportRequestSequence||$("#report-period").value!==period)return;
+  const [view,response]=await Promise.all([
+   import("/app/report-view.mjs"),
+   api("/reports/summary?period="+encodeURIComponent(period),{signal:lease.signal})
+  ]);
+  if(!lease.isCurrent()||$("#report-period").value!==period)return;
+  const result=response.report||{};
   $("#report-data").innerHTML=view.renderReportSummary(result);
   const previousDate=view.previousPeriodAnchor(period,result.startDate);
   if(!previousDate)return;
   try{
    const previous=(await api("/reports/summary?period="+encodeURIComponent(period)+
-      "&date="+encodeURIComponent(previousDate))).report||{};
-   if(sequence!==reportRequestSequence||$("#report-period").value!==period)return;
+      "&date="+encodeURIComponent(previousDate),{signal:lease.signal})).report||{};
+   if(!lease.isCurrent()||$("#report-period").value!==period)return;
    $("#report-data").innerHTML=view.renderReportSummary(result,previous);
-  }catch{/* The current period must remain available if comparison fails. */}
+  }catch(e){
+   if(lease.ignore(e))return;
+   /* The current period must remain available if comparison fails. */
+  }
  }catch(e){
-  if(sequence!==reportRequestSequence)return;
+  if(lease.ignore(e))return;
   $("#report-data").innerHTML='<div class="report-panel"><p class="empty">El informe no está disponible.</p></div>';
   globalError(e.message);
- }
+ }finally{lease.finish();}
 }
 async function loadBilling(){
  $("#billing-data").innerHTML='<div class="paper-panel"><p>Cargando suscripción…</p></div>';
