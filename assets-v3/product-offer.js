@@ -8,9 +8,7 @@
     trialRequiresCard:false,
     seats:3,
     locations:1,
-    webSubscriptionCharge:"immediate",
     registrationUrl:"https://app.rimmaapp.com/app/register.html",
-    subscriptionUrl:"https://app.rimmaapp.com/app/?view=suscripcion",
     demoUrl:"./demo/"
   });
   window.RIMMA_PRODUCT_OFFER=offer;
@@ -24,7 +22,8 @@
     trialNoCard:`${offer.trialDays} días gratis sin tarjeta`,
     priceSpain:`${offer.monthlyPrice}/mes en España`,
     trialList:`${offer.trialDays} días de prueba sin tarjeta`,
-    seatsList:`Hasta ${offer.seats} usuarios en el taller`
+    seatsList:`Hasta ${offer.seats} usuarios en el taller`,
+    seatsHeading:`Hasta ${offer.seats} personas`
   };
   const apply=()=>{
     document.querySelectorAll("[data-offer]").forEach(node=>{
