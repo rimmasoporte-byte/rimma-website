@@ -110,16 +110,17 @@ test("created presentation shows retry only when photo persistence reports failu
 });
 
 test("wizard delegates review presentation while submission stays in its transaction domain",async()=>{
-  const [wizard,review,submission,server]=await Promise.all([
+  const [wizard,review,submission,validation,server]=await Promise.all([
     fs.readFile(new URL("../public/order-wizard.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/order-review.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../public/order-submission.mjs",import.meta.url),"utf8"),
+    fs.readFile(new URL("../public/order-validation.mjs",import.meta.url),"utf8"),
     fs.readFile(new URL("../server.mjs",import.meta.url),"utf8")
   ]);
   assert.match(wizard,/createOrderReview/);
   assert.match(wizard,/review\.renderReview\(\)/);
   assert.match(wizard,/review\.renderCreated\(\)/);
-  assert.match(wizard,/review\.totalMinor\(\)/);
+  assert.match(validation,/review\.totalMinor\(\)/);
   assert.match(wizard,/review\.itemMinor\(item\)/);
   assert.doesNotMatch(wizard,/function renderReview|function renderCreated|const itemMinor|const totalMinor|const memberName/);
   assert.match(wizard,/submission\.create\(\)/);

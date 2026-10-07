@@ -13,7 +13,7 @@ This document gives a future engineer a high-level map of the production web app
 Key responsibilities:
 
 - `site.js`: application shell, navigation, cross-module transitions, shared API orchestration;
-- `order-wizard.mjs`: cross-step order UI orchestration, validation focus, lifecycle decisions and post-create navigation;
+- `order-wizard.mjs`: cross-step order UI orchestration, lifecycle decisions and post-create navigation;
 - `order-photo-viewer.mjs`: native order photo viewer presentation and zoom/pan controls;
 - `order-mobile-capture.mjs`: QR capture sessions, polling and capture cleanup;
 - `order-photo-persistence.mjs`: photo preparation, upload, retry and mobile-claim persistence;
@@ -24,6 +24,7 @@ Key responsibilities:
 - `order-review.mjs`: Step 4 review/created presentation, work attribution, photo counts and order subtotal/total calculation;
 - `order-draft.mjs`: order draft serialization, session-storage persistence, debounce, TTL validation and safe restoration;
 - `order-submission.mjs`: order-create payload construction, idempotent POST transaction, draft finalization and post-create photo claim/upload sequence;
+- `order-validation.mjs`: cross-step validation coordination, field-error presentation and deterministic focus/scroll to the first invalid control;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -84,6 +85,7 @@ Use the narrowest owner that can correctly perform an action:
 - order review/created presentation and monetary summaries -> `order-review.mjs`;
 - order draft persistence and restoration -> `order-draft.mjs`;
 - order-create payload and submission transaction -> `order-submission.mjs`;
+- cross-step validation error/focus presentation -> `order-validation.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -98,7 +100,7 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. evaluate the remaining order-wizard shell for only coherent orchestration boundaries;
+1. evaluate order bootstrap/reference-data loading as the final coherent extraction from `order-wizard.mjs`;
 2. move client/order list rendering out of `site.js`;
 3. harden async request ownership and stale-response cancellation;
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
@@ -132,5 +134,7 @@ Order photo behavior is intentionally split by responsibility instead of living 
 
 `order-submission.mjs` owns the normalized order-create payload, the stable idempotency header and the confirmed-order transaction sequence: prepare photos, POST the order, publish created state, clear the draft, then claim mobile photos and upload desktop photos. UI busy/error/render decisions stay in the wizard.
 
-`order-wizard.mjs` composes these domains and keeps cross-step UI orchestration, validation focus, lifecycle decisions and post-create navigation.
+`order-validation.mjs` coordinates cross-step validation and owns validation presentation: clearing prior field state, marking invalid controls, displaying field messages and focusing/scrolling the first invalid field. Garment and delivery business rules remain in their step domains.
+
+`order-wizard.mjs` composes these domains and keeps cross-step UI orchestration, lifecycle decisions and post-create navigation.
 The BFF explicitly serves every browser module under `/app/`.
