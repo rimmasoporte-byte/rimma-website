@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -175,6 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-validation\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-reference-data\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/pathname==='\/app\/portal-garment-cards\.css'/);
  assert.doesNotMatch(server,/POST: \[[^\n]*\/account\/delete/);
  assert.match(html,/data-feature="category-new"/);
  assert.match(html,/data-feature="service-new"/);
@@ -310,12 +311,12 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(recordLists,/garment-order-link/);
  assert.match(recordLists,/class="garment-card-status"/);
  assert.match(recordLists,/actions\?garmentCardOrderActions\(order,itemId,orderId\):""/);
- assert.match(css,/@media\(min-width:981px\)\{[\s\S]*?grid-template-columns:76px minmax\(0,1fr\) auto/);
- assert.match(css,/\.garment-grid \.garment-card-main>\.garment-quick-actions\{[\s\S]*?display:flex[\s\S]*?flex-wrap:nowrap/);
- assert.match(css,/\.garment-card-status\{[\s\S]*?justify-self:end/);
- assert.match(css,/#view-inicio \.garment-card-status>\.status::before\{[\s\S]*?width:7px[\s\S]*?height:7px[\s\S]*?border-radius:50%/);
- assert.match(css,/#view-inicio \.garment-card-status>\.status\.in_progress::before\{background:#216bb5/);
- assert.match(css,/#view-inicio \.garment-card-status>\.status\.ready::before,[\s\S]*?background:#166b35/);
+ assert.match(garmentCardsCss,/@media\(min-width:981px\)\{[\s\S]*?grid-template-columns:76px minmax\(0,1fr\) auto/);
+ assert.match(garmentCardsCss,/\.garment-grid \.garment-card-main>\.garment-quick-actions\{[\s\S]*?display:flex[\s\S]*?flex-wrap:nowrap/);
+ assert.match(garmentCardsCss,/\.garment-card-status\{[\s\S]*?justify-self:end/);
+ assert.match(garmentCardsCss,/#view-inicio \.garment-card-status>\.status::before\{[\s\S]*?width:7px[\s\S]*?height:7px[\s\S]*?border-radius:50%/);
+ assert.match(garmentCardsCss,/#view-inicio \.garment-card-status>\.status\.in_progress::before\{background:#216bb5/);
+ assert.match(garmentCardsCss,/#view-inicio \.garment-card-status>\.status\.ready::before,[\s\S]*?background:#166b35/);
  assert.match(recordLists,/class="garment-more"/);
  assert.match(js,/ui\.openGarment\(b\.dataset\.order,b\.dataset\.item\)/);
  assert.match(js,/ui\.openGarmentEdit\(b\.dataset\.order,b\.dataset\.item\)/);
@@ -442,9 +443,9 @@ test("website only proxies explicitly authenticated mobile-compatible operations
   assert.match(css,/\.garment-card-top\{[\s\S]*?align-items:flex-start/);
   assert.match(css,/\.garment-card-top>\.status\{[\s\S]*?align-self:flex-start[\s\S]*?height:auto/);
   assert.match(css,/\.garment-more-menu\{[\s\S]*?position:absolute/);
- assert.match(css,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
- assert.match(css,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
- assert.match(css,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
+ assert.match(garmentCardsCss,/\.garment-grid \.garment-card\{[\s\S]*?grid-template-columns:88px minmax\(0,1fr\)[\s\S]*?padding:12px 14px[\s\S]*?border-radius:14px/);
+ assert.match(garmentCardsCss,/\.garment-grid \.garment-photo\{[\s\S]*?width:88px[\s\S]*?height:88px/);
+ assert.match(garmentCardsCss,/\.garment-grid \.garment-quick-actions>\.record-action[\s\S]*?min-height:31px/);
   assert.match(html,/site\.js\?v=20261005-v\d+/);
   assert.match(html,/app\.css\?v=20261007-v\d+/);
   assert.match(html,/order-mobile-capture\.css\?v=20261007-v\d+/);
