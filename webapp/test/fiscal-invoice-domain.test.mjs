@@ -235,6 +235,8 @@ test('fiscal issue remains blocked when VERI*FACTU readiness is incomplete',asyn
 test('portal delegates fiscal workflow to the dedicated domain',()=>{
  const features=read('public/portal-features.mjs');
  const fiscal=read('public/portal-fiscal-invoice.mjs');
+ const fiscalCss=read('public/portal-fiscal-invoicing.css');
+ const appCss=read('public/app.css');
  const server=read('../webapp/server.mjs');
 
  assert.match(features,/createFiscalInvoice/);
@@ -249,5 +251,10 @@ test('portal delegates fiscal workflow to the dedicated domain',()=>{
  assert.match(fiscal,/verifactuConnectorConfigured/);
  assert.match(fiscal,/confirmAction\(/);
  assert.match(fiscal,/method:"POST"/);
+ assert.match(fiscalCss,/^\/\* Spain fiscal invoicing V24 \*\//);
+ assert.match(fiscalCss,/\.fiscal-preview-card/);
+ assert.match(fiscalCss,/\.verifactu-checklist/);
+ assert.doesNotMatch(appCss,/Spain fiscal invoicing V24/);
  assert.match(server,/pathname==='\/app\/portal-fiscal-invoice\.mjs'/);
+ assert.match(server,/pathname==='\/app\/portal-fiscal-invoicing\.css'/);
 });
