@@ -159,6 +159,28 @@ async function main(){
     await assertBrowser(`(()=>{const el=document.querySelector('#menu-toggle');const s=getComputedStyle(el);return ${width<=430}?s.display!=='none':true})()`,`Mobile menu toggle unavailable at ${width}px.`);
    }
 
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await click('button[data-view="cuenta"]');
+    await waitFor(`document.querySelector('#view-cuenta')?.classList.contains('active')`,'Configuración navigation');
+    await waitFor(`document.querySelector('#notifications-summary .notification-settings')`,'notification settings');
+    await assertBrowser(`document.querySelector('#heading-cuenta')?.textContent?.trim()==='Configuración'`,'Settings heading is inconsistent.');
+    await assertBrowser(`getComputedStyle(document.querySelector('#view-cuenta .account-grid')).alignItems==='start'`,'Settings cards are vertically stretched.');
+    await assertBrowser(`(()=>{const panel=document.querySelector('#notifications-panel');const body=panel?.querySelector('.notification-settings');if(!panel||!body)return false;return body.scrollWidth<=body.clientWidth+2&&body.getBoundingClientRect().right<=panel.getBoundingClientRect().right+2})()`,`Notification settings overflow their card at ${width}px.`);
+    await assertBrowser(`document.documentElement.scrollWidth<=window.innerWidth+2`,`Settings introduced page overflow at ${width}px.`);
+    await assertBrowser(`!document.querySelector('#branches-summary')?.textContent.includes('Esta cuenta admite una sola ubicación')`,'Workshop copy is duplicated.');
+    if(width===390){
+     await assertBrowser(`getComputedStyle(document.querySelector('.notification-settings-head')).display==='none'`,'Desktop notification header leaks into mobile layout.');
+     await assertBrowser(`[...document.querySelectorAll('.notification-channel-label')].some(label=>getComputedStyle(label).display!=='none')`,'Mobile channel labels are not visible.');
+    }else{
+     await assertBrowser(`getComputedStyle(document.querySelector('.notification-settings-head')).display==='grid'`,'Desktop notification matrix header is missing.');
+     const selector='#notifications-summary [data-notification-event="order_received"] [data-channel="email"]';
+     await click(selector);
+     await waitFor(`document.querySelector('[data-notification-event="order_received"] .notification-inline-status')?.textContent==='Guardado'`,'notification save');
+     await assertBrowser(`document.querySelector(${quote(selector)})?.disabled===false`,'Notification control stayed disabled after save.');
+    }
+   }
+
    await setViewport(390,844);
    await click('button[data-view="clientes"]');
    await waitFor(`document.querySelector('#view-clientes')?.classList.contains('active')`,'Clientes navigation');
