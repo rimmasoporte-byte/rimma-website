@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const [wizard,capture,persistence,interactions,css,index]=await Promise.all([
+const [wizard,garments,capture,persistence,interactions,css,index]=await Promise.all([
   fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
+  fs.readFile(new URL('../public/order-garments.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-mobile-capture.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-persistence.mjs',import.meta.url),'utf8'),
   fs.readFile(new URL('../public/order-photo-interactions.mjs',import.meta.url),'utf8'),
@@ -66,7 +67,7 @@ test('QR polling is responsive while visible and relaxed while hidden',()=>{
 });
 
 test('wizard delegates capture lifecycle instead of owning timers and sessions',()=>{
-  assert.match(wizard,/mobileCapture\.runOpen\(index,workIndex\)/);
+  assert.match(garments,/mobileCapture\.runOpen/);
   assert.match(interactions,/mobileCapture\.refresh\(work,\{rerender:false\}\)/);
   assert.match(wizard,/mobileCapture\.discardAll\(\)/);
   assert.match(persistence,/mobileCapture\.markClaimed\(sourceWork\)/);

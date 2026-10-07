@@ -13,12 +13,13 @@ This document gives a future engineer a high-level map of the production web app
 Key responsibilities:
 
 - `site.js`: application shell, navigation, cross-module transitions, shared API orchestration;
-- `order-wizard.mjs`: order creation orchestration, step state, validation and submission;
+- `order-wizard.mjs`: cross-step order creation orchestration, draft/delivery/review state and final submission;
 - `order-photo-viewer.mjs`: native order photo viewer presentation and zoom/pan controls;
 - `order-mobile-capture.mjs`: QR capture sessions, polling and capture cleanup;
 - `order-photo-persistence.mjs`: photo preparation, upload, retry and mobile-claim persistence;
 - `order-photo-interactions.mjs`: order photo gallery, preview routing, cover/delete mutations and local object-URL lifecycle;
 - `order-client-selection.mjs`: order client search, combobox interaction, client hydration and Step 1 client/branch presentation;
+- `order-garments.mjs`: Step 2 garment/work rendering, catalog selection, pricing/assignment updates, validation and add/remove lifecycle coordination;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -74,6 +75,7 @@ Use the narrowest owner that can correctly perform an action:
 - order creation orchestration -> `order-wizard.mjs`;
 - order photo presentation/capture/persistence/interactions -> the dedicated `order-photo-*` / `order-mobile-capture.mjs` module;
 - order client search/selection and Step 1 client presentation -> `order-client-selection.mjs`;
+- order garment/work editing and Step 2 presentation -> `order-garments.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -88,7 +90,7 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. continue splitting remaining order-wizard garment / delivery concerns by coherent workflow boundary;
+1. extract the remaining order-wizard delivery/date concerns by coherent workflow boundary;
 2. move client/order list rendering out of `site.js`;
 3. harden async request ownership and stale-response cancellation;
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
@@ -112,5 +114,7 @@ Order photo behavior is intentionally split by responsibility instead of living 
 
 `order-client-selection.mjs` owns the Step 1 combobox search state, debounce/stale-response protection, keyboard interaction, hydration and client/branch markup while `order-wizard.mjs` keeps the single delegated event-listener layer.
 
-`order-wizard.mjs` composes these domains and keeps order-step orchestration only.
+`order-garments.mjs` owns Step 2 garment/work markup, category/service selection, price and assignee updates, validation, local photo-field coordination, and add/remove cleanup. Photo preview/capture/persistence remain in their dedicated photo modules; the wizard remains the single delegated DOM event owner.
+
+`order-wizard.mjs` composes these domains and keeps cross-step orchestration, delivery/review state and final order submission.
 The BFF explicitly serves every browser module under `/app/`.

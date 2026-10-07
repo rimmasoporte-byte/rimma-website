@@ -151,16 +151,17 @@ test('replacing local files owns URL cleanup and closes a stale local preview',(
 });
 
 test('wizard delegates photo interaction state and BFF serves the domain',async()=>{
-  const [wizard,interactions,server]=await Promise.all([
+  const [wizard,garments,interactions,server]=await Promise.all([
     fs.readFile(new URL('../public/order-wizard.mjs',import.meta.url),'utf8'),
+    fs.readFile(new URL('../public/order-garments.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../public/order-photo-interactions.mjs',import.meta.url),'utf8'),
     fs.readFile(new URL('../server.mjs',import.meta.url),'utf8')
   ]);
   assert.match(wizard,/createOrderPhotoInteractions/);
-  assert.match(wizard,/photoInteractions\.gallery\(work,itemIndex,workIndex\)/);
-  assert.match(wizard,/photoInteractions\.openLocalPreview/);
-  assert.match(wizard,/photoInteractions\.openMobilePreview/);
-  assert.match(wizard,/photoInteractions\.replaceLocalFiles/);
+  assert.match(garments,/photoInteractions\.gallery\(work,itemIndex,workIndex\)/);
+  assert.match(garments,/photoInteractions\.openLocalPreview/);
+  assert.match(garments,/photoInteractions\.openMobilePreview/);
+  assert.match(garments,/photoInteractions\.replaceLocalFiles/);
   assert.doesNotMatch(wizard,/const localPhotoUrls=new Map|let localCoverFile=null|async function deletePhoto/);
   assert.match(interactions,/URL\.revokeObjectURL/);
   assert.match(interactions,/confirmAction\([\s\S]*?danger:true/);
