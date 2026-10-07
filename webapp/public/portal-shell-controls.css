@@ -8,23 +8,17 @@ input,select,textarea{
 }
 /* Canonical focus system: the ring is drawn inside controls so modal,
    native-select and scroll containers can never crop the gold focus state. */
-input:focus:not([type="checkbox"]):not([type="radio"]),
-select:focus:not([multiple]),
-textarea:focus:not([readonly]){
+input:focus:not([type="checkbox"]):not([type="radio"]),select:focus:not([multiple]),textarea:focus:not([readonly]){
  border-color:#a87e43!important;
  outline:2px solid rgba(168,126,67,.66)!important;
  outline-offset:-3px!important;
  box-shadow:inset 0 0 0 1px rgba(198,164,106,.24)!important
 }
-input[type="checkbox"]:focus-visible,
-input[type="radio"]:focus-visible{
+input[type="checkbox"]:focus-visible,input[type="radio"]:focus-visible{
  outline:2px solid #a87e43!important;
  outline-offset:-2px!important
 }
-button:focus-visible:not(:disabled),
-a:focus-visible:not([tabindex="-1"]),
-summary:focus-visible,
-[role="button"]:focus-visible{
+button:focus-visible:not(:disabled),a:focus-visible:not([tabindex="-1"]),summary:focus-visible,[role="button"]:focus-visible{
  outline:2px solid #bb9256!important;
  outline-offset:-3px!important
 }
@@ -51,8 +45,7 @@ summary:focus-visible,
 .secondary,.record-action,.feature-button,.pagination button{
  color:#71542f;background:#fffdfa;border:1px solid #cfb588;box-shadow:none
 }
-.secondary:hover:not(:disabled),.record-action:hover:not(:disabled),
-.feature-button:hover:not(:disabled),.pagination button:hover:not(:disabled){
+.secondary:hover:not(:disabled),.record-action:hover:not(:disabled),.feature-button:hover:not(:disabled),.pagination button:hover:not(:disabled){
  background:#fcf4e8;border-color:#b8914f
 }
 .record-action,.feature-button{
@@ -62,8 +55,7 @@ summary:focus-visible,
 .record-action.danger,.feature-button.danger,.secondary.danger{
  color:var(--button-danger);border-color:var(--button-danger-border);background:#fffaf8
 }
-.record-action.danger:hover:not(:disabled),.feature-button.danger:hover:not(:disabled),
-.secondary.danger:hover:not(:disabled){
+.record-action.danger:hover:not(:disabled),.feature-button.danger:hover:not(:disabled),.secondary.danger:hover:not(:disabled){
  color:#7f312a;border-color:#b87569;background:#fff1ed
 }
 .record-action:disabled,.feature-button:disabled,.pagination button:disabled{
@@ -99,9 +91,7 @@ summary:focus-visible,
  padding:24px clamp(16px,3vw,30px);
  overflow:clip
 }
-#modal-form>.modal-header,
-#modal-form>.modal-actions,
-#modal-form>.modal-error{flex:0 0 auto}
+#modal-form>.modal-header,#modal-form>.modal-actions,#modal-form>.modal-error{flex:0 0 auto}
 #modal-form>.modal-header{margin:0 0 12px;min-height:55px}
 #modal-title{font:600 clamp(36px,4.5vw,48px)/1 var(--serif)}
 #modal-fields{
@@ -157,8 +147,7 @@ summary:focus-visible,
  gap:12px;align-items:center;min-height:58px;
  padding:12px 0;border-top:0;border-bottom:1px solid #efe7d9
 }
-#view-servicios .feature-service-row>*,
-#view-servicios .service-card-header>.feature-inline{min-width:0;max-width:100%}
+#view-servicios .feature-service-row>*,#view-servicios .service-card-header>.feature-inline{min-width:0;max-width:100%}
 #view-servicios .feature-service-row .service-name strong{
  display:block;font:600 13px/1.35 var(--font);color:#2a3d30;
  white-space:normal;overflow-wrap:anywhere
@@ -225,8 +214,7 @@ summary:focus-visible,
 .feature-actions button{min-height:44px;min-width:118px;padding:10px 22px}
 /* Shared modal geometry keeps long titles and action labels inside the panel. */
 .modal-header>div,.feature-head>div{min-width:0}
-.modal-header h2,.feature-head h2,.feature-ledger,.feature-message,
-.feature-error,.modal-error{overflow-wrap:anywhere}
+.modal-header h2,.feature-head h2,.feature-ledger,.feature-message,.feature-error,.modal-error{overflow-wrap:anywhere}
 .close-modal{flex:none}
 .modal-actions,.feature-actions{flex-wrap:wrap}
 .modal-actions button,.feature-actions button{max-width:100%;white-space:normal}
@@ -402,9 +390,8 @@ summary:focus-visible,
  .feature-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:460px){
- #view-inicio .summary-grid .metric-card,
- #view-inicio .summary-grid .metric-card.dark{padding:16px;grid-template-columns:44px minmax(0,1fr) 44px;gap:7px 12px}
- #view-inicio .summary-grid .metric-card>.metric-icon{width:44px;height:44px}
+
+
  .brand-dialog-card{padding:18px}
  .brand-dialog-actions button{flex:1 1 120px}
  #feature-form,#modal-form{padding:14px}

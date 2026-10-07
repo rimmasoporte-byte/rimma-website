@@ -60,8 +60,7 @@
 .garment-work-actions [data-feature="garment-passport"]{
  background:#20352a;border-color:#20352a;color:#fffdf7
 }
-.garment-work-actions [data-feature="garment-passport"]:hover,
-.garment-work-actions [data-feature="garment-passport"]:focus-visible{
+.garment-work-actions [data-feature="garment-passport"]:hover,.garment-work-actions [data-feature="garment-passport"]:focus-visible{
  background:#2a4637;border-color:#2a4637;color:#fffdf7
 }
 @media(max-width:680px){

@@ -26,14 +26,12 @@
  background:transparent;
  color:#e5c27f
 }
-#view-inicio #today-cards .atelier-kpi>.metric-jump:hover,
-#view-inicio #today-cards .atelier-kpi>.metric-jump:focus-visible{
+#view-inicio #today-cards .atelier-kpi>.metric-jump:hover,#view-inicio #today-cards .atelier-kpi>.metric-jump:focus-visible{
  border:0;
  background:transparent;
  color:#6f4f2c;
  transform:none
 }
-#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:hover,
-#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:focus-visible{
+#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:hover,#view-inicio #today-cards .atelier-kpi.dark>.metric-jump:focus-visible{
  color:#f1d69e
 }

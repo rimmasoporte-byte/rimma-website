@@ -58,6 +58,8 @@ Key responsibilities:
 - `order-mobile-capture.css`: isolated mobile-capture dialog cascade layer;
 - `order-photo-viewer.css`: isolated final cascade layer for the native order photo viewer.
 
+`test/css-hygiene.test.mjs` enforces runtime CSS ownership: retired selectors must stay removed, dynamically generated report-status classes are explicitly allow-listed, and duplicated presentation ownership is rejected.
+
 The browser is not a trust boundary. It may request actions, but authorization, billing state, and protected data access must be enforced server-side.
 
 ### 2. Web BFF

@@ -22,14 +22,10 @@
  margin:0 0 10px;font:700 12px/1.3 var(--font);
  letter-spacing:.06em;text-transform:uppercase;color:#6e5836
 }
-.passport-actions{border-top:0;margin-top:0;padding-top:0}
+
 .passport-share-result{margin-top:11px}
-.passport-share-card{
- display:grid;gap:6px;padding:12px 14px;border:1px solid #c9d8ca;
- border-radius:8px;background:#f4f8f3
-}
-.passport-share-card a{color:#28573a;overflow-wrap:anywhere}
-.passport-share-card small{color:#6e756d;line-height:1.45}
+
+
 .passport-timeline{display:grid;gap:0}
 .passport-event{
  position:relative;display:grid;grid-template-columns:14px minmax(0,1fr);
@@ -49,9 +45,3 @@
  .passport-balance{text-align:left}
  .passport-summary{grid-template-columns:1fr}
 }
-
-.passport-share-pending{border-color:#d8c9a9;background:#fffaf0}
-.passport-share-success{border-color:#aac8b2;background:#f3faf5}
-.passport-share-success strong{color:#225b35}
-.passport-share-error{border-color:#e2b5b5;background:#fff5f5}
-.passport-share-error strong{color:#9b3838}

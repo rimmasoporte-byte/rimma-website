@@ -62,8 +62,7 @@
  color:#514c45;
  font:650 12px/1.3 var(--font)
 }
-.business-profile-field>input,
-.business-profile-field>select{
+.business-profile-field>input,.business-profile-field>select{
  width:100%
 }
 .profile-field-help{
@@ -101,8 +100,7 @@
  border-color:#d8c4a0;
  background:#fbf6ec
 }
-#common-tax-settings[hidden],
-#catalonia-document-note[hidden]{
+#common-tax-settings[hidden],#catalonia-document-note[hidden]{
  display:none!important
 }
 #feature-dialog[data-mode="business-profile"] input[readonly]{

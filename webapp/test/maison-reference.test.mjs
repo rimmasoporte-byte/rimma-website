@@ -23,6 +23,7 @@ test('dashboard reproduces reference structure with real interactive controls',a
 });
 test('golden reference artwork stays local with responsive and accessible rules',async()=>{
  const css=await file('app.css');
+ const dashboard=await file('portal-dashboard.css');
  const assets=[...css.matchAll(/data:image\/webp;base64,([a-zA-Z0-9+/=]+)/g)].map(x=>x[1]);
  const substantial=assets.filter(asset=>asset.length>2000);
  assert.ok(substantial.length>=2,'approved local hero/mannequin artwork remains bundled');
@@ -30,8 +31,9 @@ test('golden reference artwork stays local with responsive and accessible rules'
   assert.equal(asset.length%4,0);
   assert.ok(asset.startsWith('UklGR'),'WebP RIFF header encoded');
  }
- assert.match(css,/#view-inicio \.dashboard-orders-panel/);
- assert.match(css,/#view-inicio \.summary-grid/);
+ assert.match(dashboard,/#view-inicio \.dashboard-orders-panel/);
+ assert.match(dashboard,/#view-inicio #today-cards\.atelier-today-grid/);
+ assert.doesNotMatch(css,/#view-inicio \.summary-grid/);
  assert.match(css,/max-height:810px/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/@media\(max-width:445px\)/);

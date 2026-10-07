@@ -116,7 +116,8 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.match(garmentPassport,/^\/\* Garment passport: one operational record from intake to collection\. \*\//);
   assert.match(garmentPassport,/\.passport-hero/);
   assert.match(garmentPassport,/\.passport-timeline/);
-  assert.match(garmentPassport,/\.passport-share-card/);
+  assert.match(garmentPassport,/\.passport-share-result/);
+  assert.doesNotMatch(garmentPassport,/\.passport-share-(?:pending|success|error)/);
   assert.doesNotMatch(garmentPassport,/Passport sharing UX: prioritize communication channels/);
 
   assert.doesNotMatch(app,/Passport sharing UX: prioritize communication channels/);
@@ -168,7 +169,7 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
   assert.doesNotMatch(app,/V33 — separate garment actions from order actions/);
   assert.doesNotMatch(app,/\.order-info-hero/);
   assert.match(garmentDetail,/^\/\* V33 — separate garment actions from order actions\. \*\//);
-  assert.match(garmentDetail,/\.garment-action-groups/);
+  assert.doesNotMatch(garmentDetail,/\.garment-action-groups/);
   assert.match(garmentDetail,/\.order-info-hero/);
   assert.doesNotMatch(garmentDetail,/V34 — simple, professional garment-card actions/);
 

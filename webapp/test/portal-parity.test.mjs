@@ -355,7 +355,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(portalOrderInfo,/const orderNumber=String\(order\.orderNumber\|\|""\)\.padStart\(4,"0"\)/);
  assert.match(garmentDetailCss,/#feature-dialog\[data-mode="order-info"\] \.order-info-summary strong\{[\s\S]*?font:650 17px\/1\.25 var\(--font\)/);
  assert.match(garmentDetailCss,/\.order-info-hero h3\{[\s\S]*?font:650 20px\/1\.25 var\(--font\)/);
- assert.match(garmentDetailCss,/\.garment-action-groups\{/);
+ assert.doesNotMatch(garmentDetailCss,/\.garment-action-groups/);
  assert.doesNotMatch(css,/V33 — separate garment actions from order actions/);
 
  assert.match(portalGarmentEditor,/layout\("garment-edit"/);
