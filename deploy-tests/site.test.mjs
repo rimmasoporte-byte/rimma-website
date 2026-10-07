@@ -234,7 +234,7 @@ test('homepage presents atelier-specific B2B product proof',()=>{
   assert.match(h,/Documentos y WhatsApp/);
   assert.match(h,/Hasta 3 usuarios/);
   assert.match(h,/RIMMA no promete envío automático/);
-  assert.match(h,/mk-order-card/);
+  assert.match(h,/mk-order-real/);
   assert.match(read('assets-v3/marketing.css'),/\.mk-feature-grid/);
   assert.doesNotMatch(h,/documentos oficiales para Hacienda|cumple con VERI\*FACTU|VERI\*FACTU/i);
 });
@@ -248,9 +248,11 @@ test('production landing is a product-first SaaS conversion page',()=>{
   assert.match(h,/UN PEDIDO, TODO RELACIONADO/);
   assert.match(h,/PRECIO CLARO/);
   assert.match(h,/ANTES DE EMPEZAR/);
-  assert.match(h,/rimma-dashboard-real\.png/);
-  assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-dashboard-real.png')));
+  assert.match(h,/rimma-order-demo\.png/);
+  assert.ok(fs.existsSync(path.join(root,'assets-v3/rimma-order-demo.png')));
   assert.ok(fs.existsSync(path.join(root,'assets-v3/marketing.css')));
+  assert.doesNotMatch(h,/class="mk-order-card"/,'hand-built marketing order mockup must not return');
+  assert.match(h,/Captura generada con el frontend real de RIMMA/);
   assert.equal((h.match(/<section\b/g)||[]).length,7);
   assert.doesNotMatch(h,/precio mostrado es orientativo|lanzamiento y la configuración de Google Play todavía se están preparando|Solicitar invitación de prueba/i);
 });

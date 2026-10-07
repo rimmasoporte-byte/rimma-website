@@ -47,26 +47,10 @@
 .mk-check-list li{display:flex;gap:10px;align-items:flex-start;color:#edf1ed}
 .mk-check-list svg{width:17px;height:17px;flex:0 0 17px;margin-top:4px;fill:none;stroke:currentColor;stroke-width:1.8}
 .mk-product .v3-button-text{color:#f5f0e7}
-.mk-order-card{padding:28px;border-radius:22px;background:#fffdf8;color:#213027;box-shadow:0 28px 70px rgba(0,0,0,.18)}
-.mk-order-top,.mk-order-client,.mk-garment-head,.mk-money>div{display:flex;justify-content:space-between;gap:24px;align-items:center}
-.mk-order-top{padding-bottom:20px;border-bottom:1px solid #e7dfd3}
-.mk-order-top small,.mk-order-client small{display:block;margin-bottom:3px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#7d847e}
-.mk-order-top strong{font-size:30px}
-.mk-order-top>span{padding:8px 11px;border-radius:999px;background:#e7efe8;color:#355441;font-size:12px;font-weight:800}
-.mk-order-client{padding:20px 0}
-.mk-order-client>div:last-child{text-align:right}
-.mk-garment{padding:18px 0;border-top:1px solid #e7dfd3}
-.mk-garment-head b{font-size:19px}
-.mk-garment-head span{font-weight:800}
-.mk-garment p{margin:9px 0 12px;font-size:14px;line-height:1.7;color:#626c64}
-.mk-tags{display:flex;gap:8px;flex-wrap:wrap}
-.mk-tags span{padding:6px 9px;border-radius:999px;background:#f0ece4;font-size:11px;font-weight:700}
-.mk-money{margin-top:4px;padding-top:16px;border-top:1px solid #d7cebf;display:grid;gap:9px}
-.mk-money>div{font-size:14px}
-.mk-money b{font-size:16px}
-.mk-money .mk-balance{margin-top:4px;padding-top:12px;border-top:1px dashed #d7cebf}
-.mk-money .mk-balance b{font-size:20px;color:#355441}
-.mk-demo-note{margin:18px 0 0;font-size:11px;line-height:1.5;color:#7c847e}
+.mk-order-real{margin:0;min-width:0}
+.mk-order-real .mk-browser{box-shadow:0 28px 70px rgba(0,0,0,.18)}
+.mk-order-real img{display:block;width:100%;height:auto}
+.mk-order-real figcaption{margin-top:12px;color:#cbd5ce;font-size:11px;line-height:1.55}
 .mk-trust{background:#eee8dd}
 .mk-trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#d7d0c4;border:1px solid #d7d0c4}
 .mk-trust-grid article{padding:28px;background:#f8f5ef}
@@ -122,8 +106,8 @@
  .mk-flow-grid li>svg{margin:22px 0 18px}
  .mk-feature-grid,.mk-trust-grid{grid-template-columns:1fr}
  .mk-feature-grid article{min-height:0}
- .mk-order-card,.mk-price-card{padding:22px}
- .mk-order-client{align-items:flex-start}
+ .mk-price-card{padding:22px}
+
  .mk-price strong{font-size:48px}
  .mk-final{margin-top:54px;display:block}
  .mk-final>div:last-child{margin-top:26px;justify-content:flex-start}
@@ -137,8 +121,18 @@
  .marketing-home .header-login{min-width:54px;padding-inline:6px}
  .marketing-home .public-locale-select{max-width:66px}
  .marketing-home .mobile-toggle{width:38px}
- .mk-order-card,.mk-price-card{padding:18px}
- .mk-order-client,.mk-order-top{gap:12px}
- .mk-garment-head{gap:12px}
+ .mk-price-card{padding:18px}
+
  .mk-price strong{font-size:44px}
+}
+@media(max-width:640px){
+ .mk-hero{padding:34px 0 42px}
+ .mk-hero-copy h1{font-size:clamp(38px,10.5vw,46px);line-height:1.01}
+ .mk-lead{font-size:15px;line-height:1.55;margin-bottom:18px}
+ .mk-hero .v3-actions{gap:10px}
+ .mk-offer{font-size:12px;gap:6px;margin-top:14px}
+ .marketing-home .rimma-cookie{padding:12px 14px;font-size:12px;line-height:1.4}
+ .marketing-home .rimma-cookie strong{font-size:14px}
+ .marketing-home .rimma-cookie p{margin:5px 0 9px}
+ .marketing-home .rimma-cookie button{padding:8px 10px}
 }
