@@ -15,7 +15,7 @@ test('canonical application stylesheet preserves the approved framed sidebar fig
   const [html,css,server]=await Promise.all([
     src('public/index.html'),src('public/app.css'),src('server.mjs')
   ]);
-  assert.match(html,/\/app\/app\.css\?v=20261005-v\d+/);
+  assert.match(html,/\/app\/app\.css\?v=\d{8}-v\d+/);
   assert.doesNotMatch(html,/sidebar-finish\.css|maison-reference\.css|atelier-polish\.css/);
   assert.match(css,/background-size:100% 100%,100% 100%,auto 100%/);
   assert.match(css,/url\("\/app\/atelier-mannequin\.webp"\)/);

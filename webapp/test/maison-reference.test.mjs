@@ -6,7 +6,8 @@ const file=path=>fs.readFile(new URL('../public/'+path,import.meta.url),'utf8');
 
 test('dashboard reproduces reference structure with real interactive controls',async()=>{
  const html=await file('index.html');
- assert.match(html,/\/app\/app\.css\?v=20261005-v\d+/);
+ assert.match(html,/\/app\/app\.css\?v=20261007-v\d+/);
+ assert.match(html,/\/app\/order-photo-viewer\.css\?v=20261007-v\d+/);
  assert.doesNotMatch(html,/\/app\/(?:site|premium|luxury-buttons|maison-luxe|maison-reference)\.css/);
  assert.match(html,/Tu taller,<br><em>al día\.<\/em>/);
  assert.match(html,/class="dashboard-orders-panel"/);
@@ -49,10 +50,11 @@ test('live KPI counts and client/order data are not replaced by mock numbers',as
  assert.match(recordLists,/data-action="edit-/);
  assert.match(recordLists,/data-action="delete-/);
 });
-test('secure BFF explicitly serves only the canonical application stylesheet',async()=>{
+test('secure BFF explicitly serves the canonical ordered portal stylesheets',async()=>{
  const server=await fs.readFile(new URL('../server.mjs',import.meta.url),'utf8');
  assert.match(server,/pathname==='\/app\/app\.css'/);
  assert.match(server,/staticFile\(res,'app\.css','text\/css; charset=utf-8'\)/);
+ assert.match(server,/pathname==='\/app\/order-photo-viewer\.css'/);
  assert.doesNotMatch(server,/pathname==='\/app\/maison-reference\.css'/);
  assert.match(server,/img-src 'self' data:/);
 });

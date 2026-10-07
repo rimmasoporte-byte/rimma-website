@@ -23,7 +23,7 @@ test("reference dress-form artwork is no longer attached behind the menu",async(
  assert.match(css,/max-height:620px/);
  assert.match(css,/max-width:930px/);
  assert.match(css,/\.sidebar-luxe-art::before\{[\s\S]*?data:image\/webp;base64/);
- assert.match(html,/\/app\/app\.css\?v=20261005-v\d+/);
+ assert.match(html,/\/app\/app\.css\?v=\d{8}-v\d+/);
  assert.doesNotMatch(html,/atelier-polish\.css|maison-reference\.css/);
  assert.match(css,/\.sidebar-bottom\{[\s\S]*?flex:0 0 auto/);
 });
