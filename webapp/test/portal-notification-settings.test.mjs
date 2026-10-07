@@ -51,3 +51,10 @@ test("portal delegates notification settings and serves the dedicated assets",as
   assert.doesNotMatch(css,/!important/);
   assert.match(css,/@media\(max-width:420px\)/);
 });
+
+test("notification reload ignores stale results and does not replace an in-flight save",async()=>{
+  const domain=await readPublic("portal-notification-settings.mjs");
+  assert.match(domain,/revision!==loadRevision\|\|mutationAtStart!==mutationRevision/g);
+  assert.match(domain,/if\(busyEvents.size\)return/);
+  assert.match(domain,/mutationRevision\+\+/);
+});

@@ -168,6 +168,11 @@ async function main(){
     await assertBrowser(`getComputedStyle(document.querySelector('#view-cuenta .account-grid')).alignItems==='start'`,'Settings cards are vertically stretched.');
     await assertBrowser(`(()=>{const panel=document.querySelector('#notifications-panel');const body=panel?.querySelector('.notification-settings');if(!panel||!body)return false;return body.scrollWidth<=body.clientWidth+2&&body.getBoundingClientRect().right<=panel.getBoundingClientRect().right+2})()`,`Notification settings overflow their card at ${width}px.`);
     await assertBrowser(`document.documentElement.scrollWidth<=window.innerWidth+2`,`Settings introduced page overflow at ${width}px.`);
+    for(const zoom of [1.25,1.5]){
+     await evaluate(`document.documentElement.style.zoom='${zoom}'`);
+     await assertBrowser(`(()=>{const panel=document.querySelector('#notifications-panel');const body=panel?.querySelector('.notification-settings');return panel&&body&&body.getBoundingClientRect().right<=panel.getBoundingClientRect().right+2})()`,`Settings overflow at ${width}px with ${zoom*100}% zoom.`);
+     await evaluate(`document.documentElement.style.zoom=''`);
+    }
     await assertBrowser(`!document.querySelector('#branches-summary')?.textContent.includes('Esta cuenta admite una sola ubicación')`,'Workshop copy is duplicated.');
     await assertBrowser(`[...document.querySelectorAll('#notifications-summary [data-channel="whatsapp"]')].every(control=>control.disabled)`,'Unavailable WhatsApp controls must stay disabled.');
     await assertBrowser(`document.querySelector('#notifications-summary')?.textContent.includes('WhatsApp Cloud no conectado')`,'Unavailable WhatsApp provider reason is not visible.');
@@ -175,7 +180,7 @@ async function main(){
      await assertBrowser(`getComputedStyle(document.querySelector('.notification-settings-head')).display==='none'`,'Desktop notification header leaks into mobile layout.');
      await assertBrowser(`[...document.querySelectorAll('.notification-channel-label')].some(label=>getComputedStyle(label).display!=='none')`,'Mobile channel labels are not visible.');
     }else{
-     await assertBrowser(`getComputedStyle(document.querySelector('.notification-settings-head')).display==='grid'`,'Desktop notification matrix header is missing.');
+     await assertBrowser(`(()=>{const body=document.querySelector('.notification-settings');const header=document.querySelector('.notification-settings-head');return body.getBoundingClientRect().width<=400||getComputedStyle(header).display==='grid'})()`,'Desktop matrix must remain visible when its container is wide enough.');
      const selector='#notifications-summary [data-notification-event="order_received"] [data-channel="email"]';
      await click(selector);
      await waitFor(`document.querySelector('[data-notification-event="order_received"] .notification-inline-status')?.textContent==='Guardado'`,'notification save');
