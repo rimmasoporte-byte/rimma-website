@@ -76,7 +76,11 @@ test('employee invitation is same-origin, token based and uses the shared login'
 
 test('portal presents one location and a three-person team instead of branch creation',()=>{
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const inviteHtml=fs.readFileSync(new URL('../public/invite.html',import.meta.url),'utf8');
   const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
+  const appCss=fs.readFileSync(new URL('../public/app.css',import.meta.url),'utf8');
+  const teamCss=fs.readFileSync(new URL('../public/team.css',import.meta.url),'utf8');
+
   assert.match(html,/Hasta 3 personas/);
   assert.match(html,/una (?:sola|única) ubicaci[oó]n/i);
   assert.match(html,/id="team-summary"/);
@@ -85,6 +89,14 @@ test('portal presents one location and a three-person team instead of branch cre
   assert.doesNotMatch(js,/case "new-branch"/);
   assert.match(js,/Propietario · trabajador/);
   assert.match(js,/"Empleado"/);
+
+  assert.match(html,/\/app\/team\.css\?v=\d{8}-v\d+/);
+  assert.match(inviteHtml,/\/app\/team\.css/);
+  assert.doesNotMatch(appCss,/\/\* ===== TEAM ===== \*\//);
+  assert.doesNotMatch(appCss,/\.team-headline\{/);
+  assert.match(teamCss,/^\/\* ===== TEAM ===== \*\//);
+  assert.match(teamCss,/\.team-headline\{/);
+  assert.match(teamCss,/\.team-dialog\{/);
 });
 
 

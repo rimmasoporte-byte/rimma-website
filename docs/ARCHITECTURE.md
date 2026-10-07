@@ -33,6 +33,7 @@ Key responsibilities:
 - `team-view.mjs`: team-management UI;
 - `confirm-dialog.mjs`: shared confirmation flow;
 - `app.css`: canonical portal base styling and legacy/base cascade;
+- `team.css`: shared team-management styling for the authenticated portal and invite page;
 - `portal-order-flow.css`: professional order wizard/review and related operational feature styling;
 - `portal-design-tokens.css`: final canonical typography tokens loaded after the migrated base;
 - `portal-photo-workspace.css`: portal work-photo cards and phone-photo workspace layer;
@@ -152,5 +153,5 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `portal-record-lists.mjs` owns pure client/order list and garment-card markup, including record action buttons. API loading, passport/payment/photo hydration, pagination state, navigation and mutations stay in `site.js` or their dedicated feature modules.
 
 `portal-request-ownership.mjs` gives repeatable portal reads one current owner per scope. Starting a newer request aborts the previous request and stale/aborted work is prevented from mutating the UI. The primary interactive loaders for Inicio, Pedidos, Citas, Clientes and Informes use this contract.
-Portal CSS composition uses explicit ordered `<link>` elements rather than CSS `@import`. The professional order-flow layer loads after `app.css`, then final design tokens, photo workspace, mobile-capture dialog and photo-viewer layers follow in their former source order.
+Portal CSS composition uses explicit ordered `<link>` elements rather than CSS `@import`. Shared `team.css` loads after `app.css`, followed by order-flow, final design tokens, photo workspace, mobile-capture dialog and photo-viewer layers in their former source order. The invite page reuses the same team stylesheet.
 The BFF explicitly serves every browser module and stylesheet under `/app/`.
