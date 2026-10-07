@@ -131,9 +131,9 @@ test("reports render atelier KPIs and numeric, CSP-safe order status tiles",()=>
  assert.doesNotMatch(html,/<meter|role="meter"|style="--status-width|NaN/);
 });
 test("website only proxies explicitly authenticated mobile-compatible operations",async()=>{
- const [server,html,js,css,operationalWidgetsCss,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
+ const [server,html,js,css,orderWizardCss,operationalWidgetsCss,dashboardKpiActionsCss,garmentActionsCss,garmentDetailCss,garmentCardsCss,orderFlowCss,captureCss,viewerCss,feat,paymentIdempotency,portalCore,portalServices,portalMeasurements,portalPayments,portalWhatsapp,portalDocuments,portalPhotos,portalAccountSecurity,portalPassportSharing,portalBusinessProfile,portalOrderInfo,portalGarmentOverview,portalGarmentWorks,portalGarmentEditor,portalPassportEditor,portalFiscalInvoice,wizard,mobileCapture,photoPersistence,photoInteractions,clientSelection,garments,delivery,review,draft,submission,validation,referenceData,recordLists]=await Promise.all([
   source("server.mjs"),source("public/index.html"),
-  source("public/site.js"),source("public/app.css"),source("public/portal-operational-widgets.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
+  source("public/site.js"),source("public/app.css"),source("public/portal-order-wizard.css"),source("public/portal-operational-widgets.css"),source("public/portal-dashboard-kpi-actions.css"),source("public/portal-garment-card-actions.css"),source("public/portal-garment-order-detail.css"),source("public/portal-garment-cards.css"),source("public/portal-order-flow.css"),source("public/order-mobile-capture.css"),source("public/order-photo-viewer.css"),
   source("public/portal-features.mjs"),source("public/portal-payment-idempotency.mjs"),source("public/portal-core.mjs"),source("public/portal-services.mjs"),source("public/portal-measurements.mjs"),source("public/portal-payments.mjs"),source("public/portal-whatsapp.mjs"),source("public/portal-documents.mjs"),source("public/portal-photos.mjs"),source("public/portal-account-security.mjs"),source("public/portal-passport-sharing.mjs"),source("public/portal-business-profile.mjs"),source("public/portal-order-info.mjs"),source("public/portal-garment-overview.mjs"),source("public/portal-garment-works.mjs"),source("public/portal-garment-editor.mjs"),source("public/portal-passport-editor.mjs"),source("public/portal-fiscal-invoice.mjs"),source("public/order-wizard.mjs"),source("public/order-mobile-capture.mjs"),source("public/order-photo-persistence.mjs"),source("public/order-photo-interactions.mjs"),source("public/order-client-selection.mjs"),source("public/order-garments.mjs"),source("public/order-delivery.mjs"),source("public/order-review.mjs"),source("public/order-draft.mjs"),source("public/order-submission.mjs"),source("public/order-validation.mjs"),source("public/order-reference-data.mjs"),source("public/portal-record-lists.mjs")]);
  for(const route of ["measurements","photos","payments","whatsapp",
   "categories","price-list"]){
@@ -175,6 +175,7 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(server,/pathname==='\/app\/order-validation\.mjs'/);
  assert.match(server,/pathname==='\/app\/order-reference-data\.mjs'/);
  assert.match(server,/pathname==='\/app\/app\.css'/);
+ assert.match(server,/pathname==='\/app\/portal-order-wizard\.css'/);
  assert.match(server,/pathname==='\/app\/portal-operational-widgets\.css'/);
  assert.match(server,/pathname==='\/app\/portal-dashboard-kpi-actions\.css'/);
  assert.match(server,/pathname==='\/app\/portal-garment-card-actions\.css'/);
@@ -201,15 +202,15 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.doesNotMatch(clientSelection,/wizard-client-selected/);
  assert.doesNotMatch(clientSelection,/wizard-client-meta/);
  assert.doesNotMatch(clientSelection,/data-wizard-action="clear-client"/);
- assert.doesNotMatch(css,/\.wizard-client-selected/);
- assert.doesNotMatch(css,/\.wizard-client-meta/);
- assert.match(css,/\.wizard-client-confirmation\{/);
+ assert.doesNotMatch(css+orderWizardCss,/\.wizard-client-selected/);
+ assert.doesNotMatch(css+orderWizardCss,/\.wizard-client-meta/);
+ assert.match(orderWizardCss,/\.wizard-client-confirmation\{/);
  assert.match(css,/\.brand-dialog \.secondary\.danger\{/);
  assert.match(css,/\.brand-dialog-actions:has\(#confirm-alternative:not\(\[hidden\]\)\)/);
  assert.doesNotMatch(clientSelection,/\/clients\?limit=100&offset=0/);
  assert.doesNotMatch(clientSelection,/<select id="ow-client"/);
- assert.match(css,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
- assert.match(css,/@media\(max-width:760px\)\{[\s\S]*?\.wizard-client-results\{position:static/);
+ assert.match(orderWizardCss,/\.wizard-client-results\{[\s\S]*?position:absolute[\s\S]*?max-height:260px/);
+ assert.match(orderWizardCss,/@media\(max-width:760px\)\{[\s\S]*?\.wizard-client-results\{position:static/);
  assert.doesNotMatch(js,/data-action="add-order-item"|extra-order-item|id="extra-order-items"/);
  assert.match(draft,/const KEY="rimma\.order\.draft\.v63"/);
  assert.doesNotMatch(wizard,/sessionStorage|DRAFT_KEY|DRAFT_TTL/);
@@ -330,9 +331,9 @@ test("website only proxies explicitly authenticated mobile-compatible operations
  assert.match(js,/img\.addEventListener\("error",restoreFallback/);
  assert.doesNotMatch(js,/holder&&photo\?\.viewUrl\)holder\.innerHTML='<img/);
  assert.match(html,/id="modal-back" hidden/);
- assert.match(css,/\.order-wizard-modal\{width:min\(96vw,820px\)/);
- assert.doesNotMatch(css,/\.extra-order-item/);
- assert.match(css,/\.order-wizard-modal #modal-fields\{[\s\S]*?overflow-y:auto/);
+ assert.match(orderWizardCss,/\.order-wizard-modal\{width:min\(96vw,820px\)/);
+ assert.doesNotMatch(css+orderWizardCss,/\.extra-order-item/);
+ assert.match(orderWizardCss,/\.order-wizard-modal #modal-fields\{[\s\S]*?padding:2px 10px 8px 1px/);
  assert.match(clientSelection,/data-action="new-client-from-order"/);
  assert.match(wizard,/function openClientFromOrder\(\)\{[\s\S]*?persist\(\);[\s\S]*?active=false;[\s\S]*?onOpenClient\(\)/);
  assert.match(js,/case "new-client-from-order":[\s\S]*?wizard=>wizard\.openClient\(\)/);

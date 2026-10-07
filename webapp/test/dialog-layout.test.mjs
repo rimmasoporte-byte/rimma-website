@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const css=await fs.readFile(new URL('../public/app.css',import.meta.url),'utf8');
+const wizardCss=await fs.readFile(new URL('../public/portal-order-wizard.css',import.meta.url),'utf8');
 const marker='/* The site has one scroll container. Dialog backgrounds cannot scroll at';
 
 test('order dialog has one canonical scroll geometry with no legacy modal-form patch',()=>{
@@ -25,8 +26,9 @@ test('desktop wizard shell cannot become a hidden programmatic scroll container'
 
 
 test('first order step hides its redundant scrollbar without disabling scroll',()=>{
-  assert.match(css,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields\{[^}]*scrollbar-width:none/);
-  assert.match(css,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields::\-webkit-scrollbar\{[^}]*display:none/);
-  const firstStep=css.slice(css.indexOf('.order-wizard-modal[data-wizard-step="0"] #modal-fields{'));
+  assert.doesNotMatch(css,/Order creation wizard: one canonical implementation/);
+  assert.match(wizardCss,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields\{[^}]*scrollbar-width:none/);
+  assert.match(wizardCss,/\.order-wizard-modal\[data-wizard-step="0"\] #modal-fields::\-webkit-scrollbar\{[^}]*display:none/);
+  const firstStep=wizardCss.slice(wizardCss.indexOf('.order-wizard-modal[data-wizard-step="0"] #modal-fields{'));
   assert.doesNotMatch(firstStep.slice(0,900),/overflow-y\s*:\s*hidden/);
 });
