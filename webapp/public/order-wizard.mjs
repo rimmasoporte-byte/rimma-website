@@ -7,6 +7,7 @@ import {createOrderGarments} from "./order-garments.mjs";
 import {createOrderDelivery} from "./order-delivery.mjs";
 import {createOrderReview} from "./order-review.mjs";
 import {createOrderDraft} from "./order-draft.mjs";
+import {createOrderSubmission} from "./order-submission.mjs";
 const UUID=/^[a-f0-9-]{36}$/i;
 const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2));
@@ -186,6 +187,17 @@ export function createOrderWizard({
     money,
     escapeHtml:esc
   });
+  const submission=createOrderSubmission({
+    api,
+    getState:()=>state,
+    setCreated:value=>{created=value;},
+    setDirty:value=>{dirty=Boolean(value);},
+    toMinor,
+    itemMinor:item=>review.itemMinor(item),
+    draft,
+    mobileCapture,
+    photoPersistence
+  });
   function setError(message=""){
     error.textContent=message;
     error.hidden=!message;
@@ -296,47 +308,6 @@ export function createOrderWizard({
     return !error.textContent;
   }
 
-  function deriveOrderDue(){
-    return state.dueDate;
-  }
-
-  function payload(){
-    return {
-      clientId:state.clientId,
-      branchId:state.branchId,
-      currencyCode:state.currencyCode,
-      dueDate:deriveOrderDue(),
-      notes:state.notes.trim()||null,
-      items:state.items.map((item,index)=>{
-        const works=(item.works||[]).map((work,workIndex)=>({
-          categoryId:item.categoryId||work.categoryId||null,
-          serviceId:work.serviceId||null,
-          assignedUserId:work.assignedUserId||null,
-          name:work.work.trim(),
-          priceMinor:toMinor(work.price),
-          sortOrder:workIndex
-        }));
-        const itemName=(item.garmentType||"Prenda").trim().slice(0,160);
-        return {
-          categoryId:item.categoryId||null,
-          name:itemName,
-          description:item.label.trim()||null,
-          quantity:1,
-          unitPriceMinor:review.itemMinor(item),
-          sortOrder:index,
-          dueDate:item.useCustomDueDate&&item.dueDate?item.dueDate:state.dueDate,
-          garmentType:item.garmentType.trim()||null,
-          brand:item.brand.trim()||null,
-          color:item.color.trim()||null,
-          sizeLabel:item.sizeLabel.trim()||null,
-          storageLocation:item.storageLocation.trim()||null,
-          assignedUserId:null,
-          works
-        };
-      })
-    };
-  }
-
   function humanError(e){
     if(!navigator.onLine){
       return "No hay conexión. El borrador sigue guardado; vuelve a intentarlo cuando recuperes internet.";
@@ -360,22 +331,9 @@ export function createOrderWizard({
     busyUi(true,"Guardando pedido…");
     setError("");
     try{
-      await photoPersistence.prepareAll();
-      const response=await api("/orders",{
-        method:"POST",
-        headers:{"Idempotency-Key":state.creationKey},
-        body:JSON.stringify(payload())
-      });
-      if(!response?.order?.id)throw Error("El servidor no confirmó el pedido creado.");
-      created=response;
-      draft.clear();
-      dirty=false;
-      mobileCapture.syncPolling();
-      photoPersistence.clearFailures();
-      await photoPersistence.claimAllMobile({resetFailures:false});
-      await photoPersistence.uploadAll({resetFailures:false});
+      const result=await submission.create();
       render();
-      success(photoPersistence.hasFailures()
+      success(result.hasPhotoFailures
         ?"Pedido guardado; revisa las fotografías pendientes."
         :"Pedido creado correctamente.");
       try{await onRefresh?.()}catch{}
@@ -484,9 +442,9 @@ export function createOrderWizard({
     if(!created||busy)return;
     busyUi(true,"Reintentando…");
     try{
-      await photoPersistence.retryAll();
+      const result=await submission.retryPhotos();
       render();
-      success(photoPersistence.hasFailures()
+      success(result.hasPhotoFailures
         ?"Quedan fotografías pendientes."
         :"Fotografías guardadas correctamente.");
     }finally{

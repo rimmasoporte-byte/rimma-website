@@ -151,9 +151,8 @@ test("wizard delegates Step 3 while review and submission remain in the orchestr
   assert.doesNotMatch(wizard,/function deliveryRow|function renderDelivery|function updateDeliveryItem|actionName==="toggle-item-date"/);
 
   assert.match(wizard,/review\.renderReview\(\)/);
-  assert.match(wizard,/function payload\(/);
-  assert.match(wizard,/async function createOrder\(/);
-  assert.match(wizard,/function deriveOrderDue\(/);
+  assert.match(wizard,/submission\.create\(\)/);
+  assert.doesNotMatch(wizard,/function payload|function deriveOrderDue/);
   assert.match(delivery,/data-wizard-action="toggle-item-date"/);
   assert.match(server,/pathname==='\/app\/order-delivery\.mjs'/);
 });
