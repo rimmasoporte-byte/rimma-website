@@ -493,14 +493,15 @@ test("V61 business profile separates identity documents and fiscal configuration
 });
 
 test("V60 keeps one consolidated dashboard system with four core KPIs",async()=>{
- const css=await source("public/app.css");
+ const [app,dashboard]=await Promise.all([source("public/app.css"),source("public/portal-dashboard.css")]);
+ const css=app+"\n"+dashboard;
  for(const legacy of ["V47 —","V48 —","V49 —","V50 —","V51 —","V52 —","V53 —","V54 —","V55 —","V56 —","V57 —","V58 —"])
   assert.doesNotMatch(css,new RegExp(legacy.replace(/[.*+?^$()|[\]\\]/g,'\\$&')));
  assert.match(css,/V60 — four core KPIs/);
 });
 
 test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped actions",async()=>{
- const css=await source("public/app.css");
+ const css=await source("public/portal-dashboard.css");
  const html=await source("public/index.html");
  assert.match(css,/#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
  const kpiBlock=html.match(/<div class="atelier-today-grid" id="today-cards">([\s\S]*?)<\/div>/)?.[1]||"";
@@ -521,7 +522,7 @@ test("dashboard KPI cards keep fixed regions, stable numbers, and unclipped acti
 });
 
 test("mobile KPI layout never breaks normal words and keeps two-column cards usable",async()=>{
- const css=await source("public/app.css");
+ const css=await source("public/portal-dashboard.css");
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards\.atelier-today-grid\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[\s\S]*?gap:10px/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio #today-cards \.atelier-kpi\{[\s\S]*?min-height:164px[\s\S]*?padding:13px 14px/);
  assert.match(css,/#view-inicio #today-cards \.atelier-kpi>span:not\(\.metric-icon\):not\(\.metric-jump\)\{[\s\S]*?overflow-wrap:normal[\s\S]*?word-break:normal[\s\S]*?hyphens:none/);
@@ -531,7 +532,7 @@ test("mobile KPI layout never breaks normal words and keeps two-column cards usa
 });
 
 test("large dashboard panels use compact headings, readable empty states, and stacked actions",async()=>{
- const css=await source("public/app.css");
+ const css=await source("public/portal-dashboard.css");
  assert.match(css,/#view-inicio \.atelier-ops-panel\{[\s\S]*?min-height:205px[\s\S]*?padding:20px 20px 18px/);
  assert.match(css,/#view-inicio \.atelier-ops-panel \.section-head h2,[\s\S]*?#view-inicio \.dashboard-orders-panel \.section-head h2\{[\s\S]*?font:600 24px\/1\.15/);
  assert.match(css,/#view-inicio #today-attention>\.empty,[\s\S]*?font:500 14px\/1\.45/);
@@ -540,7 +541,7 @@ test("large dashboard panels use compact headings, readable empty states, and st
 
 test("worker load stacks identity above meter and handles long names",async()=>{
  const js=await source("public/site.js");
- const css=await source("public/app.css");
+ const css=await source("public/portal-dashboard.css");
  assert.match(js,/class="worker-copy"/);
  assert.match(js,/class="worker-load-meterline"/);
  assert.match(js,/lt\("prendas activas"\)/);
@@ -550,7 +551,7 @@ test("worker load stacks identity above meter and handles long names",async()=>{
 });
 
 test("dashboard widths and compact hero remain coherent across desktop and mobile",async()=>{
- const css=await source("public/app.css");
+ const css=await source("public/portal-dashboard.css");
  assert.match(css,/#view-inicio #today-cards\.atelier-today-grid,[\s\S]*?#view-inicio \.atelier-ops-layout\{[\s\S]*?margin-left:-20px[\s\S]*?margin-right:-20px/);
  assert.match(css,/#view-inicio>\.page-intro\{[\s\S]*?min-height:148px[\s\S]*?height:148px/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#view-inicio>\.page-intro\{[\s\S]*?height:auto[\s\S]*?flex-direction:column/);
@@ -561,7 +562,7 @@ test("mobile topbar language control uses one compact consolidated implementatio
  const css=await source("public/app.css");
  assert.match(css,/Global language control — single implementation/);
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?\.topbar-private\{display:none\}[\s\S]*?\.topbar-locale\{[\s\S]*?width:66px/);
- assert.match(css,/@media\(max-width:390px\)\{[\s\S]*?\.topbar-locale,[\s\S]*?width:62px/);
+ assert.match(css,/@media\(max-width:390px\)\{[\s\S]*?\.topbar-locale\{[\s\S]*?flex:0 0 62px[\s\S]*?width:62px[\s\S]*?\.topbar-locale \.app-locale-select\{[\s\S]*?padding:6px 20px 6px 7px/);
 });
 
 test("every catalog/archive/payment action waits for consent, preserves scope, and handles failure",async()=>{
