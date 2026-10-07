@@ -6,7 +6,7 @@
 #view-cuenta .settings-stack>.paper-panel{align-self:stretch}
 #view-cuenta .settings-notification-group,#view-cuenta .settings-data-group{min-width:0}
 #view-cuenta .settings-data-group{display:grid;gap:18px}
-#view-cuenta .paper-panel{min-width:0;align-self:start;padding:clamp(20px,2vw,28px);border-radius:12px;overflow-wrap:anywhere}
+#view-cuenta .paper-panel{min-width:0;align-self:start;padding:clamp(20px,2vw,28px);border-color:#e2d9ca;border-radius:12px;box-shadow:0 2px 12px rgba(39,47,36,.035);overflow-wrap:anywhere}
 #view-cuenta .paper-panel h2{margin:0 0 16px;line-height:1.2}
 #view-cuenta .paper-panel p{font-size:13px;line-height:1.65;margin-top:0;color:#56564f}
 #view-cuenta .paper-panel .feature-bottom{margin-top:18px}
@@ -17,7 +17,6 @@
 #view-cuenta .settings-data-group>.paper-panel .account-link{font-size:13px;color:#3d5041;min-height:48px;display:flex;align-items:center}
 #view-cuenta .settings-data-group>.paper-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
 #view-cuenta .settings-data-group>.paper-panel>h2,#view-cuenta .settings-data-group>.paper-panel>p{grid-column:1/-1}
-#view-cuenta .settings-data-actions #account-deletion-panel{border-color:#d7c6bd}
 #view-cuenta .settings-data-actions p{max-width:56ch}
 #view-cuenta #notifications-panel .notification-settings{max-width:760px}
 #view-cuenta #notifications-panel>p{max-width:680px}
