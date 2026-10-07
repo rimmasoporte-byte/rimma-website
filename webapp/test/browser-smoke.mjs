@@ -169,6 +169,8 @@ async function main(){
     await assertBrowser(`(()=>{const panel=document.querySelector('#notifications-panel');const body=panel?.querySelector('.notification-settings');if(!panel||!body)return false;return body.scrollWidth<=body.clientWidth+2&&body.getBoundingClientRect().right<=panel.getBoundingClientRect().right+2})()`,`Notification settings overflow their card at ${width}px.`);
     await assertBrowser(`document.documentElement.scrollWidth<=window.innerWidth+2`,`Settings introduced page overflow at ${width}px.`);
     await assertBrowser(`!document.querySelector('#branches-summary')?.textContent.includes('Esta cuenta admite una sola ubicación')`,'Workshop copy is duplicated.');
+    await assertBrowser(`[...document.querySelectorAll('#notifications-summary [data-channel="whatsapp"]')].every(control=>control.disabled)`,'Unavailable WhatsApp controls must stay disabled.');
+    await assertBrowser(`document.querySelector('#notifications-summary')?.textContent.includes('WhatsApp Cloud no conectado')`,'Unavailable WhatsApp provider reason is not visible.');
     if(width===390){
      await assertBrowser(`getComputedStyle(document.querySelector('.notification-settings-head')).display==='none'`,'Desktop notification header leaks into mobile layout.');
      await assertBrowser(`[...document.querySelectorAll('.notification-channel-label')].some(label=>getComputedStyle(label).display!=='none')`,'Mobile channel labels are not visible.');
@@ -180,6 +182,30 @@ async function main(){
      await assertBrowser(`document.querySelector(${quote(selector)})?.disabled===false`,'Notification control stayed disabled after save.');
     }
    }
+
+   await setViewport(1280,900);
+   await click('button[data-view="cuenta"]');
+   await waitFor(`document.querySelector('#notifications-summary .notification-settings')`,'notification settings failure checks');
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=error&reset=1'}).then(response=>response.text())`);
+   const failureSelector='#notifications-summary [data-notification-event="in_progress"] [data-channel="email"]';
+   await assertBrowser(`document.querySelector(${quote(failureSelector)})?.checked===true`,'Failure fixture must start from an enabled notification.');
+   await click(failureSelector);
+   await waitFor(`document.querySelector('[data-notification-event="in_progress"] .notification-inline-status')?.textContent==='No se pudo guardar.'`,'notification rollback');
+   await assertBrowser(`document.querySelector(${quote(failureSelector)})?.checked===true`,'Notification state was not rolled back after API failure.');
+   await assertBrowser(`document.querySelector(${quote(failureSelector)})?.disabled===false`,'Notification control stayed disabled after API failure.');
+   await assertBrowser(`document.querySelector('[data-notification-event="in_progress"]')?.getAttribute('aria-busy')==='false'`,'Notification row stayed busy after API failure.');
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal'}).then(response=>response.text())`);
+   await click(failureSelector);
+   await waitFor(`document.querySelector('[data-notification-event="in_progress"] .notification-inline-status')?.textContent==='Guardado'`,'notification retry');
+   await assertBrowser(`document.querySelector(${quote(failureSelector)})?.checked===false`,'Notification retry did not preserve the successful state.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=slow&reset=1'}).then(response=>response.text())`);
+   const guardedSelector='#notifications-summary [data-notification-event="ready_for_pickup"] [data-channel="email"]';
+   await evaluate(`(()=>{const el=document.querySelector(${quote(guardedSelector)});el.click();el.click();return true})()`);
+   await assertBrowser(`document.querySelector(${quote(guardedSelector)})?.disabled===true`,'Notification control is not guarded while saving.');
+   await waitFor(`document.querySelector('[data-notification-event="ready_for_pickup"] .notification-inline-status')?.textContent==='Guardado'`,'guarded notification save',5000);
+   await assertBrowser(`fetch('/__qa').then(response=>response.text()).then(text=>/Mutaciones:\\s*1\\./.test(text))`,'Duplicate notification interaction produced more than one mutation.');
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
 
    await setViewport(390,844);
    await click('button[data-view="clientes"]');

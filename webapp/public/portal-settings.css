@@ -26,13 +26,13 @@
 .notification-template{grid-column:1/-1;display:grid;grid-template-columns:120px minmax(0,1fr);align-items:center;gap:12px;padding:8px 0 0}
 .notification-template span{font-size:11px;font-weight:600;color:#6f675f}
 .notification-template input{min-width:0;width:100%;border:1px solid #ddd4c8;border-radius:7px;padding:9px 10px;background:#fff;color:#2e382f}
-.notification-inline-status{grid-column:1/-1;margin:0!important;padding:0!important;font-size:11px!important;color:#5d765f!important}
-.notification-inline-status.is-error{color:#9a4938!important}
+#notifications-panel .notification-inline-status{grid-column:1/-1;margin:0;padding:0;font-size:11px;color:#5d765f;line-height:1.45}
+#notifications-panel .notification-inline-status.is-error{color:#9a4938}
 .notification-provider-status{display:flex;flex-wrap:wrap;gap:8px;padding-top:2px}
 .notification-provider-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid #ddd7cd;border-radius:999px;padding:6px 9px;background:#faf8f4;color:#6f675f;font-size:11px}
 .notification-provider-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#9c958b}
 .notification-provider-badge.is-ready::before{background:#5d7a61}
-.notification-provider-note{margin:0!important;font-size:11px!important}
+#notifications-panel .notification-provider-note{margin:0;font-size:11px;line-height:1.5}
 @media(max-width:760px){
  .notification-settings-head{display:none}
  .notification-event{grid-template-columns:1fr 1fr;align-items:start;gap:10px 12px;padding:16px 0}
