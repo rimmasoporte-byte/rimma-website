@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const css=await fs.readFile(new URL('../public/app.css',import.meta.url),'utf8');
+const shellCss=await fs.readFile(new URL('../public/portal-shell-controls.css',import.meta.url),'utf8');
 const wizardCss=await fs.readFile(new URL('../public/portal-order-wizard.css',import.meta.url),'utf8');
 const marker='/* The site has one scroll container. Dialog backgrounds cannot scroll at';
 
 test('order dialog has one canonical scroll geometry with no legacy modal-form patch',()=>{
-  const cut=css.indexOf(marker);
+  const cut=shellCss.indexOf(marker);
   assert.ok(cut>0,'canonical modal section exists');
-  const legacy=css.slice(0,cut);
-  const canonical=css.slice(cut);
+  const canonical=shellCss.slice(cut);
 
-  assert.doesNotMatch(legacy,/#modal-form\s*\{/,'legacy modal-form geometry is removed');
+  assert.doesNotMatch(css,/#modal-form\s*\{/,'legacy modal-form geometry is removed from app.css');
   assert.match(canonical,/#modal\{[\s\S]*?overflow:clip/);
   assert.match(canonical,/#modal-form\{[\s\S]*?overflow:clip/);
   assert.match(canonical,/#modal-fields\{[\s\S]*?overflow-y:auto/);
@@ -20,7 +20,7 @@ test('order dialog has one canonical scroll geometry with no legacy modal-form p
 });
 
 test('desktop wizard shell cannot become a hidden programmatic scroll container',()=>{
-  const desktop=css.slice(css.indexOf(marker),css.indexOf('@media(max-height:480px)'));
+  const desktop=shellCss.slice(shellCss.indexOf(marker),shellCss.indexOf('@media(max-height:480px)'));
   assert.doesNotMatch(desktop,/#modal-form\{[^}]*overflow\s*:\s*(?:auto|hidden)/);
 });
 

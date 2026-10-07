@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-shell-controls.css"),
     read("portal-order-wizard.css"),
     read("portal-garment-passport.css"),
     read("portal-passport-sharing.css"),
@@ -33,6 +34,7 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-shell-controls.css",
     "portal-order-wizard.css",
     "portal-garment-passport.css",
     "portal-passport-sharing.css",
@@ -55,14 +57,15 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  const composed=app+orderWizard+garmentPassport+passportSharing+orderDocuments+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
+  const composed=app+shellControls+orderWizard+garmentPassport+passportSharing+orderDocuments+fiscalInvoicing+operationalWidgets+dashboardKpiActions+garmentActions+garmentWorkspace+garmentDetail+garmentCards+localeControl+dashboard+businessProfile+onboarding+team+orderFlow+tokens+workspace+capture+viewer;
   assert.doesNotMatch(composed,/@import/);
   assert.doesNotMatch(composed,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-shell-controls.css"),
     read("portal-order-wizard.css"),
     read("portal-garment-passport.css"),
     read("portal-passport-sharing.css"),
@@ -85,6 +88,18 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/Canonical portal shell controls, dialogs and shared interaction states/);
+  assert.doesNotMatch(app,/\/\* ===== BUTTON SYSTEM ===== \*\//);
+  assert.doesNotMatch(app,/#feature-dialog\{/);
+  assert.match(shellControls,/^\/\* Canonical portal shell controls, dialogs and shared interaction states\. \*\//);
+  assert.match(shellControls,/\/\* Canonical focus system:/);
+  assert.match(shellControls,/\/\* ===== BUTTON SYSTEM ===== \*\//);
+  assert.match(shellControls,/#modal\{/);
+  assert.match(shellControls,/#feature-dialog\{/);
+  assert.match(shellControls,/\.brand-dialog\{/);
+  assert.match(shellControls,/\.sidebar \.sidebar-brand-logo/);
+  assert.doesNotMatch(shellControls,/Order creation wizard: one canonical implementation/);
 
   assert.doesNotMatch(app,/Order creation wizard: one canonical implementation/);
   assert.doesNotMatch(app,/\.order-wizard-modal/);
@@ -212,8 +227,9 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-shell-controls.css"),
     read("portal-order-wizard.css"),
     read("portal-garment-passport.css"),
     read("portal-passport-sharing.css"),
@@ -236,7 +252,9 @@ test("composed portal CSS keeps extracted layers in their former source order",a
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,shellControls,orderWizard,garmentPassport,passportSharing,orderDocuments,fiscalInvoicing,operationalWidgets,dashboardKpiActions,garmentActions,garmentWorkspace,garmentDetail,garmentCards,localeControl,dashboard,businessProfile,onboarding,team,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* Canonical portal shell controls, dialogs and shared interaction states. */") <
+    composed.indexOf("/* Order creation wizard: one canonical implementation, no legacy order-form patches. */"));
   assert.ok(composed.indexOf("/* Order creation wizard: one canonical implementation, no legacy order-form patches. */") <
     composed.indexOf("/* Garment passport: one operational record from intake to collection. */"));
   assert.ok(composed.indexOf("/* Garment passport: one operational record from intake to collection. */") <

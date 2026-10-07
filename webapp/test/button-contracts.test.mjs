@@ -38,6 +38,7 @@ const fiscalInvoiceFeatures=sources["portal-fiscal-invoice.mjs"];
 const billing=sources["billing-view.mjs"];
 const team=sources["team-view.mjs"];
 const css=await fs.readFile(new URL("../public/app.css",import.meta.url),"utf8");
+const shellCss=await fs.readFile(new URL("../public/portal-shell-controls.css",import.meta.url),"utf8");
 
 const values=(source,attribute)=>{
   const re=new RegExp(attribute+'="([a-z0-9-]+)"',"g");
@@ -162,10 +163,12 @@ test("destructive record and photo actions remain confirmation-gated",()=>{
 });
 
 test("the portal has one canonical ordinary-button system instead of stacked base definitions",()=>{
-  assert.match(css,/\/\* ===== BUTTON SYSTEM ===== \*\//);
-  assert.equal((css.match(/^button:disabled\{/gm)||[]).length,1);
-  assert.equal((css.match(/^\.primary\s*\{/gm)||[]).length,1);
-  assert.equal((css.match(/^\.record-action\s*\{/gm)||[]).length,0);
+  const composedCss=css+"\n"+shellCss;
+  assert.doesNotMatch(css,/\/\* ===== BUTTON SYSTEM ===== \*\//);
+  assert.match(shellCss,/\/\* ===== BUTTON SYSTEM ===== \*\//);
+  assert.equal((composedCss.match(/^button:disabled\{/gm)||[]).length,1);
+  assert.equal((composedCss.match(/^\.primary\s*\{/gm)||[]).length,1);
+  assert.equal((composedCss.match(/^\.record-action\s*\{/gm)||[]).length,0);
   const luxury=css.slice(
     css.indexOf("/* ===== LUXURY-BUTTONS ===== */"),
     css.indexOf("/* ===== MAISON-LUXE ===== */")
