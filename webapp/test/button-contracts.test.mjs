@@ -18,6 +18,7 @@ const wizard=sources["order-wizard.mjs"];
 const viewer=sources["order-photo-viewer.mjs"];
 const mobileCapture=sources["order-mobile-capture.mjs"];
 const photoInteractions=sources["order-photo-interactions.mjs"];
+const clientSelection=sources["order-client-selection.mjs"];
 const features=sources["portal-features.mjs"];
 const serviceFeatures=sources["portal-services.mjs"];
 const measurementFeatures=sources["portal-measurements.mjs"];
@@ -115,10 +116,11 @@ test("team action buttons have one team-module handler each",()=>{
 });
 
 test("every order-wizard action emitted by the UI has an owner",()=>{
-  const emitted=[...new Set([...values(wizard,"data-wizard-action"),...values(photoInteractions,"data-wizard-action")])].sort();
+  const emitted=[...new Set([...values(wizard,"data-wizard-action"),...values(photoInteractions,"data-wizard-action"),...values(clientSelection,"data-wizard-action")])].sort();
   const handled=[...new Set([
     ...[...wizard.matchAll(/actionName==="([a-z0-9-]+)"/g)].map(match=>match[1]),
-    ...[...wizard.matchAll(/name==="([a-z0-9-]+)"/g)].map(match=>match[1])
+    ...[...wizard.matchAll(/name==="([a-z0-9-]+)"/g)].map(match=>match[1]),
+    ...[...clientSelection.matchAll(/actionName==="([a-z0-9-]+)"/g)].map(match=>match[1])
   ])];
   assert.deepEqual(emitted.filter(action=>!handled.includes(action)),[]);
 });
@@ -176,6 +178,6 @@ test("pagination and cross-module client creation use shared application contrac
   for(const id of ["orders-prev","orders-next","clients-prev","clients-next"]){
     assert.match(html,new RegExp('class="secondary pagination-button" id="'+id+'"'));
   }
-  assert.match(wizard,/data-action="new-client-from-order"/);
+  assert.match(clientSelection,/data-action="new-client-from-order"/);
   assert.match(site,/case "new-client-from-order":[\s\S]*?wizard=>wizard\.openClient\(\)/);
 });

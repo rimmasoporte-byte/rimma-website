@@ -18,6 +18,7 @@ Key responsibilities:
 - `order-mobile-capture.mjs`: QR capture sessions, polling and capture cleanup;
 - `order-photo-persistence.mjs`: photo preparation, upload, retry and mobile-claim persistence;
 - `order-photo-interactions.mjs`: order photo gallery, preview routing, cover/delete mutations and local object-URL lifecycle;
+- `order-client-selection.mjs`: order client search, combobox interaction, client hydration and Step 1 client/branch presentation;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -72,6 +73,7 @@ Use the narrowest owner that can correctly perform an action:
 - application navigation or cross-module transition -> `site.js`;
 - order creation orchestration -> `order-wizard.mjs`;
 - order photo presentation/capture/persistence/interactions -> the dedicated `order-photo-*` / `order-mobile-capture.mjs` module;
+- order client search/selection and Step 1 client presentation -> `order-client-selection.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -86,7 +88,7 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. continue splitting remaining order-wizard client / garment / delivery concerns by coherent workflow boundary;
+1. continue splitting remaining order-wizard garment / delivery concerns by coherent workflow boundary;
 2. move client/order list rendering out of `site.js`;
 3. harden async request ownership and stale-response cancellation;
 4. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
@@ -107,6 +109,8 @@ Order photo behavior is intentionally split by responsibility instead of living 
 - `order-photo-interactions.mjs` owns gallery markup, local object URLs, preview
   routing, local/mobile cover arbitration, destructive photo deletion and local
   file replacement.
+
+`order-client-selection.mjs` owns the Step 1 combobox search state, debounce/stale-response protection, keyboard interaction, hydration and client/branch markup while `order-wizard.mjs` keeps the single delegated event-listener layer.
 
 `order-wizard.mjs` composes these domains and keeps order-step orchestration only.
 The BFF explicitly serves every browser module under `/app/`.
