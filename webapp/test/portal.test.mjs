@@ -145,7 +145,7 @@ test('BFF security, session lifecycle, API scope, CSRF and static assets',async(
   r=await fetch(base+'/api/data/categories',{method:'POST',headers:authorized,
    body:JSON.stringify({name:'X'.repeat(34_000)})});
   assert.equal(r.status,413,"non-photo writes retain 32KB max");
-  for(const f of ['site.js','confirm-dialog.mjs','billing-view.mjs','portal-features.mjs','order-wizard.mjs','order-garments.mjs','order-delivery.mjs','order-review.mjs','order-draft.mjs','order-submission.mjs','order-validation.mjs','order-reference-data.mjs','order-photo-viewer.mjs','app.css','site.css','premium.css','team.css','onboarding.mjs','photo-capture.js','photo-capture.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200,f+' is served');}
+  for(const f of ['site.js','confirm-dialog.mjs','billing-view.mjs','portal-features.mjs','portal-record-lists.mjs','order-wizard.mjs','order-garments.mjs','order-delivery.mjs','order-review.mjs','order-draft.mjs','order-submission.mjs','order-validation.mjs','order-reference-data.mjs','order-photo-viewer.mjs','app.css','site.css','premium.css','team.css','onboarding.mjs','photo-capture.js','photo-capture.css','atelier-mannequin.webp','rimma-luxury-full.webp','favicon.svg']){r=await fetch(base+'/app/'+f);assert.equal(r.status,200,f+' is served');}
   for(const legacy of ['luxury-buttons.css','maison-luxe.css','maison-reference.css','atelier-polish.css','sidebar-finish.css','sidebar-photo.css','portal-parity.css','onboarding.css']){r=await fetch(base+'/app/'+legacy);assert.equal(r.status,404,legacy+' stays removed');}
   r=await fetch(base+'/app/');assert.equal(r.status,200);
   const csp=r.headers.get('content-security-policy')||'';
@@ -197,9 +197,10 @@ test('subscription gate iterates all navigation controls safely',()=>{
 
 test('repeat order creates a clean new atelier job without historical state',()=>{
  const js=fs.readFileSync(new URL('../public/site.js',import.meta.url),'utf8');
- assert.match(js,/data-action="repeat-order"/);
+ const recordLists=fs.readFileSync(new URL('../public/portal-record-lists.mjs',import.meta.url),'utf8');
+ assert.match(recordLists,/data-action="repeat-order"/);
  const start=js.indexOf('async function repeatOrder(id)');
- const end=js.indexOf('function customerInitials',start);
+ const end=js.indexOf('async function hydrateGarmentCards',start);
  assert.ok(start>=0&&end>start,'repeat-order workflow is present');
  const flow=js.slice(start,end);
  assert.match(flow,/status!=="cancelled"/);

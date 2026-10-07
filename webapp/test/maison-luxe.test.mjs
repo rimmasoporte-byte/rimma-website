@@ -32,15 +32,14 @@ test('luxury skin includes responsive layout, contrast and offline visual assets
  assert.doesNotMatch(css,/\b!important\s*;\s*display\s*:\s*none\b/i);
 });
 test('table retains customer identity and accessible edit/delete actions',async()=>{
- const js=await read('site.js');
- assert.match(js,/function customerInitials\(name\)/);
- assert.ok(js.includes('split(/\\s+/)'));
- assert.match(js,/class="garment-order-ref garment-order-link"/);
- assert.ok(js.includes("esc(customer)"));
- assert.match(js,/class="order-amount"/);
- assert.match(js,/data-action="edit-/);
- assert.match(js,/data-action="delete-/);
- assert.match(js,/o\.status!=="issued"/);
+ const lists=await read('portal-record-lists.mjs');
+ assert.match(lists,/const customer=order\.client\?\.name\|\|order\.clientName\|\|"Cliente"/);
+ assert.match(lists,/class="garment-order-ref garment-order-link"/);
+ assert.ok(lists.includes("esc(customer)"));
+ assert.match(lists,/class="order-amount"/);
+ assert.match(lists,/data-action="edit-/);
+ assert.match(lists,/data-action="delete-/);
+ assert.match(lists,/order\.status!=="issued"/);
 });
 
 test('canonical application CSS is served with a safe CSS media type',async()=>{

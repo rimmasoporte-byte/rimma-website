@@ -2,7 +2,7 @@
   "defaultJsMaxLines": 500,
   "files": {
     "server.mjs": 650,
-    "public/site.js": 1300,
+    "public/site.js": 1150,
     "public/order-wizard.mjs": 625,
     "public/portal-features.mjs": 1750,
     "public/app.css": 4900

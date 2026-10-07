@@ -26,6 +26,7 @@ Key responsibilities:
 - `order-submission.mjs`: order-create payload construction, idempotent POST transaction, draft finalization and post-create photo claim/upload sequence;
 - `order-validation.mjs`: cross-step validation coordination, field-error presentation and deterministic focus/scroll to the first invalid control;
 - `order-reference-data.mjs`: order reference-data loading and normalization for branches, catalog services, members and default assignee;
+- `portal-record-lists.mjs`: pure client/order list and garment-card presentation with application action markup;
 - `portal-features.mjs`: domain feature surfaces that are loaded by the portal;
 - `billing-view.mjs`: billing presentation only; trusted billing state comes from the server/backend;
 - `team-view.mjs`: team-management UI;
@@ -88,6 +89,7 @@ Use the narrowest owner that can correctly perform an action:
 - order-create payload and submission transaction -> `order-submission.mjs`;
 - cross-step validation error/focus presentation -> `order-validation.mjs`;
 - order reference-data loading/normalization -> `order-reference-data.mjs`;
+- client/order list and garment-card presentation -> `portal-record-lists.mjs`;
 - feature-specific behavior -> feature module;
 - local visual control -> local component;
 - authorization / trusted state -> server/backend.
@@ -102,9 +104,8 @@ Current ratchet budgets are enforced by `scripts/engineering-audit.mjs`. The bud
 
 Recommended extraction order:
 
-1. move client/order list rendering out of `site.js`;
-2. harden async request ownership and stale-response cancellation;
-3. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
+1. harden async request ownership and stale-response cancellation;
+2. split `app.css` into token, layout, component, and feature layers once import ordering is regression-tested.
 
 Each extraction should preserve behavior and land with regression tests.
 
@@ -140,4 +141,6 @@ Order photo behavior is intentionally split by responsibility instead of living 
 `order-reference-data.mjs` owns the parallel loading and normalization of price-list categories/services, active workshop locations and workspace members, including deterministic default-assignee selection. Modal lifecycle, draft restoration, preferred-client hydration and rendering remain in the wizard.
 
 `order-wizard.mjs` composes these domains and keeps cross-step UI orchestration, lifecycle decisions and post-create navigation.
+
+`portal-record-lists.mjs` owns pure client/order list and garment-card markup, including record action buttons. API loading, passport/payment/photo hydration, pagination state, navigation and mutations stay in `site.js` or their dedicated feature modules.
 The BFF explicitly serves every browser module under `/app/`.

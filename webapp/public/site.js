@@ -145,6 +145,9 @@ let clientDuplicateClock=null,clientDuplicateSeq=0,clientDuplicateMatches=[];
 let csrf="",me=null,ordersPage=0,clientsPage=0,ordersSearch="",clientsSearch="",ordersStatus="",ordersBranch="",ordersBranchesLoaded=false,lastClients=[],lastOrders=[],lastCatalog=[],activeModal=null,activeRecord=null,searchClock=null,pendingDeletes=new Set();
 const PAGE=8;
 const confirmAction=options=>import("/app/confirm-dialog.mjs?v=20261005-v1").then(module=>module.confirmAction(options));
+const recordListUI=import("/app/portal-record-lists.mjs?v=20261007-v1").then(module=>module.createPortalRecordLists({
+ escapeHtml:esc,money,date,statusLabels:status
+}));
 // Same-origin, CSRF-protected business features; import failures remain visible to users.
 const featureUI=import("/app/portal-features.mjs?v=20261005-v8").then(module=>module.createFeatureUI({
  api,success,globalError,confirmAction,refreshOrders:async()=>{await loadOrders();await loadToday();},
@@ -310,18 +313,6 @@ function go(view){
  const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
-function recordActions(type,id,canDelete=true) {
-  const safe=esc(id);
-  const label=type==="client"?"cliente":"pedido";
-  return '<div class="record-actions">'+
-   (type==="order"?'<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'" aria-label="Abrir documentos del pedido">Documentos</button>':'')+
-   (type==="order"?'<button type="button" class="record-action" data-action="order-passport" data-id="'+safe+'" aria-label="Abrir pasaporte digital del pedido">Pasaporte</button>':'')+
-   (type==="order"?'<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'" aria-label="Crear un nuevo pedido a partir de este">Repetir pedido</button>':'')+
-   '<button type="button" class="record-action" data-action="edit-'+type+'" data-id="'+safe+'" aria-label="Editar '+label+'">Editar</button>'+
-   (canDelete?'<button type="button" class="record-action danger" data-action="delete-'+type+'" data-id="'+safe+'" aria-label="Eliminar '+label+'">Eliminar</button>':
-   '<button type="button" class="record-action danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
-  '</div>';
-}
 async function downloadOrder(id){
   if(!/^[a-f0-9-]{36}$/i.test(id||"")){globalError("El pedido seleccionado no es válido.");return;}
   try{
@@ -377,54 +368,6 @@ async function repeatOrder(id){
     go("pedidos");
     success(number?"Pedido #"+number+" creado a partir del anterior. Añade ahora la nueva fecha de entrega.":"Nuevo pedido creado. Añade ahora la fecha de entrega.");
   }catch(e){globalError(e.message||"No se pudo repetir el pedido.");}
-}
-function customerInitials(name) {
- const words=String(name||"").trim().split(/\s+/).filter(Boolean);
- return words.slice(0,2).map(x=>Array.from(x)[0]?.toLocaleUpperCase("es")||"").join("")||"C";
-}
-function garmentCardOrderActions(o,itemId,orderId){
- const safe=esc(o.id||"");
- const canDelete=o.status!=="issued";
- return '<div class="garment-quick-actions">'+
-  '<button type="button" class="record-action garment-primary-action" data-action="garment-open" data-order="'+orderId+'" data-item="'+itemId+'">Abrir prenda</button>'+
-  '<button type="button" class="record-action garment-pay-action" data-action="order-payments" data-id="'+safe+'" data-garment-pay-action="'+itemId+'">Cobrar</button>'+
-  '<details class="garment-more"><summary aria-label="Más acciones">⋯</summary><div class="garment-more-menu">'+
-  '<button type="button" class="record-action" data-action="garment-edit" data-order="'+orderId+'" data-item="'+itemId+'">Editar</button>'+
-   '<button type="button" class="record-action" data-action="order-info" data-id="'+safe+'">Información del pedido</button>'+
-   '<button type="button" class="record-action" data-action="order-documents" data-id="'+safe+'">Documentos</button>'+
-   '<button type="button" class="record-action" data-action="garment-label" data-order="'+orderId+'" data-item="'+itemId+'">Imprimir etiqueta</button>'+
-   '<button type="button" class="record-action" data-action="repeat-order" data-id="'+safe+'">Repetir pedido</button>'+
-   (canDelete?'<button type="button" class="record-action danger garment-menu-danger" data-action="delete-order" data-id="'+safe+'">Eliminar</button>':'<button type="button" class="record-action danger garment-menu-danger" disabled title="Los pedidos entregados deben conservarse">Eliminar</button>')+
-  '</div></details>'+
- '</div>';
-}
-function garmentCard(o,item,actions=false){
- const customer=o.client?.name||o.clientName||"Cliente";
- const label=status[item.status]||item.status||"Sin estado";
- const itemId=esc(item.id||"");
- const orderId=esc(o.id||"");
- const due=item.dueDate||o.dueDate;
- const worker=item.assignedWorker?.name?esc(item.assignedWorker.name):"Sin asignar";
- const location=item.storageLocation?esc(item.storageLocation):"Sin ubicación";
- const details=[item.garmentType,item.color,item.sizeLabel].filter(Boolean).map(esc).join(" · ");
- return '<article class="garment-card garment-card-refined" data-order="'+orderId+'" data-item="'+itemId+'">'+
-  '<div class="garment-photo" data-garment-photo="'+itemId+'"><span>✂</span></div>'+
-  '<div class="garment-card-main"><div class="garment-card-top"><div><h3>'+esc(item.name||item.garmentType||"Prenda")+'</h3><button type="button" class="garment-order-ref garment-order-link" data-action="order-info" data-id="'+orderId+'">Pedido #'+esc(o.orderNumber)+' · '+esc(customer)+'</button>'+(details?'<p>'+details+'</p>':"")+'</div></div>'+
-  '<div class="garment-facts"><span class="garment-meta-chip">Entrega '+esc(date(due))+'</span><span class="garment-meta-chip" data-garment-worker="'+itemId+'">👤 '+worker+'</span><span class="garment-meta-chip" data-garment-location="'+itemId+'"'+(item.storageLocation?'':' hidden')+'>⌗ '+location+'</span><span class="garment-meta-chip" data-garment-measurement="'+itemId+'" hidden>📏 Sin ficha vinculada</span></div>'+
-  '</div><div class="garment-card-footer">'+
-  '<div class="garment-money"><span>Total <strong class="order-amount">'+esc(money(item.lineTotalMinor??item.totalMinor??0,o.currencyCode))+'</strong></span><span data-garment-paid="'+itemId+'">Pagado <strong>—</strong></span><span data-garment-balance="'+itemId+'">Pendiente <strong>—</strong></span></div>'+
-  (actions?garmentCardOrderActions(o,itemId,orderId):"")+
-  '</div>'+
-  '<aside class="garment-card-status"><span class="status '+esc(item.status)+'">'+esc(label)+'</span></aside>'+
-  '</article>';
-}
-function orderTable(rows,actions=false){
- const cards=[];
- for(const o of rows){
-  const items=Array.isArray(o.items)&&o.items.length?o.items:[{id:"",name:"Encargo",status:o.status,dueDate:o.dueDate,lineTotalMinor:o.totalMinor}];
-  for(const item of items)cards.push(garmentCard(o,item,actions));
- }
- return cards.length?'<div class="garment-grid">'+cards.join("")+'</div>':'<p class="empty">No hay prendas con esos filtros.</p>';
 }
 async function hydrateGarmentCards(rows){
  const jobs=[];
@@ -504,7 +447,7 @@ async function loadToday(){
   const weekly=Number(w.summary?.dueThisWeek??w.summary?.total??w.dueThisWeek??0);
   $("#week-count").textContent=n(weekly);
  }else $("#week-count").textContent="—";
- if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);}
+ if(orders.status==="fulfilled"){const rows=orders.value.orders||[];$("#recent-orders").innerHTML=(await recordListUI).orderTable(rows,true);void hydrateGarmentCards(rows);}
  else $("#recent-orders").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';
  if(today.status==="rejected")globalError(today.reason.message);
 }
@@ -524,7 +467,7 @@ async function loadOrders(){
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(ordersPage*PAGE)});if(ordersSearch.trim())q.set("q",ordersSearch.trim());if(ordersStatus)q.set("status",ordersStatus);if(ordersBranch)q.set("branchId",ordersBranch);
   const result=await api("/orders?"+q);const rows=result.orders||[];lastOrders=rows;
-  $("#orders-list").innerHTML=orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
+  $("#orders-list").innerHTML=(await recordListUI).orderTable(rows,true);void hydrateGarmentCards(rows);$("#orders-page").textContent="Página "+(ordersPage+1);
   $("#orders-prev").disabled=ordersPage===0;$("#orders-next").disabled=rows.length<PAGE;
  }catch(e){$("#orders-list").innerHTML='<p class="empty">No se pudieron consultar los pedidos.</p>';globalError(e.message);}
 }
@@ -638,16 +581,12 @@ async function loadAtelierAccountSettings(){
   }).join("")+'</div><p class="small">'+(settings.providers?.emailConfigured?"Correo conectado.":"Correo no configurado.")+' '+(settings.providers?.whatsappConfigured?"WhatsApp Cloud conectado; indica una plantilla aprobada para cada aviso.":"WhatsApp automático queda bloqueado hasta conectar WhatsApp Cloud.")+'</p>';
  }catch(e){if(rules)rules.textContent="No se pudieron cargar los avisos.";}
 }
-function clientRow(c){
- return '<tr><td><span class="name">'+esc(c.name)+'</span></td><td>'+esc(c.phone||"—")+'</td><td>'+esc(c.email||"—")+'</td><td><span class="status ready">Cliente</span></td><td><div class="client-extended-actions">'+
- '<button type="button" class="record-action" data-feature="client-measurements" data-id="'+esc(c.id)+'">Medidas</button>'+recordActions("client",c.id)+'</div></td></tr>';
-}
 async function loadClients(){
  $("#clients-list").innerHTML='<p class="empty">Cargando clientes…</p>';
  try{
   const q=new URLSearchParams({limit:String(PAGE),offset:String(clientsPage*PAGE)});if(clientsSearch.trim())q.set("q",clientsSearch.trim());
   const result=await api("/clients?"+q);const rows=result.clients||[];lastClients=rows;
-  $("#clients-list").innerHTML=rows.length?'<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Estado</th><th scope="col">Acciones</th></tr></thead><tbody>'+rows.map(clientRow).join("")+'</tbody></table>':'<p class="empty">No hay clientes con esos filtros.</p>';
+  $("#clients-list").innerHTML=(await recordListUI).clientTable(rows);
   $("#clients-page").textContent="Página "+(clientsPage+1);$("#clients-prev").disabled=clientsPage===0;$("#clients-next").disabled=rows.length<PAGE;
  }catch(e){$("#clients-list").innerHTML='<p class="empty">No se pudieron consultar los clientes.</p>';globalError(e.message);}
 }
