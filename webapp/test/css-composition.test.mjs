@@ -5,9 +5,10 @@ import fs from "node:fs/promises";
 const read=path=>fs.readFile(new URL("../public/"+path,import.meta.url),"utf8");
 
 test("portal stylesheets declare deterministic cascade order without CSS imports",async()=>{
-  const [html,app,tokens,workspace,capture,viewer]=await Promise.all([
+  const [html,app,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("index.html"),
     read("app.css"),
+    read("portal-order-flow.css"),
     read("portal-design-tokens.css"),
     read("portal-photo-workspace.css"),
     read("order-mobile-capture.css"),
@@ -16,23 +17,31 @@ test("portal stylesheets declare deterministic cascade order without CSS imports
   const links=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="\/app\/([^"?]+)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   assert.deepEqual(links,[
     "app.css",
+    "portal-order-flow.css",
     "portal-design-tokens.css",
     "portal-photo-workspace.css",
     "order-mobile-capture.css",
     "order-photo-viewer.css"
   ]);
-  assert.doesNotMatch(app+tokens+workspace+capture+viewer,/@import/);
-  assert.doesNotMatch(app+tokens+workspace+capture+viewer,/url\(["']?http:/);
+  assert.doesNotMatch(app+orderFlow+tokens+workspace+capture+viewer,/@import/);
+  assert.doesNotMatch(app+orderFlow+tokens+workspace+capture+viewer,/url\(["']?http:/);
 });
 
 test("feature stylesheet extraction preserves former app.css tail boundaries",async()=>{
-  const [app,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-order-flow.css"),
     read("portal-design-tokens.css"),
     read("portal-photo-workspace.css"),
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
+
+  assert.doesNotMatch(app,/\/\* ===== PROFESSIONAL ORDER FLOW ===== \*\//);
+  assert.match(orderFlow,/^\/\* ===== PROFESSIONAL ORDER FLOW ===== \*\//);
+  assert.match(orderFlow,/\.wizard-photo-control\{/);
+  assert.match(orderFlow,/\.wizard-review-section/);
+  assert.match(orderFlow,/\.whatsapp-card\{/);
 
   assert.doesNotMatch(app,/Final design tokens are declared once/);
   assert.match(tokens,/^\/\* Final design tokens are declared once after the migrated legacy sections\. \*\//);
@@ -55,14 +64,17 @@ test("feature stylesheet extraction preserves former app.css tail boundaries",as
 });
 
 test("composed portal CSS keeps extracted layers in their former source order",async()=>{
-  const [app,tokens,workspace,capture,viewer]=await Promise.all([
+  const [app,orderFlow,tokens,workspace,capture,viewer]=await Promise.all([
     read("app.css"),
+    read("portal-order-flow.css"),
     read("portal-design-tokens.css"),
     read("portal-photo-workspace.css"),
     read("order-mobile-capture.css"),
     read("order-photo-viewer.css")
   ]);
-  const composed=[app,tokens,workspace,capture,viewer].join("\n");
+  const composed=[app,orderFlow,tokens,workspace,capture,viewer].join("\n");
+  assert.ok(composed.indexOf("/* ===== PROFESSIONAL ORDER FLOW ===== */") <
+    composed.indexOf("/* Final design tokens are declared once"));
   assert.ok(composed.indexOf("/* Final design tokens are declared once") <
     composed.indexOf("/* ===== WORK PHOTO WORKSPACE ===== */"));
   assert.ok(composed.indexOf("/* ===== WORK PHOTO WORKSPACE ===== */") <
