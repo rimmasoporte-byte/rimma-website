@@ -21,6 +21,7 @@ const base = {
     {id:id(6),categoryId:id(4),name:"ServicioConUnNombreMuyLargoSinEspacios".repeat(4),description:"Prueba de palabras largas y precios grandes",pricingMode:"from",priceMinor:9000000000000,currencyCode:"EUR",status:"active",version:2}]},
     {id:id(7),name:"CategoríaDePruebaSinEspacios".repeat(4),status:"active",version:1,services:[]}],
   payments:[{id:id(8),amountMinor:1500,currencyCode:"EUR",method:"cash",status:"pending",version:3}],
+  cashConfig:{registerName:"Caja principal",blindCountEnabled:true,defaultOpeningFloatMinor:5000,version:2},
   cash:{session:{id:cashId(10),cashRegisterId:cashId(11),registerName:"Caja principal",businessDate:"2026-10-08",status:"open",openingFloatMinor:5000,openedByUserId:id(1),openedByName:"María",openedAt:"2026-10-08T07:47:00.000Z",closedAt:null,expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,version:1},payments:[{id:cashId(12),orderId:id(2),orderNumber:21,clientName:"María · Cliente de prueba",amountMinor:2500,currencyCode:"EUR",method:"cash",confirmedAt:"2026-10-08T08:32:00.000Z"},{id:cashId(13),orderId:id(2),orderNumber:22,clientName:"Cliente sintético",amountMinor:4000,currencyCode:"EUR",method:"card",confirmedAt:"2026-10-08T09:04:00.000Z"}],movements:[{id:cashId(14),movementType:"cash_in",amountMinor:2000,reasonCode:"change_added",note:"Cambio adicional",actorName:"María",createdAt:"2026-10-08T08:15:00.000Z"}]},
   cashHistory:[{id:cashId(15),registerName:"Caja principal",businessDate:"2026-10-07",status:"closed",openingFloatMinor:5000,openedAt:"2026-10-07T07:40:00.000Z",closedAt:"2026-10-07T17:03:00.000Z",expectedCashMinor:18650,countedCashMinor:18650,differenceMinor:0,confirmedPaidMinor:42650,byMethod:{cash:14650,card:25000,bank_transfer:3000},cashInMinor:0,cashOutMinor:1000}],
   measurements:[{id:id(9),garmentType:"dress",garmentLabel:"Vestido de prueba",unit:"cm",measurements:[{label:"Cintura",value:80}],status:"active",version:2}],
@@ -86,6 +87,15 @@ http.createServer(async(req,res)=>{
       calls.push({method:req.method,path:p,body});
       if(mode === "error")return send(res,409,{error:"Conflicto de prueba: actualiza el registro e inténtalo de nuevo."});
       if(mode === "slow")await new Promise(resolve=>setTimeout(resolve,1500));
+      if(p === "/cash/config" && req.method === "PATCH"){
+        if(Number(body.version)!==Number(data.cashConfig.version))return send(res,409,{error:"La configuración de caja ha cambiado."});
+        data.cashConfig={...data.cashConfig,
+          blindCountEnabled:body.blindCountEnabled,
+          defaultOpeningFloatMinor:Number(body.defaultOpeningFloatMinor),
+          version:data.cashConfig.version+1
+        };
+        return send(res,200,{success:true,config:data.cashConfig});
+      }
       if(p === "/cash/open" && req.method === "POST"){
         data.cash.session={id:cashId(20),cashRegisterId:cashId(11),registerName:"Caja principal",businessDate:"2026-10-08",status:"open",openingFloatMinor:Number(body.openingFloatMinor||0),openedByUserId:id(1),openedByName:"María",openedAt:new Date().toISOString(),closedAt:null,expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,version:1};
         data.cash.payments=[];data.cash.movements=[];return send(res,201,{success:true,...cashFixture()});
@@ -111,6 +121,7 @@ http.createServer(async(req,res)=>{
       }
       return send(res,200,{success:true});
     }
+    if(p === "/cash/config")return send(res,200,{config:data.cashConfig});
     if(p === "/cash/current")return send(res,200,cashFixture());
     if(p === "/cash/sessions")return send(res,200,{sessions:data.cashHistory,limit:20,offset:0});
     if(p.startsWith("/cash/sessions/")){

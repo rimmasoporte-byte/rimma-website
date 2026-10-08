@@ -286,6 +286,7 @@ export const server=http.createServer(async(req,res)=>{
     if(method==='GET'&&pathname==='/app/portal-account-security.mjs')return staticFile(res,'portal-account-security.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-notification-settings.mjs')return staticFile(res,'portal-notification-settings.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-cash-register.mjs')return staticFile(res,'portal-cash-register.mjs','text/javascript; charset=utf-8');
+    if(method==='GET'&&pathname==='/app/portal-cash-register-config.mjs')return staticFile(res,'portal-cash-register-config.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-settings-navigation.mjs')return staticFile(res,'portal-settings-navigation.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-passport-sharing.mjs')return staticFile(res,'portal-passport-sharing.mjs','text/javascript; charset=utf-8');
     if(method==='GET'&&pathname==='/app/portal-business-profile.mjs')return staticFile(res,'portal-business-profile.mjs','text/javascript; charset=utf-8');

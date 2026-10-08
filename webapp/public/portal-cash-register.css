@@ -9,7 +9,9 @@
 .cash-status:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .cash-status.is-open{color:#55765d;background:#edf4eb;border:1px solid #d9e8d7}
 .cash-status.is-closed{color:#8a6a43;background:#faf2e5;border:1px solid #e9dcc6}
-.cash-history-button{margin-left:auto}
+.cash-status-actions{display:flex;align-items:center;gap:9px;margin-left:auto}
+.cash-history-button{margin-left:0}
+.cash-empty-toolbar{display:flex;justify-content:flex-end;margin-bottom:14px}
 .cash-kpi-grid{display:grid;grid-template-columns:1.3fr repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
 .cash-kpi{min-width:0;padding:22px 22px 20px;border:1px solid #e2e5dd;background:#fffefa;border-radius:4px;box-shadow:0 10px 28px rgba(31,48,38,.04)}
 .cash-kpi-total{background:linear-gradient(135deg,#23392e,#182b22);border-color:#23392e}
@@ -78,6 +80,31 @@
 .cash-close-note{margin-top:18px;padding:15px;border:1px solid #e4e2d9;background:#faf9f4}
 .cash-close-note span{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#8a795e}
 .cash-close-note p{margin:8px 0 0;color:#5d675f;font-size:10px;line-height:1.6}
+.cash-config-panel{padding:32px}
+.cash-config-head{display:flex;justify-content:space-between;align-items:flex-start;gap:22px}
+.cash-config-head h2{margin:0;font:500 30px/1.12 var(--serif);color:#2d3e33}
+.cash-config-head p{max-width:650px;margin:8px 0 0;color:#7d857e;font-size:11px;line-height:1.7}
+.cash-config-form{margin-top:24px}
+.cash-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cash-config-card{display:flex;justify-content:space-between;align-items:flex-start;gap:22px;min-width:0;padding:22px;border:1px solid #e2e5dd;background:#fffefa;border-radius:4px}
+.cash-config-card>div{min-width:0}
+.cash-config-kicker{display:block;margin-bottom:8px;color:#9a8059;font-size:8px;font-weight:800;letter-spacing:1.7px}
+.cash-config-card h3{margin:0;color:#304137;font:600 14px/1.35 var(--font)}
+.cash-config-card p{margin:7px 0 0;color:#7e867f;font-size:10px;line-height:1.65}
+.cash-config-readonly{background:#faf9f4}
+.cash-config-badge{flex:0 0 auto;padding:6px 9px;border:1px solid #ddd8c9;border-radius:999px;background:#f5f2e9;color:#796c58;font-size:8px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.cash-switch{display:flex;align-items:center;gap:9px;cursor:pointer;flex:0 0 auto}
+.cash-switch input{position:absolute;opacity:0;pointer-events:none}
+.cash-switch span{position:relative;width:38px;height:22px;border-radius:999px;background:#d8ddd6;transition:background .16s ease}
+.cash-switch span:after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(24,40,31,.18);transition:transform .16s ease}
+.cash-switch input:checked+span{background:#55765d}
+.cash-switch input:checked+span:after{transform:translateX(16px)}
+.cash-switch input:focus-visible+span{outline:2px solid #9f8661;outline-offset:3px}
+.cash-switch strong{font-size:9px;color:#59665c;min-width:68px}
+.cash-config-money{display:grid;gap:8px;flex:0 0 min(190px,100%);color:#465149;font-size:10px;font-weight:700}
+.cash-config-error{margin:16px 0 0;padding:11px 13px;border:1px solid #d9a18d;background:#fff0e9;color:#853f2e;font-size:10px;line-height:1.5}
+.cash-config-actions{display:flex;justify-content:flex-end;align-items:center;gap:15px;margin-top:18px}
+.cash-config-actions>span{color:#979c96;font-size:9px}
 .cash-dialog{width:min(620px,calc(100vw - 32px));border:1px solid #d7d4c7;background:#fdfcf9;border-radius:5px;padding:0;box-shadow:0 32px 95px rgba(27,40,35,.30)}
 .cash-dialog::backdrop{background:rgba(16,26,20,.68);backdrop-filter:blur(4px)}
 .cash-dialog-card{padding:28px}
@@ -100,7 +127,9 @@
  .cash-status-strip{align-items:flex-start;flex-direction:column}
  .cash-status-strip>div{grid-template-columns:1fr}
  .cash-status-strip>div small{grid-column:auto}
- .cash-history-button{margin-left:0;width:100%}
+ .cash-status-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;margin-left:0}
+ .cash-status-actions button{width:100%}
+ .cash-empty-toolbar button{width:100%}
  .cash-kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
  .cash-kpi{padding:18px 16px}
  .cash-kpi strong{font-size:27px}
@@ -116,6 +145,13 @@
  .cash-dialog-card{padding:20px}
  .cash-dialog-grid{grid-template-columns:1fr}
  .cash-dialog-wide{grid-column:auto}
+ .cash-config-panel{padding:22px}
+ .cash-config-head{display:grid}
+ .cash-config-grid{grid-template-columns:1fr}
+ .cash-config-card{display:grid}
+ .cash-config-money{width:100%}
+ .cash-config-actions{align-items:stretch;flex-direction:column}
+ .cash-config-actions button{width:100%}
 }
 @media(max-width:390px){
  .cash-kpi-grid{grid-template-columns:1fr}

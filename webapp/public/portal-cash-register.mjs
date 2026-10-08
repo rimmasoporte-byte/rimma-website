@@ -1,4 +1,5 @@
 import { money, uuid } from "./portal-core.mjs";
+import { createCashRegisterConfig } from "./portal-cash-register-config.mjs";
 
 const L=(typeof window!=="undefined"&&window.RimmaLocale)||{locale:"es-ES",currency:"EUR"};
 const reasonLabels=Object.freeze({
@@ -79,6 +80,9 @@ export function createCashRegister({api,success,globalError,getMe}){
  const error=dialog.querySelector(".cash-dialog-error");
  const submit=dialog.querySelector("#cash-dialog-submit");
  let mode="";
+ const configUi=createCashRegisterConfig({
+  api,success,globalError,getMe,root,onBack:()=>render()
+ });
 
  function owner(){return getMe?.()?.workspace?.role==="owner";}
  function setBusy(value){
@@ -105,15 +109,16 @@ export function createCashRegister({api,success,globalError,getMe}){
   mode="";showError("");
  }
  function emptyState(){
-  const last=history[0];
-  return '<div class="cash-empty-layout">'+
+  const last=history[0],config=configUi.current();
+  return (owner()?'<div class="cash-empty-toolbar"><button type="button" class="secondary" data-cash-action="config">Configuración de caja</button></div>':"")+
+   '<div class="cash-empty-layout">'+
    '<section class="paper-panel cash-opening-card"><span class="cash-status is-closed">Caja cerrada</span>'+
    '<h2>Abre la caja para empezar el turno</h2>'+
    '<p>Indica únicamente el efectivo físico que ya está en el cajón. El fondo inicial no es una venta.</p>'+
    '<form id="cash-open-form" class="cash-inline-form">'+
    '<label for="cash-opening-float">Fondo inicial</label>'+
    '<div class="cash-money-input"><span>€</span><input id="cash-opening-float" name="openingFloat" type="number" min="0" step="0.01" inputmode="decimal" value="'+
-   esc(inputMoney(0))+'" required></div>'+
+   esc(inputMoney(config.defaultOpeningFloatMinor))+'" required></div>'+
    '<button type="submit" class="primary">Abrir caja</button></form></section>'+
    (last?'<aside class="paper-panel cash-last-close"><span class="cash-mini-label">ÚLTIMO CIERRE</span>'+
     '<strong>'+esc(last.businessDate||"")+'</strong>'+
@@ -155,7 +160,9 @@ export function createCashRegister({api,success,globalError,getMe}){
    :'<div class="cash-expected"><span>Efectivo esperado</span><strong>'+esc(money(summary.expectedCashMinor,currency))+'</strong></div>';
   return '<div class="cash-status-strip"><div><span class="cash-status is-open">Caja abierta</span>'+
    '<strong>'+esc(s.registerName||"Caja principal")+'</strong><small>Desde '+esc(fmtTime(s.openedAt))+' · '+esc(s.businessDate||"")+'</small></div>'+
-   '<button type="button" class="secondary cash-history-button" data-cash-action="history" '+(owner()?"":"hidden")+'>Ver historial</button></div>'+
+   '<div class="cash-status-actions" '+(owner()?"":"hidden")+'>'+
+   '<button type="button" class="secondary cash-history-button" data-cash-action="history">Ver historial</button>'+
+   '<button type="button" class="secondary" data-cash-action="config">Configuración</button></div></div>'+
    '<div class="cash-kpi-grid">'+
    '<article class="cash-kpi cash-kpi-total"><span>Cobros del turno</span><strong>'+esc(money(summary.confirmedPaidMinor,currency))+'</strong><small>Todos los métodos confirmados</small></article>'+
    '<article class="cash-kpi"><span>Efectivo</span><strong>'+esc(money(summary.byMethod?.cash||0,currency))+'</strong><small>Cobros en efectivo</small></article>'+
@@ -236,7 +243,10 @@ export function createCashRegister({api,success,globalError,getMe}){
  }
  async function load(){
   root.innerHTML='<div class="paper-panel"><p class="cash-empty">Cargando caja…</p></div>';
-  try{await fetchState();}catch(e){globalError(e.message||"No se pudo cargar la caja.");}
+  try{
+   await configUi.load({renderView:false});
+   await fetchState();
+  }catch(e){globalError(e.message||"No se pudo cargar la caja.");}
  }
 
  function openMovementDialog(){
@@ -307,6 +317,7 @@ export function createCashRegister({api,success,globalError,getMe}){
   if(action==="close")openCloseDialog();
   if(action==="history")render("history");
   if(action==="current")render();
+  if(action==="config"&&owner())void configUi.load({renderView:true});
  });
  body.addEventListener("change",event=>{
   if(event.target?.name!=="movementType"||mode!=="movement")return;
