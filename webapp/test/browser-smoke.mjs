@@ -282,6 +282,75 @@ async function main(){
    await waitFor(`document.querySelector('.cash-config-actions')?.textContent.includes('Versión 3')`,'guarded cash config save',5000);
    await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Duplicate cash config submit produced more than one mutation.');
 
+   // Caja permissions: per-employee server policy, responsive layout,
+   // optimistic versioning, disabled membership and duplicate-submit guard.
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await click('button[data-view="caja"]');
+    await waitFor(`document.querySelector('[data-cash-action="config"]')`,'cash permission config entry');
+    await click('[data-cash-action="config"]');
+    await waitFor(`document.querySelector('[data-cash-config-permissions]')`,'cash permission manager action');
+    await click('[data-cash-config-permissions]');
+    await waitFor(`document.querySelectorAll('[data-cash-permission-user]').length===2`,'cash permission member list');
+    await assertBrowser(`document.documentElement.scrollWidth<=innerWidth+2`,`Cash permissions introduce horizontal overflow at ${width}px.`);
+    await assertBrowser(`document.querySelector('.cash-permission-owner-note')?.textContent.includes('Propietario')`,'Owner full-access note is missing.');
+    await assertBrowser(`document.querySelector('[data-cash-permission-user] .cash-config-badge')?.textContent.includes('Empleado')`,'Active employee badge is missing.');
+    await assertBrowser(`[...document.querySelectorAll('[data-cash-permission-user]')].some(form=>form.textContent.includes('Desactivado')&&[...form.querySelectorAll('input')].every(input=>input.disabled))`,'Disabled employee controls must be non-interactive.');
+    await click('[data-cash-permission-back]');
+    await waitFor(`document.querySelector('#cash-config-form')`,'return from cash permissions');
+    await click('[data-cash-config-back]');
+    await waitFor(`document.querySelector('.cash-kpi-grid')`,'return from permission config');
+   }
+
+   await setViewport(1280,900);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'permission save config action');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('[data-cash-config-permissions]')`,'permission save entry');
+   await click('[data-cash-config-permissions]');
+   await waitFor(`document.querySelector('[data-cash-permission-user]')`,'permission save form');
+   await evaluate(`(()=>{const form=document.querySelector('[data-cash-permission-user]');form.elements.namedItem('canViewHistory').checked=true;form.elements.namedItem('canViewReports').checked=true;return true})()`);
+   await click('[data-cash-permission-user] button[type="submit"]');
+   await waitFor(`document.querySelector('[data-cash-permission-user] footer')?.textContent.includes('Versión 1')`,'saved cash employee permissions');
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Cash permission save must create exactly one mutation.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=error&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'permission error config action');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('[data-cash-config-permissions]')`,'permission error entry');
+   await click('[data-cash-config-permissions]');
+   await waitFor(`document.querySelector('[data-cash-permission-user]')`,'permission error form');
+   await click('[data-cash-permission-user] button[type="submit"]');
+   await waitFor(`!document.querySelector('[data-cash-permission-user] .cash-permission-error')?.hidden`,'cash permission save error');
+   await assertBrowser(`document.querySelector('[data-cash-permission-user] button[type="submit"]')?.disabled===false`,'Cash permission form must recover after API error.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=slow&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'permission slow config action');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('[data-cash-config-permissions]')`,'permission slow entry');
+   await click('[data-cash-config-permissions]');
+   await waitFor(`document.querySelector('[data-cash-permission-user]')`,'permission slow form');
+   await evaluate(`(()=>{const button=document.querySelector('[data-cash-permission-user] button[type="submit"]');button.click();button.click();return true})()`);
+   await assertBrowser(`document.querySelector('[data-cash-permission-user]')?.getAttribute('aria-busy')==='true'`,'Cash permission form is not guarded while saving.');
+   await waitFor(`document.querySelector('[data-cash-permission-user] footer')?.textContent.includes('Versión 1')`,'guarded cash permission save',5000);
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Duplicate cash permission submit produced more than one mutation.');
+
+   // Restricted employee: server-backed permissions hide management/history/report
+   // while preserving explicitly allowed operational actions and blind count.
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1&actor=employee'}).then(response=>response.text())`);
+   await setViewport(390,844);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('.cash-kpi-grid')`,'restricted employee cash view');
+   await assertBrowser(`!document.querySelector('[data-cash-action="config"]')&&!document.querySelector('[data-cash-action="history"]')&&!document.querySelector('[data-cash-action="reports"]')`,'Restricted employee received a management/history/report action.');
+   await assertBrowser(`!!document.querySelector('[data-cash-action="movement"]')&&!!document.querySelector('[data-cash-action="close"]')`,'Employee default operational Caja permissions were lost.');
+   await assertBrowser(`document.querySelector('.cash-blind-note')?.textContent.includes('oculto')`,'Blind count must hide expected cash from an employee.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1&actor=owner'}).then(response=>response.text())`);
+   await setViewport(1280,900);
+
    // Caja daily report: server read-model, responsive totals and recoverable read errors.
    await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
    for(const width of [390,1280]){

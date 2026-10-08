@@ -53,10 +53,11 @@ export function normalizeDailyCashReport(value){
 }
 
 export function createCashRegisterReports({
- api,globalError,getMe,root,onBack,onOpenSession
+ api,globalError,root,onBack,onOpenSession,
+ canViewReports=()=>false,
+ canViewHistory=()=>false
 }){
  let busy=false,loadSeq=0,selectedDate="";
- function owner(){return getMe?.()?.workspace?.role==="owner";}
  function setBusy(value){
   busy=value;
   root.setAttribute("aria-busy",String(value));
@@ -66,17 +67,22 @@ export function createCashRegisterReports({
   if(!report.sessions.length){
    return '<p class="cash-empty">No hay turnos de caja para esta fecha.</p>';
   }
+  const allowDetail=canViewHistory()===true;
   return '<div class="cash-report-sessions">'+report.sessions.map(session=>{
    const difference=session.differenceMinor;
    const differenceClass=Number(difference||0)===0?"is-ok":"is-warning";
-   return '<button type="button" class="cash-report-session" data-cash-report-session="'+esc(session.id)+'">'+
+   const open=allowDetail
+    ?'<button type="button" class="cash-report-session" data-cash-report-session="'+esc(session.id)+'">'
+    :'<article class="cash-report-session is-readonly">';
+   const close=allowDetail?'</button>':'</article>';
+   return open+
     '<span><strong>'+esc(session.registerName||"Caja principal")+'</strong>'+
     '<small>'+esc(fmtTime(session.openedAt))+
     (session.closedAt?' → '+esc(fmtTime(session.closedAt)):' · abierta')+'</small></span>'+
     '<span><small>Cobros</small><strong>'+esc(money(session.confirmedPaidMinor,report.currencyCode))+'</strong></span>'+
     '<span><small>Diferencia</small><strong class="'+differenceClass+'">'+
     (difference==null?"—":esc(signedMoney(difference,report.currencyCode)))+'</strong></span>'+
-    '<span aria-hidden="true">→</span></button>';
+    (allowDetail?'<span aria-hidden="true">→</span>':'')+close;
   }).join("")+'</div>';
  }
  function markup(report){
@@ -104,8 +110,8 @@ export function createCashRegisterReports({
    sessionRows(report)+'</section>';
  }
  async function load(date=selectedDate){
-  if(!owner()){
-   root.innerHTML='<section class="paper-panel"><p class="cash-empty">Solo la persona propietaria puede consultar los informes de caja.</p></section>';
+  if(!canViewReports()){
+   root.innerHTML='<section class="paper-panel"><p class="cash-empty">No tienes permiso para consultar los informes de caja.</p></section>';
    return;
   }
   selectedDate=String(date||"").trim();

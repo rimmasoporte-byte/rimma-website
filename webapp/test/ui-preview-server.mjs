@@ -24,10 +24,16 @@ const base = {
   cashConfig:{registerName:"Caja principal",blindCountEnabled:true,defaultOpeningFloatMinor:5000,version:2},
   cash:{session:{id:cashId(10),cashRegisterId:cashId(11),registerName:"Caja principal",businessDate:"2026-10-08",status:"open",openingFloatMinor:5000,openedByUserId:id(1),openedByName:"María",openedAt:"2026-10-08T07:47:00.000Z",closedAt:null,expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,version:1},payments:[{id:cashId(12),orderId:id(2),orderNumber:21,clientName:"María · Cliente de prueba",amountMinor:2500,currencyCode:"EUR",method:"cash",confirmedAt:"2026-10-08T08:32:00.000Z"},{id:cashId(13),orderId:id(2),orderNumber:22,clientName:"Cliente sintético",amountMinor:4000,currencyCode:"EUR",method:"card",confirmedAt:"2026-10-08T09:04:00.000Z"}],movements:[{id:cashId(14),movementType:"cash_in",amountMinor:2000,reasonCode:"change_added",note:"Cambio adicional",actorName:"María",createdAt:"2026-10-08T08:15:00.000Z"}]},
   cashHistory:[{id:cashId(15),registerName:"Caja principal",businessDate:"2026-10-07",status:"closed",openingFloatMinor:5000,openedAt:"2026-10-07T07:40:00.000Z",closedAt:"2026-10-07T17:03:00.000Z",expectedCashMinor:18650,countedCashMinor:18650,differenceMinor:0,confirmedPaidMinor:42650,byMethod:{cash:14650,card:25000,bank_transfer:3000},cashInMinor:0,cashOutMinor:1000}],
+  cashMembers:[
+    {userId:id(8),displayName:"Ana · Empleada",email:"ana@example.invalid",role:"employee",status:"active",
+      permissions:{canOpenClose:true,canRecordMovements:true,canViewHistory:false,canViewReports:false},version:0,updatedAt:null},
+    {userId:id(7),displayName:"Luis · Empleado",email:"luis@example.invalid",role:"employee",status:"disabled",
+      permissions:{canOpenClose:false,canRecordMovements:false,canViewHistory:false,canViewReports:false},version:2,updatedAt:"2026-10-07T17:00:00.000Z"}
+  ],
   measurements:[{id:id(9),garmentType:"dress",garmentLabel:"Vestido de prueba",unit:"cm",measurements:[{label:"Cintura",value:80}],status:"active",version:2}],
   photos:[{id:id(6),fileName:"FotografiaConNombreLargo".repeat(6)+".webp",caption:longName,photoType:"intake",status:"active",version:2}]
 };
-let data = structuredClone(base), calls = [], mode = "normal";
+let data = structuredClone(base), calls = [], mode = "normal", actor = "owner";
 const esc = text => String(text).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const cashFixture=()=>{
   if(!data.cash.session)return {session:null,summary:null,payments:[],movements:[]};
@@ -42,11 +48,14 @@ const cashFixture=()=>{
     if(movement.movementType==="cash_out")cashOutMinor+=Number(movement.amountMinor||0);
   }
   const expectedCashMinor=Number(data.cash.session.openingFloatMinor||0)+byMethod.cash+cashInMinor-cashOutMinor;
+  const expectedCashHidden=actor!=="owner"&&data.cashConfig.blindCountEnabled===true;
   return {
     session:data.cash.session,
     summary:{
       confirmedPaidMinor:Object.values(byMethod).reduce((sum,value)=>sum+value,0),
-      byMethod,cashInMinor,cashOutMinor,expectedCashMinor,expectedCashHidden:false
+      byMethod,cashInMinor,cashOutMinor,
+      expectedCashMinor:expectedCashHidden?null:expectedCashMinor,
+      expectedCashHidden
     },
     payments:data.cash.payments,
     movements:data.cash.movements
@@ -108,13 +117,23 @@ http.createServer(async(req,res)=>{
       let input="";for await(const part of req)input+=part;
       const options = new URLSearchParams(input);
       mode = ["normal","error","slow"].includes(options.get("mode")) ? options.get("mode") : "normal";
-      if(options.has("reset")){data=structuredClone(base);calls=[];}
+      if(options.has("reset")){data=structuredClone(base);calls=[];actor="owner";}
+      if(["owner","employee"].includes(options.get("actor")))actor=options.get("actor");
       res.writeHead(303,{location:"/__qa","cache-control":"no-store"});
       return res.end();
     }
-    return send(res,200,`<!doctype html><html lang="es"><meta charset="utf-8"><title>RIMMA QA fixtures</title><h1>Solo pruebas locales</h1><p>No hay conexiones a producción, pagos ni datos reales.</p><p>Modo: ${mode}. Mutaciones: ${calls.length}.</p><form method="post"><select name="mode"><option>normal</option><option>error</option><option>slow</option></select><button>Aplicar</button><button name="reset" value="1">Reiniciar datos</button></form><pre>${esc(JSON.stringify(calls,null,2))}</pre></html>`,"text/html; charset=utf-8");
+    return send(res,200,`<!doctype html><html lang="es"><meta charset="utf-8"><title>RIMMA QA fixtures</title><h1>Solo pruebas locales</h1><p>No hay conexiones a producción, pagos ni datos reales.</p><p>Modo: ${mode}. Actor: ${actor}. Mutaciones: ${calls.length}.</p><form method="post"><select name="mode"><option>normal</option><option>error</option><option>slow</option></select><button>Aplicar</button><button name="reset" value="1">Reiniciar datos</button></form><pre>${esc(JSON.stringify(calls,null,2))}</pre></html>`,"text/html; charset=utf-8");
   }
-  if(route === "/api/auth/session")return send(res,200,{authenticated:true,csrf:"fixture-csrf",me:{user:{displayName:"María",email:"qa@example.invalid"},workspace:{id:id(1),name:"Atelier · Pruebas locales",role:"owner"}}});
+  if(route === "/api/auth/session"){
+    const employee=data.cashMembers[0];
+    const isOwner=actor==="owner";
+    return send(res,200,{authenticated:true,csrf:"fixture-csrf",me:{
+      user:isOwner
+        ?{displayName:"María",email:"qa@example.invalid"}
+        :{displayName:employee.displayName,email:employee.email},
+      workspace:{id:id(1),name:"Atelier · Pruebas locales",role:isOwner?"owner":"master"}
+    }});
+  }
   if(route === "/api/billing/web-checkout")return send(res,200,{available:false});
   if(route.startsWith("/api/data/")) {
     const p = route.slice("/api/data".length);
@@ -125,6 +144,24 @@ http.createServer(async(req,res)=>{
       calls.push({method:req.method,path:p,body});
       if(mode === "error")return send(res,409,{error:"Conflicto de prueba: actualiza el registro e inténtalo de nuevo."});
       if(mode === "slow")await new Promise(resolve=>setTimeout(resolve,1500));
+      if(p.startsWith("/cash/permissions/") && req.method === "PATCH"){
+        if(actor!=="owner")return send(res,403,{error:"Sin permiso"});
+        const userId=p.split("/").at(-1);
+        const member=data.cashMembers.find(item=>item.userId===userId);
+        if(!member)return send(res,404,{error:"Empleado no encontrado"});
+        if(Number(body.version)!==Number(member.version)){
+          return send(res,409,{error:"Los permisos de caja han cambiado."});
+        }
+        member.permissions={
+          canOpenClose:body.canOpenClose===true,
+          canRecordMovements:body.canRecordMovements===true,
+          canViewHistory:body.canViewHistory===true,
+          canViewReports:body.canViewReports===true
+        };
+        member.version+=1;
+        member.updatedAt=new Date().toISOString();
+        return send(res,200,{success:true,member});
+      }
       if(p === "/cash/config" && req.method === "PATCH"){
         if(Number(body.version)!==Number(data.cashConfig.version))return send(res,409,{error:"La configuración de caja ha cambiado."});
         data.cashConfig={...data.cashConfig,
@@ -160,14 +197,36 @@ http.createServer(async(req,res)=>{
       return send(res,200,{success:true});
     }
     if(p === "/cash/config")return send(res,200,{config:data.cashConfig});
+    if(p === "/cash/permissions/me"){
+      if(actor==="owner")return send(res,200,{role:"owner",permissions:{
+        canOpenClose:true,canRecordMovements:true,canViewHistory:true,
+        canViewReports:true,canManageConfig:true
+      }});
+      return send(res,200,{role:"employee",permissions:data.cashMembers[0].permissions});
+    }
+    if(p === "/cash/permissions"){
+      if(actor!=="owner")return send(res,403,{error:"Sin permiso"});
+      return send(res,200,{members:data.cashMembers});
+    }
     if(p === "/cash/reports/daily"){
+      if(actor!=="owner"&&data.cashMembers[0].permissions.canViewReports!==true){
+        return send(res,403,{error:"Sin permiso para informes"});
+      }
       if(mode === "error")return send(res,503,{error:"Informe de caja no disponible en esta prueba."});
       if(mode === "slow")await new Promise(resolve=>setTimeout(resolve,800));
       return send(res,200,cashDailyReport(url.searchParams.get("date")));
     }
     if(p === "/cash/current")return send(res,200,cashFixture());
-    if(p === "/cash/sessions")return send(res,200,{sessions:data.cashHistory,limit:20,offset:0});
+    if(p === "/cash/sessions"){
+      if(actor!=="owner"&&data.cashMembers[0].permissions.canViewHistory!==true){
+        return send(res,403,{error:"Sin permiso para historial"});
+      }
+      return send(res,200,{sessions:data.cashHistory,limit:20,offset:0});
+    }
     if(p.startsWith("/cash/sessions/")){
+      if(actor!=="owner"&&data.cashMembers[0].permissions.canViewHistory!==true){
+        return send(res,403,{error:"Sin permiso para historial"});
+      }
       const item=data.cashHistory.find(row=>row.id===p.split("/").at(-1));
       if(!item)return send(res,404,{error:"Caja no encontrada"});
       return send(res,200,{session:item,summary:{confirmedPaidMinor:item.confirmedPaidMinor,byMethod:item.byMethod,cashInMinor:item.cashInMinor,cashOutMinor:item.cashOutMinor,expectedCashMinor:item.expectedCashMinor,expectedCashHidden:false},payments:[],movements:[]});

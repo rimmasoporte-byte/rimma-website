@@ -33,7 +33,7 @@ export function normalizeCashConfig(value){
 }
 
 export function createCashRegisterConfig({
- api,success,globalError,getMe,root,onBack
+ api,success,globalError,getMe,root,onBack,onManagePermissions
 }){
  let config={...DEFAULT_CONFIG},busy=false,loadSeq=0;
  function owner(){return getMe?.()?.workspace?.role==="owner";}
@@ -62,9 +62,9 @@ export function createCashRegisterConfig({
    '<p>Importe de efectivo que se propone al abrir la caja. Siempre puede modificarse antes de confirmar la apertura.</p></div>'+
    '<label class="cash-config-money">Fondo habitual<div class="cash-money-input"><span>€</span>'+
    '<input name="defaultOpeningFloat" type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(inputMoney(config.defaultOpeningFloatMinor))+'" required></div></label></article>'+
-   '<article class="cash-config-card cash-config-readonly"><div><span class="cash-config-kicker">PERMISOS</span><h3>Control de caja</h3>'+
-   '<p>La configuración y el historial completo están reservados a la persona propietaria. Los permisos operativos detallados se gestionarán como una política independiente.</p></div>'+
-   '<span class="cash-config-badge">Propietario</span></article>'+
+   '<article class="cash-config-card"><div><span class="cash-config-kicker">PERMISOS</span><h3>Acceso de empleados</h3>'+
+   '<p>Define por empleado quién puede abrir o cerrar caja, registrar movimientos y consultar historial o informes.</p></div>'+
+   '<button type="button" class="secondary cash-config-manage" data-cash-config-permissions>Gestionar permisos</button></article>'+
    '<article class="cash-config-card cash-config-readonly"><div><span class="cash-config-kicker">TERMINAL DE PAGO</span><h3>Sin proveedor conectado</h3>'+
    '<p>Los cobros con tarjeta se registran por separado del efectivo. RIMMA no controla un datáfono hasta que exista una integración compatible con el proveedor del comercio.</p></div>'+
    '<span class="cash-config-badge">No conectado</span></article>'+
@@ -86,9 +86,14 @@ export function createCashRegisterConfig({
   }
  }
  root.addEventListener("click",event=>{
-  if(!event.target.closest("[data-cash-config-back]"))return;
   if(busy)return;
-  onBack?.();
+  if(event.target.closest("[data-cash-config-back]")){
+   onBack?.();
+   return;
+  }
+  if(event.target.closest("[data-cash-config-permissions]")&&owner()){
+   onManagePermissions?.();
+  }
  });
  root.addEventListener("change",event=>{
   if(event.target?.name!=="blindCountEnabled")return;

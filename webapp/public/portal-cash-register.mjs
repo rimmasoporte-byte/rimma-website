@@ -1,6 +1,11 @@
 import { money, uuid } from "./portal-core.mjs";
 import { createCashRegisterConfig } from "./portal-cash-register-config.mjs";
 import { createCashRegisterReports } from "./portal-cash-register-reports.mjs";
+import { createCashRegisterPermissions } from "./portal-cash-register-permissions.mjs";
+import {
+ cashActionRetry,
+ clearCashActionRetry
+} from "./portal-cash-idempotency.mjs";
 
 const L=(typeof window!=="undefined"&&window.RimmaLocale)||{locale:"es-ES",currency:"EUR"};
 const reasonLabels=Object.freeze({
@@ -81,15 +86,35 @@ export function createCashRegister({api,success,globalError,getMe}){
  const error=dialog.querySelector(".cash-dialog-error");
  const submit=dialog.querySelector("#cash-dialog-submit");
  let mode="";
- const configUi=createCashRegisterConfig({
-  api,success,globalError,getMe,root,onBack:()=>render()
+ let configUi;
+ const permissionsUi=createCashRegisterPermissions({
+  api,success,globalError,getMe,root,
+  onBack:()=>void configUi?.load({renderView:true})
+ });
+ configUi=createCashRegisterConfig({
+  api,success,globalError,getMe,root,onBack:()=>render(),
+  onManagePermissions:()=>void permissionsUi.loadManager()
  });
  const reportsUi=createCashRegisterReports({
-  api,globalError,getMe,root,onBack:()=>render(),
-  onOpenSession:sessionId=>void openHistorySession(sessionId,"reports")
+  api,globalError,root,onBack:()=>render(),
+  onOpenSession:sessionId=>void openHistorySession(sessionId,"reports"),
+  canViewReports:()=>permissionsUi.can("canViewReports"),
+  canViewHistory:()=>permissionsUi.can("canViewHistory")
  });
 
  function owner(){return getMe?.()?.workspace?.role==="owner";}
+ function can(capability){return permissionsUi.can(capability);}
+ async function cashMutation(action,route,payload){
+  const serialized=JSON.stringify(payload);
+  const retry=cashActionRetry(action,serialized);
+  const result=await api(route,{
+   method:"POST",
+   headers:{"idempotency-key":retry.key},
+   body:serialized
+  });
+  clearCashActionRetry(retry);
+  return result;
+ }
  function setBusy(value){
   busy=value;
   root.setAttribute("aria-busy",String(value));
@@ -115,16 +140,30 @@ export function createCashRegister({api,success,globalError,getMe}){
  }
  function emptyState(){
   const last=history[0],config=configUi.current();
-  return (owner()?'<div class="cash-empty-toolbar"><button type="button" class="secondary" data-cash-action="reports">Informe diario</button><button type="button" class="secondary" data-cash-action="config">Configuración de caja</button></div>':"")+
+  const toolbar=[
+   can("canViewHistory")
+    ?'<button type="button" class="secondary" data-cash-action="history">Ver historial</button>'
+    :"",
+   can("canViewReports")
+    ?'<button type="button" class="secondary" data-cash-action="reports">Informe diario</button>'
+    :"",
+   owner()
+    ?'<button type="button" class="secondary" data-cash-action="config">Configuración de caja</button>'
+    :""
+  ].join("");
+  const opening=can("canOpenClose")
+   ?'<form id="cash-open-form" class="cash-inline-form">'+
+     '<label for="cash-opening-float">Fondo inicial</label>'+
+     '<div class="cash-money-input"><span>€</span><input id="cash-opening-float" name="openingFloat" type="number" min="0" step="0.01" inputmode="decimal" value="'+
+     esc(inputMoney(config.defaultOpeningFloatMinor))+'" required></div>'+
+     '<button type="submit" class="primary">Abrir caja</button></form>'
+   :'<p class="cash-permission-note">No tienes permiso para abrir o cerrar la caja. Puedes seguir consultando las funciones que te haya asignado el propietario.</p>';
+  return (toolbar?'<div class="cash-empty-toolbar">'+toolbar+'</div>':"")+
    '<div class="cash-empty-layout">'+
    '<section class="paper-panel cash-opening-card"><span class="cash-status is-closed">Caja cerrada</span>'+
    '<h2>Abre la caja para empezar el turno</h2>'+
    '<p>Indica únicamente el efectivo físico que ya está en el cajón. El fondo inicial no es una venta.</p>'+
-   '<form id="cash-open-form" class="cash-inline-form">'+
-   '<label for="cash-opening-float">Fondo inicial</label>'+
-   '<div class="cash-money-input"><span>€</span><input id="cash-opening-float" name="openingFloat" type="number" min="0" step="0.01" inputmode="decimal" value="'+
-   esc(inputMoney(config.defaultOpeningFloatMinor))+'" required></div>'+
-   '<button type="submit" class="primary">Abrir caja</button></form></section>'+
+   opening+'</section>'+
    (last?'<aside class="paper-panel cash-last-close"><span class="cash-mini-label">ÚLTIMO CIERRE</span>'+
     '<strong>'+esc(last.businessDate||"")+'</strong>'+
     '<dl><div><dt>Efectivo contado</dt><dd>'+esc(money(last.countedCashMinor,last.currencyCode||L.currency))+'</dd></div>'+
@@ -163,12 +202,28 @@ export function createCashRegister({api,success,globalError,getMe}){
   const differenceNote=expectedHidden
    ?'<p class="cash-blind-note">El efectivo esperado permanece oculto hasta que completes el arqueo.</p>'
    :'<div class="cash-expected"><span>Efectivo esperado</span><strong>'+esc(money(summary.expectedCashMinor,currency))+'</strong></div>';
+  const statusActions=[
+   can("canViewHistory")
+    ?'<button type="button" class="secondary cash-history-button" data-cash-action="history">Ver historial</button>'
+    :"",
+   can("canViewReports")
+    ?'<button type="button" class="secondary" data-cash-action="reports">Informe diario</button>'
+    :"",
+   owner()
+    ?'<button type="button" class="secondary" data-cash-action="config">Configuración</button>'
+    :""
+  ].join("");
+  const operationalActions=[
+   can("canRecordMovements")
+    ?'<button type="button" class="secondary" data-cash-action="movement">+ Entrada / salida</button>'
+    :"",
+   can("canOpenClose")
+    ?'<button type="button" class="primary" data-cash-action="close">Cerrar caja</button>'
+    :""
+  ].join("");
   return '<div class="cash-status-strip"><div><span class="cash-status is-open">Caja abierta</span>'+
    '<strong>'+esc(s.registerName||"Caja principal")+'</strong><small>Desde '+esc(fmtTime(s.openedAt))+' · '+esc(s.businessDate||"")+'</small></div>'+
-   '<div class="cash-status-actions" '+(owner()?"":"hidden")+'>'+
-   '<button type="button" class="secondary cash-history-button" data-cash-action="history">Ver historial</button>'+
-   '<button type="button" class="secondary" data-cash-action="reports">Informe diario</button>'+
-   '<button type="button" class="secondary" data-cash-action="config">Configuración</button></div></div>'+
+   (statusActions?'<div class="cash-status-actions">'+statusActions+'</div>':"")+'</div>'+
    '<div class="cash-kpi-grid">'+
    '<article class="cash-kpi cash-kpi-total"><span>Cobros del turno</span><strong>'+esc(money(summary.confirmedPaidMinor,currency))+'</strong><small>Todos los métodos confirmados</small></article>'+
    '<article class="cash-kpi"><span>Efectivo</span><strong>'+esc(money(summary.byMethod?.cash||0,currency))+'</strong><small>Cobros en efectivo</small></article>'+
@@ -182,14 +237,21 @@ export function createCashRegister({api,success,globalError,getMe}){
    '<div><dt>Entradas</dt><dd>'+esc(signedMoney(summary.cashInMinor||0,currency))+'</dd></div>'+
    '<div><dt>Salidas</dt><dd>'+esc(signedMoney(-(summary.cashOutMinor||0),currency))+'</dd></div></dl>'+
    differenceNote+
-   '<div class="cash-side-actions"><button type="button" class="secondary" data-cash-action="movement">+ Entrada / salida</button>'+
-   '<button type="button" class="primary" data-cash-action="close">Cerrar caja</button></div></aside></div>';
+   (operationalActions
+    ?'<div class="cash-side-actions">'+operationalActions+'</div>'
+    :'<p class="cash-permission-note">Tu acceso a esta caja es de consulta.</p>')+
+   '</aside></div>';
  }
  function historyMarkup(){
-  if(!owner())return "";
-  if(!history.length)return '<div class="paper-panel"><p class="cash-empty">Todavía no hay cierres anteriores.</p></div>';
+  if(!can("canViewHistory")){
+   return '<div class="paper-panel"><p class="cash-empty">No tienes permiso para consultar el historial de caja.</p>'+
+    '<button type="button" class="text-button" data-cash-action="current">Volver a caja actual</button></div>';
+  }
+  if(!history.length)return '<div class="paper-panel"><p class="cash-empty">Todavía no hay cierres anteriores.</p>'+
+   '<button type="button" class="text-button" data-cash-action="current">Volver a caja actual</button></div>';
   return '<section class="paper-panel cash-history-panel"><div class="section-head"><div><span class="cash-mini-label">HISTORIAL</span><h2>Turnos de caja</h2></div>'+
-   '<div class="cash-history-actions"><button type="button" class="text-button" data-cash-action="reports">Informe diario</button>'+
+   '<div class="cash-history-actions">'+
+   (can("canViewReports")?'<button type="button" class="text-button" data-cash-action="reports">Informe diario</button>':"")+
    '<button type="button" class="text-button" data-cash-action="current">Volver a caja actual</button></div></div>'+
    '<div class="cash-history-list">'+history.map(row=>
     '<button type="button" class="cash-history-row" data-cash-session="'+esc(row.id)+'">'+
@@ -224,7 +286,7 @@ export function createCashRegister({api,success,globalError,getMe}){
    '</aside></div></section>';
  }
  async function openHistorySession(sessionId,returnAction="history"){
-  if(!owner()||!uuid(sessionId))return;
+  if(!can("canViewHistory")||!uuid(sessionId))return;
   root.innerHTML='<div class="paper-panel"><p class="cash-empty">Cargando cierre…</p></div>';
   try{
    const data=await api("/cash/sessions/"+encodeURIComponent(sessionId));
@@ -242,7 +304,9 @@ export function createCashRegister({api,success,globalError,getMe}){
  async function fetchState(){
   const seq=++loadSeq;
   const requests=[api("/cash/current")];
-  if(owner())requests.push(api("/cash/sessions?limit=20&offset=0"));
+  if(can("canViewHistory")){
+   requests.push(api("/cash/sessions?limit=20&offset=0"));
+  }
   const [state,historyResult]=await Promise.all(requests);
   if(seq!==loadSeq)return;
   current=state;
@@ -252,7 +316,10 @@ export function createCashRegister({api,success,globalError,getMe}){
  async function load(){
   root.innerHTML='<div class="paper-panel"><p class="cash-empty">Cargando caja…</p></div>';
   try{
-   await configUi.load({renderView:false});
+   await Promise.all([
+    configUi.load({renderView:false}),
+    permissionsUi.loadMe()
+   ]);
    await fetchState();
   }catch(e){globalError(e.message||"No se pudo cargar la caja.");}
  }
@@ -279,20 +346,29 @@ export function createCashRegister({api,success,globalError,getMe}){
  }
  async function submitDialog(){
   if(mode==="movement"){
-   const amountMinor=parseMinor(form.elements.namedItem("amount").value);
-   await api("/cash/movements",{method:"POST",body:JSON.stringify({
+   if(!can("canRecordMovements")){
+    throw new Error("No tienes permiso para registrar entradas o salidas.");
+   }
+   const payload={
     movementType:form.elements.namedItem("movementType").value,
-    amountMinor,
+    amountMinor:parseMinor(form.elements.namedItem("amount").value),
     reasonCode:form.elements.namedItem("reasonCode").value,
     note:form.elements.namedItem("note").value.trim()||null
-   })});
+   };
+   await cashMutation("movement","/cash/movements",payload);
    success("Movimiento de caja registrado.");
   }else if(mode==="close"){
-   const countedCashMinor=parseMinor(form.elements.namedItem("countedCash").value,{allowZero:true});
-   await api("/cash/close",{method:"POST",body:JSON.stringify({
-    countedCashMinor,
+   if(!can("canOpenClose")){
+    throw new Error("No tienes permiso para cerrar la caja.");
+   }
+   const payload={
+    countedCashMinor:parseMinor(
+     form.elements.namedItem("countedCash").value,
+     {allowZero:true}
+    ),
     closingNote:form.elements.namedItem("closingNote").value.trim()||null
-   })});
+   };
+   await cashMutation("close","/cash/close",payload);
    success("Caja cerrada.");
   }else return false;
   await fetchState();
@@ -306,8 +382,18 @@ export function createCashRegister({api,success,globalError,getMe}){
   void (async()=>{
    setBusy(true);
    try{
-    const amountMinor=parseMinor(event.target.elements.namedItem("openingFloat").value,{allowZero:true});
-    await api("/cash/open",{method:"POST",body:JSON.stringify({openingFloatMinor:amountMinor})});
+    if(!can("canOpenClose")){
+     throw new Error("No tienes permiso para abrir la caja.");
+    }
+    const amountMinor=parseMinor(
+     event.target.elements.namedItem("openingFloat").value,
+     {allowZero:true}
+    );
+    await cashMutation(
+     "open",
+     "/cash/open",
+     {openingFloatMinor:amountMinor}
+    );
     success("Caja abierta.");
     await fetchState();
    }catch(e){globalError(e.message||"No se pudo abrir la caja.");}
@@ -317,16 +403,18 @@ export function createCashRegister({api,success,globalError,getMe}){
  root.addEventListener("click",event=>{
   const sessionButton=event.target.closest("[data-cash-session]");
   if(sessionButton){
-   void openHistorySession(sessionButton.dataset.cashSession);
+   if(can("canViewHistory")){
+    void openHistorySession(sessionButton.dataset.cashSession);
+   }
    return;
   }
   const action=event.target.closest("[data-cash-action]")?.dataset?.cashAction;
-  if(action==="movement")openMovementDialog();
-  if(action==="close")openCloseDialog();
-  if(action==="history")render("history");
+  if(action==="movement"&&can("canRecordMovements"))openMovementDialog();
+  if(action==="close"&&can("canOpenClose"))openCloseDialog();
+  if(action==="history"&&can("canViewHistory"))render("history");
   if(action==="current")render();
   if(action==="config"&&owner())void configUi.load({renderView:true});
-  if(action==="reports"&&owner())void reportsUi.load();
+  if(action==="reports"&&can("canViewReports"))void reportsUi.load();
  });
  body.addEventListener("change",event=>{
   if(event.target?.name!=="movementType"||mode!=="movement")return;
