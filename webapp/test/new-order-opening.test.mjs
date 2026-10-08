@@ -73,3 +73,8 @@ test('new client action uses the portal dispatcher and a dedicated wizard transi
   assert.match(js,/case "new-client-from-order":[\s\S]*?getOrderWizard\(\)[\s\S]*?wizard=>wizard\.openClient\(\)/);
   assert.doesNotMatch(wizard,/data-wizard-action="new-client"/);
 });
+
+test('client created within order wizard must have a valid ID before resume',()=>{
+  assert.match(js,/if\(!\/\^\[a-f0-9-\]\{36\}\$\/i\.test\(String\(result\?\.client\?\.id\|\|""\)\)\)throw new Error/);
+  assert.match(js,/pendingOrderClientId=result\.client\.id;/);
+});
