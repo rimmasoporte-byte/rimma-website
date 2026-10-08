@@ -222,6 +222,71 @@ async function main(){
    await assertBrowser(`fetch('/__qa').then(response=>response.text()).then(text=>/Mutaciones:\\s*1\\./.test(text))`,'Duplicate notification interaction produced more than one mutation.');
    await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
 
+   // Caja y cobros: responsive layout, history, direction-aware cash movements,
+   // request guards and a real close/open cycle against synthetic data only.
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await click('button[data-view="caja"]');
+    await waitFor(`document.querySelector('#view-caja')?.classList.contains('active')&&document.querySelector('.cash-kpi-grid')`,'cash register view');
+    await assertBrowser(`document.querySelector('#heading-caja')?.textContent?.trim()==='Caja y cobros'`,'Cash register heading is inconsistent.');
+    await assertBrowser(`document.documentElement.scrollWidth<=innerWidth+2`,`Cash register introduces horizontal overflow at ${width}px.`);
+    await assertBrowser(`document.querySelector('.cash-balance-panel')?.textContent.includes('Efectivo esperado')`,'Owner must see expected physical cash.');
+    await assertBrowser(`document.querySelector('.cash-kpi-total')?.textContent.includes('Cobros del turno')`,'Cash turnover KPI is missing.');
+   }
+
+   await setViewport(1280,900);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('.cash-history-button')`,'cash history button');
+   await click('.cash-history-button');
+   await waitFor(`document.querySelector('.cash-history-row')`,'cash history list');
+   await click('.cash-history-row');
+   await waitFor(`document.querySelector('.cash-history-detail')`,'cash history detail');
+   await assertBrowser(`document.querySelector('.cash-history-detail')?.textContent.includes('Efectivo contado')`,'Closed cash detail must expose the real count.');
+   await assertBrowser(`document.querySelector('.cash-history-detail')?.textContent.includes('Diferencia')`,'Closed cash detail must preserve the difference.');
+   await click('.cash-history-detail [data-cash-action="history"]');
+   await waitFor(`document.querySelector('.cash-history-row')`,'return to cash history');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="movement"]')`,'cash movement action');
+   await click('[data-cash-action="movement"]');
+   await waitFor(`document.querySelector('.cash-dialog')?.open`,'cash movement dialog');
+   await evaluate(`(()=>{const type=document.querySelector('.cash-dialog [name="movementType"]');type.value='cash_out';type.dispatchEvent(new Event('change',{bubbles:true}));const amount=document.querySelector('.cash-dialog [name="amount"]');amount.value='1.25';const reason=document.querySelector('.cash-dialog [name="reasonCode"]');reason.value='bank_deposit';})()`);
+   await assertBrowser(`(()=>{const values=[...document.querySelector('.cash-dialog [name="reasonCode"]').options].map(x=>x.value);return values.includes('bank_deposit')&&!values.includes('owner_contribution')})()`,'Cash-out dialog exposes incompatible movement reasons.');
+   await click('#cash-dialog-submit');
+   await waitFor(`!document.querySelector('.cash-dialog')?.open`,'cash movement dialog close');
+   await waitFor(`document.querySelector('#cash-register-root')?.textContent.includes('Depósito en banco')`,'saved cash movement');
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Cash movement must create exactly one mutation.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=error&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="movement"]')`,'cash movement error fixture');
+   await click('[data-cash-action="movement"]');
+   await evaluate(`(()=>{document.querySelector('.cash-dialog [name="amount"]').value='1.00'})()`);
+   await click('#cash-dialog-submit');
+   await waitFor(`!document.querySelector('.cash-dialog-error')?.hidden`,'cash mutation error');
+   await assertBrowser(`document.querySelector('.cash-dialog')?.open===true&&document.querySelector('#cash-dialog-submit')?.disabled===false`,'Cash dialog must stay recoverable after an API error.');
+   await click('.cash-dialog-cancel');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=slow&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="movement"]')`,'cash movement slow fixture');
+   await click('[data-cash-action="movement"]');
+   await evaluate(`(()=>{document.querySelector('.cash-dialog [name="amount"]').value='1.00';const button=document.querySelector('#cash-dialog-submit');button.click();button.click();return true})()`);
+   await assertBrowser(`document.querySelector('#cash-dialog-submit')?.disabled===true`,'Cash mutation is not guarded while saving.');
+   await waitFor(`!document.querySelector('.cash-dialog')?.open`,'guarded cash mutation',5000);
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Duplicate cash interaction produced more than one mutation.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="close"]')`,'cash close action');
+   await click('[data-cash-action="close"]');
+   await evaluate(`(()=>{document.querySelector('.cash-dialog [name="countedCash"]').value='95.00'})()`);
+   await click('#cash-dialog-submit');
+   await waitFor(`!document.querySelector('.cash-dialog')?.open&&document.querySelector('.cash-status.is-closed')`,'cash close success');
+   await assertBrowser(`document.querySelector('#cash-opening-float')?.value==='0.00'`,'Next cash opening must not silently reuse the previous counted amount.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
    await setViewport(390,844);
    await click('button[data-view="clientes"]');
    await waitFor(`document.querySelector('#view-clientes')?.classList.contains('active')`,'Clientes navigation');
