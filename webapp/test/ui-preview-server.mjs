@@ -9,6 +9,7 @@ const root = path.resolve(process.env.UI_PUBLIC_DIR || fileURLToPath(new URL("..
 const flag = name => process.argv.includes(name) ? process.argv[process.argv.indexOf(name)+1] : undefined;
 const port = Number(flag("--port") || process.env.UI_PREVIEW_PORT || 19342);
 const id = n => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-a${String(n).repeat(3)}-${String(n).repeat(12)}`;
+const cashId = n => `00000000-0000-4000-a000-${String(n).padStart(12,"0")}`;
 const longName = "Arreglo de vestido de ceremonia con bordados y ajuste completo de mangas y cintura";
 const base = {
   clients: [{id:id(1),name:"María · Cliente de prueba",phone:"",email:"qa@example.invalid",notes:"Datos sintéticos",version:1}],
@@ -20,11 +21,36 @@ const base = {
     {id:id(6),categoryId:id(4),name:"ServicioConUnNombreMuyLargoSinEspacios".repeat(4),description:"Prueba de palabras largas y precios grandes",pricingMode:"from",priceMinor:9000000000000,currencyCode:"EUR",status:"active",version:2}]},
     {id:id(7),name:"CategoríaDePruebaSinEspacios".repeat(4),status:"active",version:1,services:[]}],
   payments:[{id:id(8),amountMinor:1500,currencyCode:"EUR",method:"cash",status:"pending",version:3}],
+  cash:{session:{id:cashId(10),cashRegisterId:cashId(11),registerName:"Caja principal",businessDate:"2026-10-08",status:"open",openingFloatMinor:5000,openedByUserId:id(1),openedByName:"María",openedAt:"2026-10-08T07:47:00.000Z",closedAt:null,expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,version:1},payments:[{id:cashId(12),orderId:id(2),orderNumber:21,clientName:"María · Cliente de prueba",amountMinor:2500,currencyCode:"EUR",method:"cash",confirmedAt:"2026-10-08T08:32:00.000Z"},{id:cashId(13),orderId:id(2),orderNumber:22,clientName:"Cliente sintético",amountMinor:4000,currencyCode:"EUR",method:"card",confirmedAt:"2026-10-08T09:04:00.000Z"}],movements:[{id:cashId(14),movementType:"cash_in",amountMinor:2000,reasonCode:"change_added",note:"Cambio adicional",actorName:"María",createdAt:"2026-10-08T08:15:00.000Z"}]},
+  cashHistory:[{id:cashId(15),registerName:"Caja principal",businessDate:"2026-10-07",status:"closed",openingFloatMinor:5000,openedAt:"2026-10-07T07:40:00.000Z",closedAt:"2026-10-07T17:03:00.000Z",expectedCashMinor:18650,countedCashMinor:18650,differenceMinor:0,confirmedPaidMinor:42650,byMethod:{cash:14650,card:25000,bank_transfer:3000},cashInMinor:0,cashOutMinor:1000}],
   measurements:[{id:id(9),garmentType:"dress",garmentLabel:"Vestido de prueba",unit:"cm",measurements:[{label:"Cintura",value:80}],status:"active",version:2}],
   photos:[{id:id(6),fileName:"FotografiaConNombreLargo".repeat(6)+".webp",caption:longName,photoType:"intake",status:"active",version:2}]
 };
 let data = structuredClone(base), calls = [], mode = "normal";
 const esc = text => String(text).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cashFixture=()=>{
+  if(!data.cash.session)return {session:null,summary:null,payments:[],movements:[]};
+  const byMethod={cash:0,card:0,bank_transfer:0,other:0};
+  for(const payment of data.cash.payments){
+    const method=Object.hasOwn(byMethod,payment.method)?payment.method:"other";
+    byMethod[method]+=Number(payment.amountMinor||0);
+  }
+  let cashInMinor=0,cashOutMinor=0;
+  for(const movement of data.cash.movements){
+    if(movement.movementType==="cash_in")cashInMinor+=Number(movement.amountMinor||0);
+    if(movement.movementType==="cash_out")cashOutMinor+=Number(movement.amountMinor||0);
+  }
+  const expectedCashMinor=Number(data.cash.session.openingFloatMinor||0)+byMethod.cash+cashInMinor-cashOutMinor;
+  return {
+    session:data.cash.session,
+    summary:{
+      confirmedPaidMinor:Object.values(byMethod).reduce((sum,value)=>sum+value,0),
+      byMethod,cashInMinor,cashOutMinor,expectedCashMinor,expectedCashHidden:false
+    },
+    payments:data.cash.payments,
+    movements:data.cash.movements
+  };
+};
 const send = (res, status, value, type="application/json; charset=utf-8") => {
   res.writeHead(status,{"content-type":type,"cache-control":"no-store","x-content-type-options":"nosniff"});
   res.end(typeof value === "string" || Buffer.isBuffer(value) ? value : JSON.stringify(value));
@@ -60,6 +86,20 @@ http.createServer(async(req,res)=>{
       calls.push({method:req.method,path:p,body});
       if(mode === "error")return send(res,409,{error:"Conflicto de prueba: actualiza el registro e inténtalo de nuevo."});
       if(mode === "slow")await new Promise(resolve=>setTimeout(resolve,1500));
+      if(p === "/cash/open" && req.method === "POST"){
+        data.cash.session={id:cashId(20),cashRegisterId:cashId(11),registerName:"Caja principal",businessDate:"2026-10-08",status:"open",openingFloatMinor:Number(body.openingFloatMinor||0),openedByUserId:id(1),openedByName:"María",openedAt:new Date().toISOString(),closedAt:null,expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,version:1};
+        data.cash.payments=[];data.cash.movements=[];return send(res,201,{success:true,...cashFixture()});
+      }
+      if(p === "/cash/movements" && req.method === "POST"){
+        data.cash.movements.unshift({id:cashId(21+data.cash.movements.length),movementType:body.movementType,amountMinor:Number(body.amountMinor),reasonCode:body.reasonCode,note:body.note||null,actorName:"María",createdAt:new Date().toISOString()});
+        return send(res,201,{success:true,...cashFixture()});
+      }
+      if(p === "/cash/close" && req.method === "POST"){
+        const fixture=cashFixture(),expected=fixture.summary.expectedCashMinor,counted=Number(body.countedCashMinor||0);
+        data.cash.session={...data.cash.session,status:"closed",closedAt:new Date().toISOString(),expectedCashMinor:expected,countedCashMinor:counted,differenceMinor:counted-expected,closingNote:body.closingNote||null,version:2};
+        data.cashHistory.unshift({...data.cash.session,registerName:"Caja principal",confirmedPaidMinor:fixture.summary.confirmedPaidMinor,byMethod:fixture.summary.byMethod,cashInMinor:fixture.summary.cashInMinor,cashOutMinor:fixture.summary.cashOutMinor});
+        data.cash={session:null,payments:[],movements:[]};return send(res,200,{success:true,session:data.cashHistory[0],summary:fixture.summary,payments:fixture.payments,movements:fixture.movements});
+      }
       if(req.method === "DELETE") {
         if(p.startsWith("/price-list/services/"))for(const c of data.categories)c.services=c.services.filter(s=>s.id!==p.split("/").at(-1));
         if(p.startsWith("/categories/"))data.categories=data.categories.filter(c=>c.id!==p.split("/").at(-1));
@@ -70,6 +110,13 @@ http.createServer(async(req,res)=>{
         const record=records.find(r=>r.id===p.split("/").at(-1));if(record)Object.assign(record,body,{version:record.version+1});
       }
       return send(res,200,{success:true});
+    }
+    if(p === "/cash/current")return send(res,200,cashFixture());
+    if(p === "/cash/sessions")return send(res,200,{sessions:data.cashHistory,limit:20,offset:0});
+    if(p.startsWith("/cash/sessions/")){
+      const item=data.cashHistory.find(row=>row.id===p.split("/").at(-1));
+      if(!item)return send(res,404,{error:"Caja no encontrada"});
+      return send(res,200,{session:item,summary:{confirmedPaidMinor:item.confirmedPaidMinor,byMethod:item.byMethod,cashInMinor:item.cashInMinor,cashOutMinor:item.cashOutMinor,expectedCashMinor:item.expectedCashMinor,expectedCashHidden:false},payments:[],movements:[]});
     }
     if(p === "/dashboard/today")return send(res,200,{dashboard:{summary:{dueToday:3,readyForPickup:12}}});
     if(p === "/dashboard/week")return send(res,200,{dashboard:{summary:{items:27}}});

@@ -135,8 +135,8 @@ async function createClientProtected(form){
  throw new Error("Los datos coinciden con un cliente existente. Revisa la ficha antes de continuar.");
 }
 const status={accepted:"Recibido",in_progress:"En proceso",ready:"Listo",issued:"Entregado",cancelled:"Cancelado"};
-const views={inicio:"Inicio",pedidos:"Pedidos",citas:"Citas",clientes:"Clientes",servicios:"Servicios",informes:"Informes",suscripcion:"Suscripción",cuenta:"Configuración"};
-const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","informes"]);
+const views={inicio:"Inicio",pedidos:"Pedidos",citas:"Citas",clientes:"Clientes",servicios:"Servicios",caja:"Caja y cobros",informes:"Informes",suscripcion:"Suscripción",cuenta:"Configuración"};
+const businessViews=new Set(["inicio","pedidos","citas","clientes","servicios","caja","informes"]);
 let subscriptionLocked=false;
 const checkoutRequested=new URLSearchParams(location.search).get("checkout")==="1";
 let checkoutHandled=false;
@@ -157,6 +157,9 @@ const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.create
  api,success,globalError,confirmAction,getMe:()=>me
 }));
 const notificationSettingsUI=import("/app/portal-notification-settings.mjs?v=20261007-v1").then(module=>module.createNotificationSettings({
+ api,success,globalError,getMe:()=>me
+}));
+const cashRegisterUI=import("/app/portal-cash-register.mjs?v=20261008-v1").then(module=>module.createCashRegister({
  api,success,globalError,getMe:()=>me
 }));
 let orderWizardInstance=null;
@@ -313,7 +316,7 @@ function go(view){
  $$("[data-view]").forEach(x=>{const selected=x.dataset.view===view;x.classList.toggle("active",selected);if(x.closest(".side-nav"))selected?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current");});
  $("#breadcrumb").textContent=views[view];closeDrawer();window.scrollTo(0,0);
  requestAnimationFrame(()=>{if($("#view-"+view)?.classList.contains("active"))window.scrollTo(0,0);});
- const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
+ const loaders={inicio:loadToday,pedidos:loadOrders,citas:loadAppointments,clientes:loadClients,servicios:loadServices,caja:()=>cashRegisterUI.then(ui=>ui.load()),informes:loadReport,suscripcion:loadBilling,cuenta:loadAccount};
  void loaders[view]();
 }
 async function downloadOrder(id){
