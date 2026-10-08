@@ -1,5 +1,6 @@
 import { money, uuid } from "./portal-core.mjs";
 import { createCashRegisterConfig } from "./portal-cash-register-config.mjs";
+import { createCashRegisterReports } from "./portal-cash-register-reports.mjs";
 
 const L=(typeof window!=="undefined"&&window.RimmaLocale)||{locale:"es-ES",currency:"EUR"};
 const reasonLabels=Object.freeze({
@@ -83,6 +84,10 @@ export function createCashRegister({api,success,globalError,getMe}){
  const configUi=createCashRegisterConfig({
   api,success,globalError,getMe,root,onBack:()=>render()
  });
+ const reportsUi=createCashRegisterReports({
+  api,globalError,getMe,root,onBack:()=>render(),
+  onOpenSession:sessionId=>void openHistorySession(sessionId,"reports")
+ });
 
  function owner(){return getMe?.()?.workspace?.role==="owner";}
  function setBusy(value){
@@ -110,7 +115,7 @@ export function createCashRegister({api,success,globalError,getMe}){
  }
  function emptyState(){
   const last=history[0],config=configUi.current();
-  return (owner()?'<div class="cash-empty-toolbar"><button type="button" class="secondary" data-cash-action="config">Configuración de caja</button></div>':"")+
+  return (owner()?'<div class="cash-empty-toolbar"><button type="button" class="secondary" data-cash-action="reports">Informe diario</button><button type="button" class="secondary" data-cash-action="config">Configuración de caja</button></div>':"")+
    '<div class="cash-empty-layout">'+
    '<section class="paper-panel cash-opening-card"><span class="cash-status is-closed">Caja cerrada</span>'+
    '<h2>Abre la caja para empezar el turno</h2>'+
@@ -162,6 +167,7 @@ export function createCashRegister({api,success,globalError,getMe}){
    '<strong>'+esc(s.registerName||"Caja principal")+'</strong><small>Desde '+esc(fmtTime(s.openedAt))+' · '+esc(s.businessDate||"")+'</small></div>'+
    '<div class="cash-status-actions" '+(owner()?"":"hidden")+'>'+
    '<button type="button" class="secondary cash-history-button" data-cash-action="history">Ver historial</button>'+
+   '<button type="button" class="secondary" data-cash-action="reports">Informe diario</button>'+
    '<button type="button" class="secondary" data-cash-action="config">Configuración</button></div></div>'+
    '<div class="cash-kpi-grid">'+
    '<article class="cash-kpi cash-kpi-total"><span>Cobros del turno</span><strong>'+esc(money(summary.confirmedPaidMinor,currency))+'</strong><small>Todos los métodos confirmados</small></article>'+
@@ -183,7 +189,8 @@ export function createCashRegister({api,success,globalError,getMe}){
   if(!owner())return "";
   if(!history.length)return '<div class="paper-panel"><p class="cash-empty">Todavía no hay cierres anteriores.</p></div>';
   return '<section class="paper-panel cash-history-panel"><div class="section-head"><div><span class="cash-mini-label">HISTORIAL</span><h2>Turnos de caja</h2></div>'+
-   '<button type="button" class="text-button" data-cash-action="current">Volver a caja actual</button></div>'+
+   '<div class="cash-history-actions"><button type="button" class="text-button" data-cash-action="reports">Informe diario</button>'+
+   '<button type="button" class="text-button" data-cash-action="current">Volver a caja actual</button></div></div>'+
    '<div class="cash-history-list">'+history.map(row=>
     '<button type="button" class="cash-history-row" data-cash-session="'+esc(row.id)+'">'+
     '<span><strong>'+esc(row.businessDate||"")+'</strong><small>'+esc(fmtDateTime(row.openedAt))+
@@ -193,12 +200,13 @@ export function createCashRegister({api,success,globalError,getMe}){
     (row.differenceMinor==null?"—":esc(signedMoney(row.differenceMinor,L.currency)))+'</strong></span>'+
     '<span aria-hidden="true">→</span></button>').join("")+'</div></section>';
  }
- function historyDetailMarkup(data){
+ function historyDetailMarkup(data,returnAction="history"){
   const s=data.session||{},summary=data.summary||{},currency=(data.payments?.[0]?.currencyCode)||L.currency||"EUR";
+  const backToReport=returnAction==="reports";
   return '<section class="paper-panel cash-history-panel cash-history-detail"><div class="section-head"><div><span class="cash-mini-label">CIERRE DE CAJA</span>'+
    '<h2>'+esc(s.businessDate||"Turno de caja")+'</h2><p class="cash-history-meta">'+esc(fmtDateTime(s.openedAt))+
    (s.closedAt?' → '+esc(fmtDateTime(s.closedAt)):"")+'</p></div>'+
-   '<button type="button" class="text-button" data-cash-action="history">← Volver al historial</button></div>'+
+   '<button type="button" class="text-button" data-cash-action="'+(backToReport?"reports":"history")+'">← '+(backToReport?"Volver al informe":"Volver al historial")+'</button></div>'+
    '<div class="cash-kpi-grid cash-history-kpis">'+
    '<article class="cash-kpi cash-kpi-total"><span>Cobros</span><strong>'+esc(money(summary.confirmedPaidMinor||0,currency))+'</strong><small>Turno confirmado</small></article>'+
    '<article class="cash-kpi"><span>Efectivo esperado</span><strong>'+esc(money(s.expectedCashMinor??summary.expectedCashMinor??0,currency))+'</strong><small>Saldo teórico</small></article>'+
@@ -215,12 +223,12 @@ export function createCashRegister({api,success,globalError,getMe}){
    (s.closingNote?'<div class="cash-close-note"><span>Observación de cierre</span><p>'+esc(s.closingNote)+'</p></div>':"")+
    '</aside></div></section>';
  }
- async function openHistorySession(sessionId){
+ async function openHistorySession(sessionId,returnAction="history"){
   if(!owner()||!uuid(sessionId))return;
   root.innerHTML='<div class="paper-panel"><p class="cash-empty">Cargando cierre…</p></div>';
   try{
    const data=await api("/cash/sessions/"+encodeURIComponent(sessionId));
-   root.innerHTML=historyDetailMarkup(data);
+   root.innerHTML=historyDetailMarkup(data,returnAction);
   }catch(error){
    globalError(error.message||"No se pudo cargar el cierre de caja.");
    render("history");
@@ -318,6 +326,7 @@ export function createCashRegister({api,success,globalError,getMe}){
   if(action==="history")render("history");
   if(action==="current")render();
   if(action==="config"&&owner())void configUi.load({renderView:true});
+  if(action==="reports"&&owner())void reportsUi.load();
  });
  body.addEventListener("change",event=>{
   if(event.target?.name!=="movementType"||mode!=="movement")return;
