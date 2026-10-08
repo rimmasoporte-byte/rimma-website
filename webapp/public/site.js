@@ -159,7 +159,7 @@ const teamUI=import("/app/team-view.mjs?v=20261004b").then(module=>module.create
 const notificationSettingsUI=import("/app/portal-notification-settings.mjs?v=20261007-v1").then(module=>module.createNotificationSettings({
  api,success,globalError,getMe:()=>me
 }));
-const cashRegisterUI=import("/app/portal-cash-register.mjs?v=20261008-v1").then(module=>module.createCashRegister({
+const cashRegisterUI=import("/app/portal-cash-register.mjs?v=20261008-v2").then(module=>module.createCashRegister({
  api,success,globalError,getMe:()=>me
 }));
 let orderWizardInstance=null;

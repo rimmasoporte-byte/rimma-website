@@ -234,6 +234,55 @@ async function main(){
     await assertBrowser(`document.querySelector('.cash-kpi-total')?.textContent.includes('Cobros del turno')`,'Cash turnover KPI is missing.');
    }
 
+   // Caja configuration: owner-only server-backed settings, responsive layout,
+   // optimistic save, recoverable errors and duplicate-submit protection.
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await click('button[data-view="caja"]');
+    await waitFor(`document.querySelector('[data-cash-action="config"]')`,'cash config action');
+    await click('[data-cash-action="config"]');
+    await waitFor(`document.querySelector('#cash-config-form')`,'cash config form');
+    await assertBrowser(`document.documentElement.scrollWidth<=innerWidth+2`,`Cash configuration introduces horizontal overflow at ${width}px.`);
+    await assertBrowser(`document.querySelector('[name="blindCountEnabled"]')?.checked===true`,'Blind cash count must load from server configuration.');
+    await assertBrowser(`document.querySelector('[name="defaultOpeningFloat"]')?.value==='50.00'`,'Default opening float must load from server configuration.');
+    await assertBrowser(`document.querySelector('.cash-config-panel')?.textContent.includes('Sin proveedor conectado')`,'Terminal configuration must not imply a provider is connected.');
+    await click('[data-cash-config-back]');
+    await waitFor(`document.querySelector('.cash-kpi-grid')`,'return from cash config');
+   }
+
+   await setViewport(1280,900);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'cash config save fixture');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('#cash-config-form')`,'cash config save form');
+   await evaluate(`(()=>{const blind=document.querySelector('[name="blindCountEnabled"]');blind.checked=false;blind.dispatchEvent(new Event('change',{bubbles:true}));const amount=document.querySelector('[name="defaultOpeningFloat"]');amount.value='75.00';return true})()`);
+   await click('#cash-config-form button[type="submit"]');
+   await waitFor(`document.querySelector('.cash-config-actions')?.textContent.includes('Versión 3')`,'saved cash config');
+   await assertBrowser(`document.querySelector('[name="blindCountEnabled"]')?.checked===false&&document.querySelector('[name="defaultOpeningFloat"]')?.value==='75.00'`,'Saved cash configuration was not re-rendered from the server response.');
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Cash configuration save must create exactly one mutation.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=error&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'cash config error fixture');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('#cash-config-form')`,'cash config error form');
+   await evaluate(`document.querySelector('[name="defaultOpeningFloat"]').value='60.00'`);
+   await click('#cash-config-form button[type="submit"]');
+   await waitFor(`!document.querySelector('.cash-config-error')?.hidden`,'cash config error');
+   await assertBrowser(`document.querySelector('#cash-config-form button[type="submit"]')?.disabled===false`,'Cash config form must remain recoverable after an API error.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=slow&reset=1'}).then(response=>response.text())`);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="config"]')`,'cash config slow fixture');
+   await click('[data-cash-action="config"]');
+   await waitFor(`document.querySelector('#cash-config-form')`,'cash config slow form');
+   await evaluate(`(()=>{const button=document.querySelector('#cash-config-form button[type="submit"]');button.click();button.click();return true})()`);
+   await assertBrowser(`document.querySelector('#cash-config-form button[type="submit"]')?.disabled===true`,'Cash config save is not guarded while pending.');
+   await waitFor(`document.querySelector('.cash-config-actions')?.textContent.includes('Versión 3')`,'guarded cash config save',5000);
+   await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Duplicate cash config submit produced more than one mutation.');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
    await setViewport(1280,900);
    await click('button[data-view="caja"]');
    await waitFor(`document.querySelector('.cash-history-button')`,'cash history button');
@@ -284,7 +333,7 @@ async function main(){
    await evaluate(`(()=>{document.querySelector('.cash-dialog [name="countedCash"]').value='95.00'})()`);
    await click('#cash-dialog-submit');
    await waitFor(`!document.querySelector('.cash-dialog')?.open&&document.querySelector('.cash-status.is-closed')`,'cash close success');
-   await assertBrowser(`document.querySelector('#cash-opening-float')?.value==='0.00'`,'Next cash opening must not silently reuse the previous counted amount.');
+   await assertBrowser(`document.querySelector('#cash-opening-float')?.value==='50.00'`,'Next cash opening must propose the configured habitual float, not reuse the previous counted amount.');
 
    await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
    await setViewport(390,844);
