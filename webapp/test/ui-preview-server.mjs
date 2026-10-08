@@ -52,6 +52,44 @@ const cashFixture=()=>{
     movements:data.cash.movements
   };
 };
+const cashDailyReport=date=>{
+  const businessDate=String(date||"2026-10-08");
+  if(data.cash.session&&data.cash.session.businessDate===businessDate){
+    const fixture=cashFixture(),s=fixture.session,t=fixture.summary;
+    return {report:{
+      businessDate,currencyCode:"EUR",sessionCount:1,
+      closedSessions:0,openSessions:1,sessionsWithDifference:0,
+      totals:{
+        confirmedPaidMinor:t.confirmedPaidMinor,
+        byMethod:t.byMethod,
+        cashInMinor:t.cashInMinor,
+        cashOutMinor:t.cashOutMinor,
+        closingDifferenceMinor:0
+      },
+      sessions:[{
+        id:s.id,registerName:s.registerName,status:s.status,
+        openedAt:s.openedAt,closedAt:null,
+        openingFloatMinor:s.openingFloatMinor,
+        expectedCashMinor:null,countedCashMinor:null,differenceMinor:null,
+        confirmedPaidMinor:t.confirmedPaidMinor,byMethod:t.byMethod,
+        cashInMinor:t.cashInMinor,cashOutMinor:t.cashOutMinor
+      }]
+    }};
+  }
+  const sessions=data.cashHistory.filter(row=>row.businessDate===businessDate);
+  const totals={confirmedPaidMinor:0,byMethod:{cash:0,card:0,bank_transfer:0,other:0},cashInMinor:0,cashOutMinor:0,closingDifferenceMinor:0};
+  let closedSessions=0,openSessions=0,sessionsWithDifference=0;
+  for(const row of sessions){
+    totals.confirmedPaidMinor+=Number(row.confirmedPaidMinor||0);
+    totals.cashInMinor+=Number(row.cashInMinor||0);
+    totals.cashOutMinor+=Number(row.cashOutMinor||0);
+    totals.closingDifferenceMinor+=Number(row.differenceMinor||0);
+    for(const key of Object.keys(totals.byMethod))totals.byMethod[key]+=Number(row.byMethod?.[key]||0);
+    if(row.status==="closed")closedSessions+=1;else openSessions+=1;
+    if(Number(row.differenceMinor||0)!==0)sessionsWithDifference+=1;
+  }
+  return {report:{businessDate,currencyCode:"EUR",sessionCount:sessions.length,closedSessions,openSessions,sessionsWithDifference,totals,sessions}};
+};
 const send = (res, status, value, type="application/json; charset=utf-8") => {
   res.writeHead(status,{"content-type":type,"cache-control":"no-store","x-content-type-options":"nosniff"});
   res.end(typeof value === "string" || Buffer.isBuffer(value) ? value : JSON.stringify(value));
@@ -122,6 +160,11 @@ http.createServer(async(req,res)=>{
       return send(res,200,{success:true});
     }
     if(p === "/cash/config")return send(res,200,{config:data.cashConfig});
+    if(p === "/cash/reports/daily"){
+      if(mode === "error")return send(res,503,{error:"Informe de caja no disponible en esta prueba."});
+      if(mode === "slow")await new Promise(resolve=>setTimeout(resolve,800));
+      return send(res,200,cashDailyReport(url.searchParams.get("date")));
+    }
     if(p === "/cash/current")return send(res,200,cashFixture());
     if(p === "/cash/sessions")return send(res,200,{sessions:data.cashHistory,limit:20,offset:0});
     if(p.startsWith("/cash/sessions/")){

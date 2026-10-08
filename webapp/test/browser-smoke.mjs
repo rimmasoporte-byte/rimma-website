@@ -282,6 +282,47 @@ async function main(){
    await waitFor(`document.querySelector('.cash-config-actions')?.textContent.includes('Versión 3')`,'guarded cash config save',5000);
    await assertBrowser(`fetch('/__qa').then(r=>r.text()).then(t=>/Mutaciones:\\s*1\\./.test(t))`,'Duplicate cash config submit produced more than one mutation.');
 
+   // Caja daily report: server read-model, responsive totals and recoverable read errors.
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
+   for(const width of [390,1280]){
+    await setViewport(width,width===390?844:900);
+    await click('button[data-view="caja"]');
+    await waitFor(`document.querySelector('[data-cash-action="reports"]')`,'cash daily report action');
+    await click('[data-cash-action="reports"]');
+    await waitFor(`document.querySelector('.cash-report-panel')`,'cash daily report panel');
+    await assertBrowser(`document.documentElement.scrollWidth<=innerWidth+2`,`Cash daily report introduces horizontal overflow at ${width}px.`);
+    await assertBrowser(`document.querySelector('.cash-report-panel')?.textContent.includes('Resumen diario')`,'Cash daily report heading is missing.');
+    await assertBrowser(`document.querySelector('.cash-report-panel')?.textContent.includes('Cobros con tarjeta')`,'Card turnover is missing from the daily report.');
+    await assertBrowser(`document.querySelector('.cash-report-panel')?.textContent.includes('Entradas')&&document.querySelector('.cash-report-panel')?.textContent.includes('Salidas')`,'Physical cash movements are missing from the daily report.');
+    await assertBrowser(`document.querySelector('.cash-report-panel')?.textContent.includes('No sustituye la contabilidad ni la facturación fiscal')`,'Cash report must not present itself as fiscal accounting.');
+    await click('[data-cash-report-back]');
+    await waitFor(`document.querySelector('.cash-kpi-grid')`,'return from daily cash report');
+   }
+
+   await setViewport(1280,900);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="reports"]')`,'cash report date navigation');
+   await click('[data-cash-action="reports"]');
+   await waitFor(`document.querySelector('#cash-report-filter')`,'cash report date filter');
+   await evaluate(`(()=>{const input=document.querySelector('#cash-report-filter [name="date"]');input.value='2026-10-07';input.dispatchEvent(new Event('change',{bubbles:true}));return true})()`);
+   await click('#cash-report-filter button[type="submit"]');
+   await waitFor(`document.querySelector('#cash-report-filter [name="date"]')?.value==='2026-10-07'&&document.querySelector('.cash-report-session')`,'historical daily cash report');
+   await click('.cash-report-session');
+   await waitFor(`document.querySelector('.cash-history-detail')`,'cash report session detail');
+   await assertBrowser(`document.querySelector('.cash-history-detail [data-cash-action="reports"]')?.textContent.includes('Volver al informe')`,'A session opened from a report must return to that report.');
+   await click('.cash-history-detail [data-cash-action="reports"]');
+   await waitFor(`document.querySelector('#cash-report-filter [name="date"]')?.value==='2026-10-07'`,'return to selected daily report');
+
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=error&reset=1'}).then(response=>response.text())`);
+   await setViewport(1280,900);
+   await click('button[data-view="caja"]');
+   await waitFor(`document.querySelector('[data-cash-action="reports"]')`,'cash report error action');
+   await click('[data-cash-action="reports"]');
+   await waitFor(`document.querySelector('[data-cash-report-retry]')`,'cash report retry');
+   await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal'}).then(response=>response.text())`);
+   await click('[data-cash-report-retry]');
+   await waitFor(`document.querySelector('.cash-report-panel')`,'cash report retry success');
+
    await evaluate(`fetch('/__qa',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:'mode=normal&reset=1'}).then(response=>response.text())`);
    await setViewport(1280,900);
    await click('button[data-view="caja"]');
