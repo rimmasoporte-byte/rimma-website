@@ -908,7 +908,8 @@ async function saveModal(event){
     return;
    }
    if(resumeOrder){
-    pendingOrderClientId=result?.client?.id||"";
+    if(!/^[a-f0-9-]{36}$/i.test(String(result?.client?.id||"")))throw new Error("No se pudo confirmar el cliente creado. Comprueba la ficha antes de continuar.");
+    pendingOrderClientId=result.client.id;
     $("#modal").close();
     success("Cliente creado. Continúa con el pedido.");
    }else{
